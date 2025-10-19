@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "PG Management",
+    "slug": "pg-mobile-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#3B82F6"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pgmanagement.app"
+    },
+    "android": {
+      "package": "com.pgmanagement.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#3B82F6"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "scheme": "pgapp"
+  }
+}
