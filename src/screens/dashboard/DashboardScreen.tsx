@@ -9,6 +9,7 @@ import { fetchPayments } from '../../store/slices/paymentSlice';
 import { Card } from '../../components/Card';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
+import { Ionicons } from '@expo/vector-icons';
 
 interface DashboardScreenProps {
   navigation: any;
@@ -62,11 +63,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const pendingPayments = payments.filter(p => p.status === 'PENDING').length;
 
   const menuItems = [
-    { title: 'PG Locations', icon: '🏢', screen: 'PGLocations', color: 'bg-purple-500' },
-    { title: 'Rooms', icon: '🏠', screen: 'Rooms', color: 'bg-green-500' },
-    { title: 'Tenants', icon: '👥', screen: 'Tenants', color: 'bg-blue-500' },
-    { title: 'Payments', icon: '💰', screen: 'Payments', color: 'bg-yellow-500' },
-    { title: 'Settings', icon: '⚙️', screen: 'Settings', color: 'bg-gray-500' },
+    { title: 'PG Locations', icon: 'business', screen: 'PGLocations', color: '#A855F7' },
+    { title: 'Rooms', icon: 'home', screen: 'Rooms', color: '#22C55E' },
+    { title: 'Beds', icon: 'bed', screen: 'Beds', color: '#3B82F6' },
+    { title: 'Tenants', icon: 'people', screen: 'Tenants', color: '#06B6D4' },
+    { title: 'Payments', icon: 'cash', screen: 'Payments', color: '#EAB308' },
+    { title: 'Settings', icon: 'settings', screen: 'Settings', color: '#6B7280' },
   ];
 
   return (
@@ -149,9 +151,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           </View>
 
           {/* Quick Actions */}
-          <View className="px-4 mb-6">
-            <Text className="text-xl font-bold text-dark mb-4">Quick Actions</Text>
-            <View className="flex-row flex-wrap justify-between">
+          <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: Theme.colors.text.primary, marginBottom: 16 }}>
+              Quick Actions
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
               {menuItems.map((item, index) => (
                 <TouchableOpacity
                   key={index}
@@ -160,13 +164,25 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                       navigation.navigate(item.screen);
                     }
                   }}
-                  className="w-[48%] mb-4"
+                  style={{ width: '48%', marginBottom: 16 }}
                 >
-                  <Card className="items-center py-6">
-                    <View className={`w-16 h-16 ${item.color} rounded-full items-center justify-center mb-3`}>
-                      <Text className="text-3xl">{item.icon}</Text>
+                  <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
+                    <View
+                      style={{
+                        width: 64,
+                        height: 64,
+                        backgroundColor: item.color,
+                        borderRadius: 32,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: 12,
+                      }}
+                    >
+                      <Ionicons name={item.icon as any} size={32} color="#fff" />
                     </View>
-                    <Text className="text-dark font-semibold text-center">{item.title}</Text>
+                    <Text style={{ color: Theme.colors.text.primary, fontWeight: '600', textAlign: 'center' }}>
+                      {item.title}
+                    </Text>
                   </Card>
                 </TouchableOpacity>
               ))}

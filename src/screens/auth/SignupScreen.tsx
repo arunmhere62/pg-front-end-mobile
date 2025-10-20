@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Theme } from '../../theme';
 import axiosInstance from '../../services/axiosInstance';
@@ -498,11 +498,20 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
   return (
     <View style={{ flex: 1, backgroundColor: Theme.colors.primary }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <View style={{ flex: 1, backgroundColor: Theme.colors.light }}>
-          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
-            {renderStepIndicator()}
-            {currentStep === 1 ? renderStep1() : renderStep2()}
-          </ScrollView>
+        <KeyboardAvoidingView 
+          style={{ flex: 1 }} 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <View style={{ flex: 1, backgroundColor: Theme.colors.light }}>
+            <ScrollView 
+              contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {renderStepIndicator()}
+              {currentStep === 1 ? renderStep1() : renderStep2()}
+            </ScrollView>
 
           {/* Bottom Action Buttons */}
           <View
@@ -567,7 +576,8 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
               <Text style={{ color: Theme.colors.primary, fontWeight: 'bold' }}>Login</Text>
             </Text>
           </TouchableOpacity>
-        </View>
+          </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
   );

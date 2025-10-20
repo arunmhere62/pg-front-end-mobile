@@ -8,6 +8,8 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
@@ -16,7 +18,10 @@ import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
-import api from '../../services/api';
+import { ImageUpload } from '../../components/ImageUpload';
+import { DatePicker } from '../../components/DatePicker';
+import { SearchableDropdown } from '../../components/SearchableDropdown';
+import axiosInstance from '../../services/axiosInstance';
 
 interface AddTenantScreenProps {
   navigation: any;
@@ -48,16 +53,8 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
   // Dropdown data
   const [roomList, setRoomList] = useState<OptionType[]>([]);
   const [bedsList, setBedsList] = useState<OptionType[]>([]);
-  const [statesList, setStatesList] = useState<OptionType[]>([]);
-  const [citiesList, setCitiesList] = useState<OptionType[]>([]);
   const [stateData, setStateData] = useState<StateData[]>([]);
-
-  // Dropdown visibility
-  const [showRoomDropdown, setShowRoomDropdown] = useState(false);
-  const [showBedDropdown, setShowBedDropdown] = useState(false);
-  const [showStateDropdown, setShowStateDropdown] = useState(false);
-  const [showCityDropdown, setShowCityDropdown] = useState(false);
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [cityData, setCityData] = useState<CityData[]>([]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -67,20 +64,141 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
     email: '',
     occupation: '',
     tenant_address: '',
-    room_id: '',
-    room_label: '',
-    bed_id: '',
-    bed_label: '',
+    room_id: null as number | null,
+    bed_id: null as number | null,
     check_in_date: new Date().toISOString().split('T')[0],
     check_out_date: '',
-    city_id: '',
-    city_label: '',
-    state_id: '',
-    state_label: '',
+    city_id: null as number | null,
+    state_id: null as number | null,
     status: 'ACTIVE',
   });
 
+  const [tenantImages, setTenantImages] = useState<string[]>([]);
+  const [proofDocuments, setProofDocuments] = useState<string[]>([]);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loadingStates, setLoadingStates] = useState(false);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [loadingRooms, setLoadingRooms] = useState(false);
+  const [loadingBeds, setLoadingBeds] = useState(false);
+
+  // Fetch states on mount
+  useEffect(() => {
+    fetchStates();
+  }, []);
+
+  // Fetch rooms when PG location is selected
+  useEffect(() => {
+    if (selectedPGLocationId) {
+      fetchRooms();
+    }
+  }, [selectedPGLocationId]);
+
+  // Fetch beds when room is selected
+  useEffect(() => {
+    if (formData.room_id) {
+      fetchBeds(formData.room_id.toString());
+    } else {
+      setBedsList([]);
+      setFormData(prev => ({ ...prev, bed_id: null }));
+    }
+  }, [formData.room_id]);
+
+  // Fetch cities when state is selected
+  useEffect(() => {
+    if (formData.state_id) {
+      const selectedState = stateData.find(s => s.s_no === formData.state_id);
+      if (selectedState) {
+        fetchCities(selectedState.iso_code);
+      }
+    } else {
+      setCityData([]);
+      setFormData(prev => ({ ...prev, city_id: null }));
+    }
+  }, [formData.state_id, stateData]);
+
+  const fetchStates = async () => {
+    setLoadingStates(true);
+    try {
+      const response = await axiosInstance.get('/location/states', {
+        params: { countryCode: 'IN' },
+      });
+      if (response.data.success) {
+        const states = response.data.data;
+        setStateData(states);
+      }
+    } catch (error) {
+      console.error('Error fetching states:', error);
+      Alert.alert('Error', 'Failed to load states');
+    } finally {
+      setLoadingStates(false);
+    }
+  };
+
+  const fetchCities = async (stateCode: string) => {
+    setLoadingCities(true);
+    try {
+      const response = await axiosInstance.get('/location/cities', {
+        params: { stateCode },
+      });
+      if (response.data.success) {
+        const cities = response.data.data;
+        setCityData(cities);
+      }
+    } catch (error) {
+      console.error('Error fetching cities:', error);
+      Alert.alert('Error', 'Failed to load cities');
+    } finally {
+      setLoadingCities(false);
+    }
+  };
+
+  const fetchRooms = async () => {
+    setLoadingRooms(true);
+    try {
+      const response = await axiosInstance.get('/rooms', {
+      });
+      if (response.data.success) {
+        const rooms = response.data.data;
+        setRoomList(
+          rooms.map((room: any) => ({
+            label: `Room ${room.room_no}`,
+            value: room.s_no.toString(),
+          }))
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+      Alert.alert('Error', 'Failed to load rooms');
+    } finally {
+      setLoadingRooms(false);
+    }
+  };
+
+  const fetchBeds = async (roomId: string) => {
+    setLoadingBeds(true);
+    try {
+      const response = await axiosInstance.get('/beds', {
+        params: {
+          room_id: roomId,
+        },
+      });
+      if (response.data.success) {
+        const beds = response.data.data;
+        setBedsList(
+          beds.map((bed: any) => ({
+            label: `Bed ${bed.bed_no}`,
+            value: bed.s_no.toString(),
+          }))
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching beds:', error);
+      Alert.alert('Error', 'Failed to load beds');
+    } finally {
+      setLoadingBeds(false);
+    }
+  };
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -109,6 +227,14 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
 
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Invalid email format';
+    }
+
+    if (!formData.room_id) {
+      newErrors.room_id = 'Room is required';
+    }
+
+    if (!formData.bed_id) {
+      newErrors.bed_id = 'Bed is required';
     }
 
     if (!formData.check_in_date) {
@@ -141,11 +267,13 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
         occupation: formData.occupation.trim() || undefined,
         tenant_address: formData.tenant_address.trim() || undefined,
         pg_id: selectedPGLocationId,
-        room_id: formData.room_id ? parseInt(formData.room_id) : undefined,
-        bed_id: formData.bed_id ? parseInt(formData.bed_id) : undefined,
+        room_id: formData.room_id || undefined,
+        bed_id: formData.bed_id || undefined,
         check_in_date: formData.check_in_date,
-        city_id: formData.city_id ? parseInt(formData.city_id) : undefined,
-        state_id: formData.state_id ? parseInt(formData.state_id) : undefined,
+        city_id: formData.city_id || undefined,
+        state_id: formData.state_id || undefined,
+        images: tenantImages.length > 0 ? tenantImages : undefined,
+        proof_documents: proofDocuments.length > 0 ? proofDocuments : undefined,
         status: 'ACTIVE' as const,
       };
 
@@ -181,7 +309,17 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
         onBackPress={() => navigation.goBack()}
       />
 
-      <ScrollView style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 80}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 150 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         <View style={{ padding: 16 }}>
           {/* Personal Information */}
           <Card style={{ padding: 16, marginBottom: 16 }}>
@@ -328,6 +466,37 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
               📍 Address Information
             </Text>
 
+            {/* State Select */}
+            <SearchableDropdown
+              label="State"
+              placeholder="Select a state"
+              items={stateData.map(state => ({
+                id: state.s_no,
+                label: state.name,
+                value: state.iso_code,
+              }))}
+              selectedValue={formData.state_id}
+              onSelect={(item) => setFormData(prev => ({ ...prev, state_id: item.id }))}
+              loading={loadingStates}
+              required={false}
+            />
+
+            {/* City Select */}
+            <SearchableDropdown
+              label="City"
+              placeholder="Select a city"
+              items={cityData.map(city => ({
+                id: city.s_no,
+                label: city.name,
+                value: city.s_no,
+              }))}
+              selectedValue={formData.city_id}
+              onSelect={(item) => setFormData(prev => ({ ...prev, city_id: item.id }))}
+              loading={loadingCities}
+              disabled={!formData.state_id}
+              required={false}
+            />
+
             {/* Address */}
             <View style={{ marginBottom: 0 }}>
               <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 6 }}>
@@ -365,70 +534,91 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
               🏠 Accommodation Details
             </Text>
 
-            {/* Room ID */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 6 }}>
-                Room ID
-              </Text>
-              <TextInput
-                value={formData.room_id}
-                onChangeText={(value) => updateField('room_id', value)}
-                placeholder="Enter room ID (optional)"
-                keyboardType="numeric"
-                style={{
-                  borderWidth: 1,
-                  borderColor: Theme.colors.border,
-                  borderRadius: 8,
-                  padding: 12,
-                  fontSize: 14,
-                  backgroundColor: '#fff',
-                }}
-              />
-            </View>
+            {/* Room Select */}
+            <SearchableDropdown
+              label="Room"
+              placeholder="Select a room"
+              items={roomList.map(room => ({
+                id: parseInt(room.value),
+                label: room.label,
+                value: room.value,
+              }))}
+              selectedValue={formData.room_id}
+              onSelect={(item) => setFormData(prev => ({ ...prev, room_id: item.id }))}
+              loading={loadingRooms}
+              error={errors.room_id}
+              required={true}
+            />
 
-            {/* Bed ID */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 6 }}>
-                Bed ID
-              </Text>
-              <TextInput
-                value={formData.bed_id}
-                onChangeText={(value) => updateField('bed_id', value)}
-                placeholder="Enter bed ID (optional)"
-                keyboardType="numeric"
-                style={{
-                  borderWidth: 1,
-                  borderColor: Theme.colors.border,
-                  borderRadius: 8,
-                  padding: 12,
-                  fontSize: 14,
-                  backgroundColor: '#fff',
-                }}
-              />
-            </View>
+            {/* Bed Select */}
+            <SearchableDropdown
+              label="Bed"
+              placeholder="Select a bed"
+              items={bedsList.map(bed => ({
+                id: parseInt(bed.value),
+                label: bed.label,
+                value: bed.value,
+              }))}
+              selectedValue={formData.bed_id}
+              onSelect={(item) => setFormData(prev => ({ ...prev, bed_id: item.id }))}
+              loading={loadingBeds}
+              disabled={!formData.room_id}
+              error={errors.bed_id}
+              required={true}
+            />
 
             {/* Check-in Date */}
-            <View style={{ marginBottom: 0 }}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 6 }}>
-                Check-in Date <Text style={{ color: '#EF4444' }}>*</Text>
-              </Text>
-              <TextInput
-                value={formData.check_in_date}
-                onChangeText={(value) => updateField('check_in_date', value)}
-                placeholder="YYYY-MM-DD"
-                style={{
-                  borderWidth: 1,
-                  borderColor: errors.check_in_date ? '#EF4444' : Theme.colors.border,
-                  borderRadius: 8,
-                  padding: 12,
-                  fontSize: 14,
-                  backgroundColor: '#fff',
-                }}
-              />
-              {errors.check_in_date && (
-                <Text style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{errors.check_in_date}</Text>
-              )}
-            </View>
+            <DatePicker
+              label="Check-in Date"
+              value={formData.check_in_date}
+              onChange={(date) => updateField('check_in_date', date)}
+              error={errors.check_in_date}
+              required={true}
+              minimumDate={new Date()}
+            />
+          </Card>
+
+          {/* Tenant Images */}
+          <Card style={{ padding: 16, marginBottom: 16 }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: '700',
+                color: Theme.colors.text.primary,
+                marginBottom: 16,
+              }}
+            >
+              📷 Tenant Images
+            </Text>
+            <ImageUpload
+              images={tenantImages}
+              onImagesChange={setTenantImages}
+              maxImages={5}
+              label="Tenant Photos"
+            />
+          </Card>
+
+          {/* Proof Documents */}
+          <Card style={{ padding: 16, marginBottom: 16 }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: '700',
+                color: Theme.colors.text.primary,
+                marginBottom: 16,
+              }}
+            >
+              📄 Proof Documents
+            </Text>
+            <ImageUpload
+              images={proofDocuments}
+              onImagesChange={setProofDocuments}
+              maxImages={5}
+              label="ID Proof / Documents"
+            />
+            <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, marginTop: 8 }}>
+              Upload Aadhaar, PAN, Driving License, or other ID proofs
+            </Text>
           </Card>
 
           {/* Submit Button */}
@@ -450,7 +640,8 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
             )}
           </TouchableOpacity>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ScreenLayout>
   );
 };

@@ -11,14 +11,19 @@ import {
   ActivityIndicator,
   ScrollView,
   Image,
+  Dimensions,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { useFocusEffect } from '@react-navigation/native';
 import { AppDispatch, RootState } from '../../store';
 import { fetchTenants, deleteTenant, checkoutTenant } from '../../store/slices/tenantSlice';
 import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
+import { Ionicons } from '@expo/vector-icons';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface TenantsScreenProps {
   navigation: any;
@@ -67,6 +72,13 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
   useEffect(() => {
     loadTenants(1);
   }, [selectedPGLocationId, statusFilter, selectedRoomId, pendingRentFilter, pendingAdvanceFilter]);
+
+  // Reload tenants when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadTenants(currentPage);
+    }, [selectedPGLocationId, statusFilter, selectedRoomId, pendingRentFilter, pendingAdvanceFilter, currentPage])
+  );
 
   const loadTenants = async (page: number) => {
     try {
@@ -176,6 +188,22 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
     );
   };
 
+  const clearFilters = () => {
+    setStatusFilter('ALL');
+    setSelectedRoomId(null);
+    setPendingRentFilter(false);
+    setPendingAdvanceFilter(false);
+  };
+
+  const getFilterCount = () => {
+    let count = 0;
+    if (statusFilter !== 'ALL') count++;
+    if (selectedRoomId !== null) count++;
+    if (pendingRentFilter) count++;
+    if (pendingAdvanceFilter) count++;
+    return count;
+  };
+
   const renderTenantCard = ({ item }: any) => {
     // Get tenant image
     const tenantImage = item.images && Array.isArray(item.images) && item.images.length > 0 
@@ -183,9 +211,17 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
       : null;
 
     const showPaymentDetails = expandedPaymentCards.has(item.s_no);
+    const hasPendingPayment = item.pending_payment && item.pending_payment.total_pending > 0;
+    const isOverdue = item.pending_payment?.payment_status === 'OVERDUE';
 
     return (
-      <Card style={{ marginBottom: 12, padding: 12 }}>
+      <Card style={{ 
+        marginBottom: 12, 
+        padding: 12,
+        borderLeftWidth: hasPendingPayment ? 4 : 0,
+        borderLeftColor: isOverdue ? '#EF4444' : 
+                        item.pending_payment?.payment_status === 'PARTIAL' ? '#F59E0B' : '#3B82F6',
+      }}>
         {/* Header with Image */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
           {/* Tenant Image/Avatar */}
@@ -214,9 +250,31 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
 
           {/* Name and ID */}
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: Theme.colors.text.primary }}>
-              {item.name}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: Theme.colors.text.primary }}>
+                {item.name}
+              </Text>
+              {/* Pending Payment Tag */}
+              {item.pending_payment && item.pending_payment.total_pending > 0 && (
+                <View style={{
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 10,
+                  backgroundColor: 
+                    item.pending_payment.payment_status === 'OVERDUE' ? '#EF4444' : 
+                    item.pending_payment.payment_status === 'PARTIAL' ? '#F59E0B' : '#3B82F6',
+                }}>
+                  <Text style={{
+                    fontSize: 10,
+                    fontWeight: '700',
+                    color: '#fff',
+                  }}>
+                    {item.pending_payment.payment_status === 'OVERDUE' ? '⚠️ OVERDUE' : 
+                     item.pending_payment.payment_status === 'PARTIAL' ? '⏳ PARTIAL' : '📅 PENDING'}
+                  </Text>
+                </View>
+              )}
+            </View>
             <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary, marginTop: 2 }}>
               ID: {item.tenant_id}
             </Text>
@@ -315,14 +373,19 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
               {item.pending_payment.payment_status === 'OVERDUE' ? '⚠️ OVERDUE' : 
                item.pending_payment.payment_status === 'PARTIAL' ? '⏳ PARTIAL PAYMENT' : '📅 PENDING'}
             </Text>
-            <Text style={{ 
-              fontSize: 14, 
-              fontWeight: '700', 
-              color: item.pending_payment.payment_status === 'OVERDUE' ? '#DC2626' : 
-                     item.pending_payment.payment_status === 'PARTIAL' ? '#D97706' : '#2563EB'
-            }}>
-              ₹{item.pending_payment.total_pending}
-            </Text>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: '700', 
+                color: item.pending_payment.payment_status === 'OVERDUE' ? '#DC2626' : 
+                       item.pending_payment.payment_status === 'PARTIAL' ? '#D97706' : '#2563EB'
+              }}>
+                ₹{item.pending_payment.total_pending}
+              </Text>
+              <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary }}>
+                Balance
+              </Text>
+            </View>
           </View>
           
           {item.pending_payment.overdue_months > 0 && (
@@ -660,10 +723,9 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
     <ScreenLayout>
       <ScreenHeader title="Tenants" subtitle={`${pagination?.total || 0} total`} />
 
-      {/* Compact Search & Filter Bar */}
+      {/* Search & Filter Bar */}
       <View style={{ backgroundColor: '#fff', padding: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border }}>
-        {/* Search Bar */}
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
           <TextInput
             style={{
               flex: 1,
@@ -687,201 +749,322 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
               justifyContent: 'center',
             }}
           >
-            <Text style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>🔍</Text>
+            <Ionicons name="search" size={18} color="#fff" />
           </TouchableOpacity>
-        </View>
-
-        {/* Filters Row - Status & Room */}
-        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', position: 'relative', zIndex: 1000 }}>
-          {/* Status Filter */}
-          <View style={{ flexDirection: 'row', gap: 6, flex: 1, flexWrap: 'wrap' }}>
-            {['ALL', 'ACTIVE', 'INACTIVE'].map((status) => (
-              <TouchableOpacity
-                key={status}
-                onPress={() => setStatusFilter(status as any)}
+          <TouchableOpacity
+            onPress={() => setShowFilters(!showFilters)}
+            style={{
+              backgroundColor: getFilterCount() > 0 ? Theme.colors.primary : Theme.colors.light,
+              borderRadius: 8,
+              paddingHorizontal: 14,
+              justifyContent: 'center',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            <Ionicons name="filter" size={18} color={getFilterCount() > 0 ? '#fff' : Theme.colors.text.primary} />
+            {getFilterCount() > 0 && (
+              <View
                 style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 16,
-                  backgroundColor: statusFilter === status ? Theme.colors.primary : '#F3F4F6',
-                }}
-              >
-                <Text style={{
-                  fontSize: 11,
-                  fontWeight: '600',
-                  color: statusFilter === status ? '#fff' : Theme.colors.text.secondary,
-                }}>
-                  {status}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Room Dropdown Button */}
-          {rooms.length > 0 && (
-            <View style={{ position: 'relative' }}>
-              <TouchableOpacity
-                onPress={() => setShowFilters(!showFilters)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 8,
-                  backgroundColor: selectedRoomId ? Theme.colors.primary : '#F3F4F6',
-                  gap: 4,
-                }}
-              >
-                <Text style={{
-                  fontSize: 11,
-                  fontWeight: '600',
-                  color: selectedRoomId ? '#fff' : Theme.colors.text.secondary,
-                }}>
-                  {selectedRoomId 
-                    ? `Room ${rooms.find((r: any) => r.s_no === selectedRoomId)?.room_no}` 
-                    : '🏠 Room'}
-                </Text>
-                <Text style={{ fontSize: 10, color: selectedRoomId ? '#fff' : Theme.colors.text.secondary }}>
-                  {showFilters ? '▲' : '▼'}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Room Dropdown Menu - Absolute Overlay */}
-              {showFilters && (
-                <View style={{
-                  position: 'absolute',
-                  top: 32,
-                  right: 0,
-                  minWidth: 150,
                   backgroundColor: '#fff',
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: Theme.colors.border,
-                  maxHeight: 250,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.15,
-                  shadowRadius: 8,
-                  elevation: 8,
-                  zIndex: 2000,
-                }}>
-                  <ScrollView>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSelectedRoomId(null);
-                        setShowFilters(false);
-                      }}
-                      style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 10,
-                        borderBottomWidth: 1,
-                        borderBottomColor: Theme.colors.border,
-                        backgroundColor: selectedRoomId === null ? '#F3F4F6' : '#fff',
-                      }}
-                    >
-                      <Text style={{
-                        fontSize: 13,
-                        fontWeight: selectedRoomId === null ? '600' : '400',
-                        color: Theme.colors.text.primary,
-                      }}>
-                        All Rooms
-                      </Text>
-                    </TouchableOpacity>
-                    {rooms.map((room: any, index: number) => (
-                      <TouchableOpacity
-                        key={room.s_no}
-                        onPress={() => {
-                          setSelectedRoomId(room.s_no);
-                          setShowFilters(false);
-                        }}
-                        style={{
-                          paddingHorizontal: 12,
-                          paddingVertical: 10,
-                          borderBottomWidth: index < rooms.length - 1 ? 1 : 0,
-                          borderBottomColor: Theme.colors.border,
-                          backgroundColor: selectedRoomId === room.s_no ? '#F3F4F6' : '#fff',
-                        }}
-                      >
-                        <Text style={{
-                          fontSize: 13,
-                          fontWeight: selectedRoomId === room.s_no ? '600' : '400',
-                          color: Theme.colors.text.primary,
-                        }}>
-                          Room {room.room_no}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
-          )}
-        </View>
-
-        {/* Payment Filters Row */}
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-          {/* Pending Rent Filter */}
-          <TouchableOpacity
-            onPress={() => setPendingRentFilter(!pendingRentFilter)}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 16,
-              backgroundColor: pendingRentFilter ? '#EF4444' : '#F3F4F6',
-              gap: 4,
-            }}
-          >
-            <Text style={{
-              fontSize: 11,
-              fontWeight: '600',
-              color: pendingRentFilter ? '#fff' : Theme.colors.text.secondary,
-            }}>
-              ⚠️ Pending Rent
-            </Text>
-          </TouchableOpacity>
-
-          {/* Pending Advance Filter */}
-          <TouchableOpacity
-            onPress={() => setPendingAdvanceFilter(!pendingAdvanceFilter)}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 16,
-              backgroundColor: pendingAdvanceFilter ? '#F59E0B' : '#F3F4F6',
-              gap: 4,
-            }}
-          >
-            <Text style={{
-              fontSize: 11,
-              fontWeight: '600',
-              color: pendingAdvanceFilter ? '#fff' : Theme.colors.text.secondary,
-            }}>
-              💰 No Advance
-            </Text>
+                  borderRadius: 10,
+                  width: 20,
+                  height: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '700', color: Theme.colors.primary }}>
+                  {getFilterCount()}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Backdrop to close dropdown when clicking outside */}
-      {showFilters && (
+      {/* Filter Modal Overlay */}
+      <Modal
+        visible={showFilters}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowFilters(false)}
+      >
         <TouchableOpacity
           activeOpacity={1}
           onPress={() => setShowFilters(false)}
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 999,
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'flex-end',
           }}
-        />
-      )}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+            <View
+              style={{
+                backgroundColor: '#fff',
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                maxHeight: SCREEN_HEIGHT * 0.7,
+              }}
+            >
+              {/* Handle Bar */}
+              <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 4,
+                    backgroundColor: Theme.colors.border,
+                    borderRadius: 2,
+                  }}
+                />
+              </View>
 
+              {/* Header */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 20,
+                  paddingVertical: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: Theme.colors.border,
+                }}
+              >
+                <View>
+                  <Text style={{ fontSize: 20, fontWeight: '700', color: Theme.colors.text.primary }}>
+                    Filter Tenants
+                  </Text>
+                  {getFilterCount() > 0 && (
+                    <Text style={{ fontSize: 13, color: Theme.colors.text.secondary, marginTop: 2 }}>
+                      {getFilterCount()} filter{getFilterCount() > 1 ? 's' : ''} active
+                    </Text>
+                  )}
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowFilters(false)}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    backgroundColor: Theme.colors.light,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="close" size={20} color={Theme.colors.text.secondary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Filter Content */}
+              <ScrollView style={{ maxHeight: SCREEN_HEIGHT * 0.5 }} contentContainerStyle={{ padding: 20 }}>
+                {/* Status Filter */}
+                <View style={{ marginBottom: 24 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 12 }}>
+                    Filter by Status
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {['ALL', 'ACTIVE', 'INACTIVE'].map((status) => (
+                      <TouchableOpacity
+                        key={status}
+                        onPress={() => setStatusFilter(status as any)}
+                        style={{
+                          flex: 1,
+                          paddingVertical: 12,
+                          borderRadius: 8,
+                          backgroundColor: statusFilter === status ? Theme.colors.primary : '#fff',
+                          borderWidth: 1,
+                          borderColor: statusFilter === status ? Theme.colors.primary : Theme.colors.border,
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 13,
+                            fontWeight: '600',
+                            color: statusFilter === status ? '#fff' : Theme.colors.text.secondary,
+                          }}
+                        >
+                          {status}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Room Filter */}
+                {rooms.length > 0 && (
+                  <View style={{ marginBottom: 24 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 12 }}>
+                      Filter by Room
+                    </Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                      <TouchableOpacity
+                        onPress={() => setSelectedRoomId(null)}
+                        style={{
+                          paddingHorizontal: 16,
+                          paddingVertical: 10,
+                          borderRadius: 8,
+                          backgroundColor: selectedRoomId === null ? Theme.colors.primary : '#fff',
+                          borderWidth: 1,
+                          borderColor: selectedRoomId === null ? Theme.colors.primary : Theme.colors.border,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 13,
+                            fontWeight: '600',
+                            color: selectedRoomId === null ? '#fff' : Theme.colors.text.secondary,
+                          }}
+                        >
+                          All Rooms
+                        </Text>
+                      </TouchableOpacity>
+                      {rooms.map((room: any) => (
+                        <TouchableOpacity
+                          key={room.s_no}
+                          onPress={() => setSelectedRoomId(room.s_no)}
+                          style={{
+                            paddingHorizontal: 16,
+                            paddingVertical: 10,
+                            borderRadius: 8,
+                            backgroundColor: selectedRoomId === room.s_no ? Theme.colors.primary : '#fff',
+                            borderWidth: 1,
+                            borderColor: selectedRoomId === room.s_no ? Theme.colors.primary : Theme.colors.border,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 13,
+                              fontWeight: '600',
+                              color: selectedRoomId === room.s_no ? '#fff' : Theme.colors.text.secondary,
+                            }}
+                          >
+                            {room.room_no}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Payment Filters */}
+                <View style={{ marginBottom: 24 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 12 }}>
+                    Payment Filters
+                  </Text>
+                  <View style={{ gap: 8 }}>
+                    <TouchableOpacity
+                      onPress={() => setPendingRentFilter(!pendingRentFilter)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 12,
+                        paddingHorizontal: 16,
+                        borderRadius: 8,
+                        backgroundColor: pendingRentFilter ? '#EF4444' : '#fff',
+                        borderWidth: 1,
+                        borderColor: pendingRentFilter ? '#EF4444' : Theme.colors.border,
+                        gap: 8,
+                      }}
+                    >
+                      <Ionicons 
+                        name={pendingRentFilter ? "checkbox" : "square-outline"} 
+                        size={20} 
+                        color={pendingRentFilter ? '#fff' : Theme.colors.text.secondary} 
+                      />
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: '600',
+                          color: pendingRentFilter ? '#fff' : Theme.colors.text.secondary,
+                        }}
+                      >
+                        ⚠️ Pending Rent
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => setPendingAdvanceFilter(!pendingAdvanceFilter)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 12,
+                        paddingHorizontal: 16,
+                        borderRadius: 8,
+                        backgroundColor: pendingAdvanceFilter ? '#F59E0B' : '#fff',
+                        borderWidth: 1,
+                        borderColor: pendingAdvanceFilter ? '#F59E0B' : Theme.colors.border,
+                        gap: 8,
+                      }}
+                    >
+                      <Ionicons 
+                        name={pendingAdvanceFilter ? "checkbox" : "square-outline"} 
+                        size={20} 
+                        color={pendingAdvanceFilter ? '#fff' : Theme.colors.text.secondary} 
+                      />
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: '600',
+                          color: pendingAdvanceFilter ? '#fff' : Theme.colors.text.secondary,
+                        }}
+                      >
+                        💰 No Advance
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+
+              {/* Footer Buttons */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: 12,
+                  padding: 20,
+                  paddingTop: 16,
+                  borderTopWidth: 1,
+                  borderTopColor: Theme.colors.border,
+                }}
+              >
+                {getFilterCount() > 0 && (
+                  <TouchableOpacity
+                    onPress={clearFilters}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 14,
+                      borderRadius: 12,
+                      backgroundColor: Theme.colors.light,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
+                      Clear Filters
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  onPress={() => setShowFilters(false)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 14,
+                    borderRadius: 12,
+                    backgroundColor: Theme.colors.primary,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>
+                    Apply Filters
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Room Filter Active Indicator */}
       {selectedRoomId !== null && (

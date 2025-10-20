@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useSelector } from 'react-redux';
+import { useFocusEffect } from '@react-navigation/native';
 import { RootState } from '../../store';
 import { getAllRooms, deleteRoom, Room } from '../../services/roomService';
 import { Card } from '../../components/Card';
@@ -34,6 +35,13 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
   useEffect(() => {
     loadRooms();
   }, [selectedPGLocationId]);
+
+  // Reload rooms when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadRooms();
+    }, [selectedPGLocationId])
+  );
 
   const loadRooms = async () => {
     if (!selectedPGLocationId) return;
@@ -106,7 +114,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
           onPress: async () => {
             try {
               await deleteRoom(roomId, {
-                pg_id: selectedPGLocationId,
+                pg_id: selectedPGLocationId || undefined,
                 organization_id: user?.organization_id,
                 user_id: user?.s_no,
               });
@@ -237,7 +245,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
 
   return (
     <ScreenLayout>
-      <ScreenHeader showBackButton={true} title="Rooms" subtitle={`${pagination?.total || 0} total`} />
+      <ScreenHeader onBackPress={() => navigation.goBack()} showBackButton title="Rooms" subtitle={`${pagination?.total || 0} total`} />
 
       <View style={{ backgroundColor: '#fff', padding: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border }}>
         <View style={{ flexDirection: 'row', gap: 8 }}>

@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Image,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Theme } from '../../theme';
 
@@ -452,35 +453,43 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
           justifyContent: 'flex-end',
         }}
       >
-        <View
-          style={{
-            backgroundColor: 'white',
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            maxHeight: '90%',
-          }}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1, justifyContent: 'flex-end' }}
         >
-          {/* Modal Header */}
           <View
             style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: 20,
-              borderBottomWidth: 1,
-              borderBottomColor: '#E5E7EB',
+              backgroundColor: 'white',
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              maxHeight: '90%',
             }}
           >
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: Theme.colors.text.primary }}>
-              {editMode ? 'Edit PG Location' : 'Add PG Location'}
-            </Text>
-            <TouchableOpacity onPress={closeModal}>
-              <Text style={{ fontSize: 24, color: Theme.colors.text.secondary }}>✕</Text>
-            </TouchableOpacity>
-          </View>
+            {/* Modal Header */}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 20,
+                borderBottomWidth: 1,
+                borderBottomColor: '#E5E7EB',
+              }}
+            >
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: Theme.colors.text.primary }}>
+                {editMode ? 'Edit PG Location' : 'Add PG Location'}
+              </Text>
+              <TouchableOpacity onPress={closeModal}>
+                <Text style={{ fontSize: 24, color: Theme.colors.text.secondary }}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-          {/* Modal Content */}
-          <ScrollView style={{ padding: 20 }}>
+            {/* Modal Content */}
+            <ScrollView
+              style={{ padding: 20 }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
             <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, marginBottom: 4, marginLeft: 4 }}>
               PG Location Name *
             </Text>
@@ -740,7 +749,8 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
               )}
             </TouchableOpacity>
           </View>
-        </View>
+          </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

@@ -7,6 +7,8 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
@@ -15,6 +17,7 @@ import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
+import { ImageUpload } from '../../components/ImageUpload';
 
 interface AddEditRoomScreenProps {
   navigation: any;
@@ -31,8 +34,9 @@ export const AddEditRoomScreen: React.FC<AddEditRoomScreenProps> = ({ navigation
   const [loadingData, setLoadingData] = useState(false);
 
   const [formData, setFormData] = useState({
-    room_no: '',
+    room_no: 'RM',
     rent_price: '',
+    images: [] as string[],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -57,6 +61,7 @@ export const AddEditRoomScreen: React.FC<AddEditRoomScreenProps> = ({ navigation
       setFormData({
         room_no: response.data.room_no,
         rent_price: response.data.rent_price?.toString() || '',
+        images: response.data.images || [],
       });
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to load room data');
@@ -67,6 +72,18 @@ export const AddEditRoomScreen: React.FC<AddEditRoomScreenProps> = ({ navigation
   };
 
   const updateField = (field: string, value: string) => {
+    // Special handling for room_no to maintain RM prefix
+    if (field === 'room_no') {
+      // If user tries to delete RM prefix, restore it
+      if (!value.startsWith('RM')) {
+        value = 'RM' + value.replace(/^RM/i, '');
+      }
+      // Ensure RM is uppercase
+      if (value.length >= 2) {
+        value = 'RM' + value.substring(2);
+      }
+    }
+    
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => {
@@ -80,8 +97,8 @@ export const AddEditRoomScreen: React.FC<AddEditRoomScreenProps> = ({ navigation
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.room_no.trim()) {
-      newErrors.room_no = 'Room number is required';
+    if (!formData.room_no.trim() || formData.room_no.trim() === 'RM') {
+      newErrors.room_no = 'Room number is required (e.g., RM101, RM-A1)';
     }
 
     if (formData.rent_price && isNaN(Number(formData.rent_price))) {
@@ -110,6 +127,7 @@ export const AddEditRoomScreen: React.FC<AddEditRoomScreenProps> = ({ navigation
         pg_id: selectedPGLocationId,
         room_no: formData.room_no.trim(),
         rent_price: formData.rent_price ? parseFloat(formData.rent_price) : undefined,
+        images: formData.images.length > 0 ? formData.images : undefined,
       };
 
       if (isEditMode) {
@@ -170,7 +188,17 @@ export const AddEditRoomScreen: React.FC<AddEditRoomScreenProps> = ({ navigation
         onBackPress={() => navigation.goBack()}
       />
 
-      <ScrollView style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 80}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 150 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         <View style={{ padding: 16 }}>
           {/* Room Information Card */}
           <Card style={{ padding: 16, marginBottom: 16 }}>
@@ -211,26 +239,47 @@ export const AddEditRoomScreen: React.FC<AddEditRoomScreenProps> = ({ navigation
               >
                 Room Number <Text style={{ color: '#EF4444' }}>*</Text>
               </Text>
-              <TextInput
-                value={formData.room_no}
-                onChangeText={(value) => updateField('room_no', value)}
-                placeholder="e.g., 101, A1, Ground-1"
-                style={{
-                  borderWidth: 1,
-                  borderColor: errors.room_no ? '#EF4444' : Theme.colors.border,
-                  borderRadius: 8,
-                  padding: 12,
-                  fontSize: 14,
-                  backgroundColor: '#fff',
-                }}
-              />
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View
+                  style={{
+                    backgroundColor: Theme.colors.primary + '15',
+                    paddingHorizontal: 12,
+                    paddingVertical: 12,
+                    borderTopLeftRadius: 8,
+                    borderBottomLeftRadius: 8,
+                    borderWidth: 1,
+                    borderColor: errors.room_no ? '#EF4444' : Theme.colors.border,
+                    borderRightWidth: 0,
+                  }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.primary }}>
+                    RM
+                  </Text>
+                </View>
+                <TextInput
+                  value={formData.room_no.substring(2)}
+                  onChangeText={(value) => updateField('room_no', 'RM' + value)}
+                  placeholder="101, A1, Ground-1"
+                  style={{
+                    flex: 1,
+                    borderWidth: 1,
+                    borderColor: errors.room_no ? '#EF4444' : Theme.colors.border,
+                    borderTopRightRadius: 8,
+                    borderBottomRightRadius: 8,
+                    borderLeftWidth: 0,
+                    padding: 12,
+                    fontSize: 14,
+                    backgroundColor: '#fff',
+                  }}
+                />
+              </View>
               {errors.room_no && (
                 <Text style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>
                   {errors.room_no}
                 </Text>
               )}
               <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, marginTop: 4 }}>
-                Enter a unique identifier for this room
+                Room number will be: {formData.room_no || 'RM___'}
               </Text>
             </View>
 
@@ -271,6 +320,17 @@ export const AddEditRoomScreen: React.FC<AddEditRoomScreenProps> = ({ navigation
             </View>
           </Card>
 
+          {/* Room Images */}
+          <Card style={{ padding: 16, marginBottom: 16 }}>
+            <ImageUpload
+              images={formData.images}
+              onImagesChange={(images) => setFormData((prev) => ({ ...prev, images }))}
+              maxImages={5}
+              label="Room Images"
+              disabled={loading}
+            />
+          </Card>
+
           {/* Info Card */}
           <Card
             style={{
@@ -307,28 +367,24 @@ export const AddEditRoomScreen: React.FC<AddEditRoomScreenProps> = ({ navigation
             onPress={handleSubmit}
             disabled={loading}
             style={{
-              backgroundColor: loading ? '#9CA3AF' : Theme.colors.primary,
+              backgroundColor: loading ? '#9CA3AF' : '#ffff',
               padding: 16,
-              borderRadius: 8,
+              borderRadius: 12,
               alignItems: 'center',
               marginBottom: 32,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 3,
             }}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="white" />
             ) : (
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
-                {isEditMode ? '💾 Update Room' : '➕ Create Room'}
+              <Text style={{ color: '#000', fontWeight: 'bold', fontSize: 16 }}>
+                {isEditMode ? 'Update' : 'Create'}
               </Text>
             )}
           </TouchableOpacity>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ScreenLayout>
   );
 };
