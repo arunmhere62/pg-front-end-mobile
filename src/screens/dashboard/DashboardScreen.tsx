@@ -63,6 +63,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
   const menuItems = [
     { title: 'PG Locations', icon: '🏢', screen: 'PGLocations', color: 'bg-purple-500' },
+    { title: 'Rooms', icon: '🏠', screen: 'Rooms', color: 'bg-green-500' },
     { title: 'Tenants', icon: '👥', screen: 'Tenants', color: 'bg-blue-500' },
     { title: 'Payments', icon: '💰', screen: 'Payments', color: 'bg-yellow-500' },
     { title: 'Settings', icon: '⚙️', screen: 'Settings', color: 'bg-gray-500' },

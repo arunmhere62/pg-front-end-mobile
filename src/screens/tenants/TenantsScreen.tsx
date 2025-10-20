@@ -953,16 +953,16 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
         </View>
       )}
 
-      {/* Floating Action Button */}
+      {/* Floating Add Tenant Button */}
       <TouchableOpacity
         onPress={() => navigation.navigate('AddTenant')}
         style={{
           position: 'absolute',
           right: 20,
-          bottom: 130,
-          width: 56,
-          height: 56,
-          borderRadius: 28,
+          bottom: 80,
+          width: 60,
+          height: 60,
+          borderRadius: 30,
           backgroundColor: Theme.colors.primary,
           alignItems: 'center',
           justifyContent: 'center',
@@ -970,10 +970,10 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.3,
-          shadowRadius: 4,
+          shadowRadius: 8,
         }}
       >
-        <Text style={{ color: '#fff', fontSize: 28, fontWeight: '300' }}>+</Text>
+        <Text style={{ color: '#fff', fontSize: 32, fontWeight: '300' }}>+</Text>
       </TouchableOpacity>
     </ScreenLayout>
   );

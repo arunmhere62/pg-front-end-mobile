@@ -21,6 +21,10 @@ import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
 import { SuperAdminDashboard } from '../screens/dashboard/SuperAdminDashboard';
 import { TenantsScreen } from '../screens/tenants/TenantsScreen';
 import { TenantDetailsScreen } from '../screens/tenants/TenantDetailsScreen';
+import { AddTenantScreen } from '../screens/tenants/AddTenantScreen';
+import { RoomsScreen } from '../screens/rooms/RoomsScreen';
+import { AddEditRoomScreen } from '../screens/rooms/AddEditRoomScreen';
+import { RoomDetailsScreen } from '../screens/rooms/RoomDetailsScreen';
 import { PaymentsScreen } from '../screens/payments/PaymentsScreen';
 import { SettingsScreen } from '../screens/settings/SettingsScreen';
 import { PGLocationsScreen } from '../screens/pg-locations/PGLocationsScreen';
@@ -121,7 +125,12 @@ export const AppNavigator = () => {
             <Stack.Screen name="MainTabs" component={MainTabs} />
             <Stack.Screen name="PGLocations" component={PGLocationsScreen} />
             <Stack.Screen name="Organizations" component={OrganizationsScreen} />
+            <Stack.Screen name="Rooms" component={RoomsScreen} />
+            <Stack.Screen name="AddRoom" component={AddEditRoomScreen} />
+            <Stack.Screen name="EditRoom" component={AddEditRoomScreen} />
+            <Stack.Screen name="RoomDetails" component={RoomDetailsScreen} />
             <Stack.Screen name="TenantDetails" component={TenantDetailsScreen} />
+            <Stack.Screen name="AddTenant" component={AddTenantScreen} />
           </>
         )}
       </Stack.Navigator>
