@@ -79,6 +79,7 @@ const organizationSlice = createSlice({
     });
     builder.addCase(fetchOrganizations.fulfilled, (state, action) => {
       state.loading = false;
+      // Replace data instead of appending (for page navigation)
       state.organizations = action.payload.data;
       state.pagination = action.payload.pagination;
     });

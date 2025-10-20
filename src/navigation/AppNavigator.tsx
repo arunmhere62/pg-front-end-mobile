@@ -20,9 +20,11 @@ import { SignupScreen } from '../screens/auth/SignupScreen';
 import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
 import { SuperAdminDashboard } from '../screens/dashboard/SuperAdminDashboard';
 import { TenantsScreen } from '../screens/tenants/TenantsScreen';
+import { TenantDetailsScreen } from '../screens/tenants/TenantDetailsScreen';
 import { PaymentsScreen } from '../screens/payments/PaymentsScreen';
 import { SettingsScreen } from '../screens/settings/SettingsScreen';
 import { PGLocationsScreen } from '../screens/pg-locations/PGLocationsScreen';
+import { OrganizationsScreen } from '../screens/organizations/OrganizationsScreen';
 import { BottomNav } from '../components/BottomNav';
 
 const Stack = createNativeStackNavigator();
@@ -118,6 +120,8 @@ export const AppNavigator = () => {
           <>
             <Stack.Screen name="MainTabs" component={MainTabs} />
             <Stack.Screen name="PGLocations" component={PGLocationsScreen} />
+            <Stack.Screen name="Organizations" component={OrganizationsScreen} />
+            <Stack.Screen name="TenantDetails" component={TenantDetailsScreen} />
           </>
         )}
       </Stack.Navigator>

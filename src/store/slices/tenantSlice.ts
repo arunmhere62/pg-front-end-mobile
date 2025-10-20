@@ -1,10 +1,17 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { tenantService } from '../../services/tenantService';
-import { Tenant } from '../../types';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import * as tenantService from '../../services/tenantService';
+import { Tenant, GetTenantsParams, CreateTenantDto } from '../../services/tenantService';
 
 interface TenantState {
   tenants: Tenant[];
   currentTenant: Tenant | null;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+  } | null;
   loading: boolean;
   error: string | null;
 }
@@ -12,15 +19,16 @@ interface TenantState {
 const initialState: TenantState = {
   tenants: [],
   currentTenant: null,
+  pagination: null,
   loading: false,
   error: null,
 };
 
 export const fetchTenants = createAsyncThunk(
   'tenants/fetchAll',
-  async (_, { rejectWithValue }) => {
+  async (params: GetTenantsParams, { rejectWithValue }) => {
     try {
-      const response = await tenantService.getTenants();
+      const response = await tenantService.getAllTenants(params);
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch tenants');
@@ -30,10 +38,13 @@ export const fetchTenants = createAsyncThunk(
 
 export const fetchTenantById = createAsyncThunk(
   'tenants/fetchById',
-  async (id: number, { rejectWithValue }) => {
+  async (
+    { id, headers }: { id: number; headers?: { pg_id?: number; organization_id?: number; user_id?: number } },
+    { rejectWithValue }
+  ) => {
     try {
-      const response = await tenantService.getTenantById(id);
-      return response;
+      const response = await tenantService.getTenantById(id, headers);
+      return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch tenant');
     }
@@ -42,10 +53,13 @@ export const fetchTenantById = createAsyncThunk(
 
 export const createTenant = createAsyncThunk(
   'tenants/create',
-  async (tenantData: Partial<Tenant>, { rejectWithValue }) => {
+  async (
+    { data, headers }: { data: CreateTenantDto; headers?: { pg_id?: number; organization_id?: number; user_id?: number } },
+    { rejectWithValue }
+  ) => {
     try {
-      const response = await tenantService.createTenant(tenantData);
-      return response;
+      const response = await tenantService.createTenant(data, headers);
+      return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to create tenant');
     }
@@ -54,10 +68,13 @@ export const createTenant = createAsyncThunk(
 
 export const updateTenant = createAsyncThunk(
   'tenants/update',
-  async ({ id, data }: { id: number; data: Partial<Tenant> }, { rejectWithValue }) => {
+  async (
+    { id, data, headers }: { id: number; data: Partial<CreateTenantDto>; headers?: { pg_id?: number; organization_id?: number; user_id?: number } },
+    { rejectWithValue }
+  ) => {
     try {
-      const response = await tenantService.updateTenant(id, data);
-      return response;
+      const response = await tenantService.updateTenant(id, data, headers);
+      return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to update tenant');
     }
@@ -66,12 +83,30 @@ export const updateTenant = createAsyncThunk(
 
 export const deleteTenant = createAsyncThunk(
   'tenants/delete',
-  async (id: number, { rejectWithValue }) => {
+  async (
+    { id, headers }: { id: number; headers?: { pg_id?: number; organization_id?: number; user_id?: number } },
+    { rejectWithValue }
+  ) => {
     try {
-      await tenantService.deleteTenant(id);
+      await tenantService.deleteTenant(id, headers);
       return id;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to delete tenant');
+    }
+  }
+);
+
+export const checkoutTenant = createAsyncThunk(
+  'tenants/checkout',
+  async (
+    { id, headers }: { id: number; headers?: { pg_id?: number; organization_id?: number; user_id?: number } },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await tenantService.checkoutTenant(id, headers);
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to checkout tenant');
     }
   }
 );
@@ -96,7 +131,8 @@ const tenantSlice = createSlice({
       })
       .addCase(fetchTenants.fulfilled, (state, action) => {
         state.loading = false;
-        state.tenants = action.payload;
+        state.tenants = action.payload.data;
+        state.pagination = action.payload.pagination;
       })
       .addCase(fetchTenants.rejected, (state, action) => {
         state.loading = false;

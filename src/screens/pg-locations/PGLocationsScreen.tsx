@@ -747,7 +747,12 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
 
   return (
     <ScreenLayout>
-      <ScreenHeader title="PG Locations" subtitle="Manage your PG locations" />
+      <ScreenHeader 
+        title="PG Locations" 
+        subtitle="Manage your PG locations"
+        showBackButton={true}
+        onBackPress={() => navigation.goBack()}
+      />
       <View style={{ flex: 1, backgroundColor: Theme.colors.light }}>
         <ScrollView
           contentContainerStyle={{ padding: 16, paddingBottom: 80 }}

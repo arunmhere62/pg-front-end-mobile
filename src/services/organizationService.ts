@@ -10,15 +10,31 @@ export interface OrganizationAdmin {
   created_at: string;
 }
 
+export interface PGLocationRoom {
+  s_no: number;
+  room_no: string;
+  beds_count: number;
+}
+
+export interface PGLocationDetail {
+  s_no: number;
+  location_name: string;
+  address: string;
+  status: string;
+  rooms_count: number;
+  beds_count: number;
+  rooms: PGLocationRoom[];
+}
+
 export interface Organization {
   s_no: number;
   name: string;
   description: string;
-  status: string;
   created_at: string;
   updated_at: string;
   admins: OrganizationAdmin[];
   pg_locations_count: number;
+  pg_locations: PGLocationDetail[];
 }
 
 export interface OrganizationStats {
@@ -35,8 +51,6 @@ export interface OrganizationStats {
 export interface GetOrganizationsParams {
   page?: number;
   limit?: number;
-  search?: string;
-  status?: string;
 }
 
 export interface GetOrganizationsResponse {
@@ -62,15 +76,12 @@ export interface GetOrganizationStatsResponse {
 export const getAllOrganizations = async (
   params: GetOrganizationsParams = {}
 ): Promise<GetOrganizationsResponse> => {
-  const { page = 1, limit = 10, search, status } = params;
+  const { page = 1, limit = 10 } = params;
   
   const queryParams = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
   });
-
-  if (search) queryParams.append('search', search);
-  if (status) queryParams.append('status', status);
 
   const response = await axiosInstance.get(
     `/organizations?${queryParams.toString()}`

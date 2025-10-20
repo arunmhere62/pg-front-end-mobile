@@ -4,7 +4,7 @@ import { Theme } from '../../theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { fetchTenants } from '../../store/slices/tenantSlice';
-import { fetchPGLocations } from '../../store/slices/pgLocationSlice';
+import { fetchPGLocations, setSelectedPGLocation } from '../../store/slices/pgLocationSlice';
 import { fetchPayments } from '../../store/slices/paymentSlice';
 import { Card } from '../../components/Card';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -18,7 +18,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   const { tenants, loading: tenantsLoading } = useSelector((state: RootState) => state.tenants);
-  const { locations } = useSelector((state: RootState) => state.pgLocations);
+  const { locations, selectedPGLocationId } = useSelector((state: RootState) => state.pgLocations);
   const { payments } = useSelector((state: RootState) => state.payments);
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -26,10 +26,21 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     loadData();
   }, []);
 
+  // Auto-select first PG location when locations are loaded
+  useEffect(() => {
+    if (locations.length > 0 && !selectedPGLocationId) {
+      dispatch(setSelectedPGLocation(locations[0].s_no));
+    }
+  }, [locations, selectedPGLocationId, dispatch]);
+
   const loadData = async () => {
     try {
       await Promise.all([
-        dispatch(fetchTenants()),
+        dispatch(fetchTenants({
+          page: 1,
+          limit: 10,
+          pg_id: selectedPGLocationId || undefined,
+        })),
         dispatch(fetchPGLocations()),
         dispatch(fetchPayments()),
       ]);

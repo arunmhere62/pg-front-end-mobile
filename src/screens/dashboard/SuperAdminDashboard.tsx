@@ -154,32 +154,17 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ naviga
               System Management
             </Text>
 
-            <View style={{ gap: 12 }}>
-              <TouchableOpacity
-                style={{
-                  backgroundColor: '#fff',
-                  padding: 16,
-                  borderRadius: 12,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 3,
-                }}
-                onPress={() => {/* Navigate to Organizations */}}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -8 }}>
+              <TouchableOpacity 
+                style={{ width: '50%', padding: 8 }}
+                onPress={() => navigation.navigate('Organizations')}
               >
-                <Text style={{ fontSize: 32, marginRight: 16 }}>🏢</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: Theme.colors.text.primary }}>
+                <Card style={{ padding: 16, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 32, marginBottom: 8 }}>🏢</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary }}>
                     Manage Organizations
                   </Text>
-                  <Text style={{ fontSize: 13, color: Theme.colors.text.secondary, marginTop: 2 }}>
-                    View and manage all organizations
-                  </Text>
-                </View>
-                <Text style={{ fontSize: 20, color: Theme.colors.text.tertiary }}>›</Text>
+                </Card>
               </TouchableOpacity>
 
               <TouchableOpacity
