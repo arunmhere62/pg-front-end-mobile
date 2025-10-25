@@ -23,7 +23,6 @@ import { TenantsScreen } from '../screens/tenants/TenantsScreen';
 import { TenantDetailsScreen } from '../screens/tenants/TenantDetailsScreen';
 import { AddTenantScreen } from '../screens/tenants/AddTenantScreen';
 import { RoomsScreen } from '../screens/rooms/RoomsScreen';
-import { AddEditRoomScreen } from '../screens/rooms/AddEditRoomScreen';
 import { RoomDetailsScreen } from '../screens/rooms/RoomDetailsScreen';
 import { BedsScreen } from '../screens/beds/BedsScreen';
 import { PaymentsScreen } from '../screens/payments/PaymentsScreen';
@@ -127,8 +126,6 @@ export const AppNavigator = () => {
             <Stack.Screen name="PGLocations" component={PGLocationsScreen} />
             <Stack.Screen name="Organizations" component={OrganizationsScreen} />
             <Stack.Screen name="Rooms" component={RoomsScreen} />
-            <Stack.Screen name="AddRoom" component={AddEditRoomScreen} />
-            <Stack.Screen name="EditRoom" component={AddEditRoomScreen} />
             <Stack.Screen name="RoomDetails" component={RoomDetailsScreen} />
             <Stack.Screen name="Beds" component={BedsScreen} />
             <Stack.Screen name="TenantDetails" component={TenantDetailsScreen} />

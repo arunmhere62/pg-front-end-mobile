@@ -4,21 +4,39 @@ import { Payment } from '../../types';
 
 interface PaymentState {
   payments: Payment[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  } | null;
   loading: boolean;
   error: string | null;
 }
 
 const initialState: PaymentState = {
   payments: [],
+  pagination: null,
   loading: false,
   error: null,
 };
 
 export const fetchPayments = createAsyncThunk(
   'payments/fetchAll',
-  async (_, { rejectWithValue }) => {
+  async (params?: {
+    tenant_id?: number;
+    status?: string;
+    page?: number;
+    limit?: number;
+    start_date?: string;
+    end_date?: string;
+    room_id?: number;
+    bed_id?: number;
+    month?: string;
+    year?: number;
+  }, { rejectWithValue }) => {
     try {
-      const response = await paymentService.getPayments();
+      const response = await paymentService.getTenantPayments(params);
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch payments');
@@ -54,7 +72,8 @@ const paymentSlice = createSlice({
       })
       .addCase(fetchPayments.fulfilled, (state, action) => {
         state.loading = false;
-        state.payments = action.payload;
+        state.payments = action.payload.data || action.payload;
+        state.pagination = action.payload.pagination || null;
       })
       .addCase(fetchPayments.rejected, (state, action) => {
         state.loading = false;
@@ -66,7 +85,7 @@ const paymentSlice = createSlice({
       })
       .addCase(createPayment.fulfilled, (state, action) => {
         state.loading = false;
-        state.payments.push(action.payload);
+        state.payments.push(action.payload.data || action.payload);
       })
       .addCase(createPayment.rejected, (state, action) => {
         state.loading = false;

@@ -84,6 +84,28 @@ export interface Payment {
   status: 'PAID' | 'PENDING' | 'FAILED' | 'REFUNDED';
   remarks?: string;
   actual_rent_amount: number;
+  start_date?: string;
+  end_date?: string;
+  current_bill?: number;
+  current_bill_id?: number;
+  tenants?: {
+    s_no: number;
+    tenant_id: string;
+    name: string;
+    phone_no?: string;
+  };
+  rooms?: {
+    s_no: number;
+    room_no?: string;
+  };
+  beds?: {
+    s_no: number;
+    bed_no: string;
+  };
+  pg_locations?: {
+    s_no: number;
+    location_name: string;
+  };
 }
 
 export interface Expense {

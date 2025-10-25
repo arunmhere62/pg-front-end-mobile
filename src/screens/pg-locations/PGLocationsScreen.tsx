@@ -13,6 +13,9 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '../../store';
+import { fetchPGLocations, setSelectedPGLocation } from '../../store/slices/pgLocationSlice';
 import { Theme } from '../../theme';
 
 // Try to import expo-image-picker, fallback if not installed
@@ -74,6 +77,8 @@ interface FormData {
 }
 
 export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation }) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { selectedPGLocationId } = useSelector((state: RootState) => state.pgLocations);
   const [pgLocations, setPgLocations] = useState<PGLocation[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -285,14 +290,18 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
 
     setSubmitting(true);
     try {
-      const payload = {
+      const payload: any = {
         locationName: formData.locationName,
         address: formData.address,
-        pincode: formData.pincode,
         stateId: formData.stateId!,
         cityId: formData.cityId!,
         images: formData.images,
       };
+
+      // Only include pincode if it has a value
+      if (formData.pincode && formData.pincode.trim()) {
+        payload.pincode = formData.pincode.trim();
+      }
 
       if (editMode && selectedPG) {
         // Update
@@ -303,6 +312,8 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
         if (response.data.success) {
           Alert.alert('Success', 'PG location updated successfully');
           loadPGLocations();
+          // Refresh Redux store for PG location selector
+          dispatch(fetchPGLocations());
           closeModal();
         }
       } else {
@@ -311,11 +322,16 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
         if (response.data.success) {
           Alert.alert('Success', 'PG location created successfully');
           loadPGLocations();
+          // Refresh Redux store for PG location selector
+          dispatch(fetchPGLocations());
           closeModal();
         }
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to save PG location';
+      console.error('PG Location save error:', error);
+      const errorMessage = error.response?.data?.message 
+        || error.message 
+        || 'Failed to save PG location';
       Alert.alert('Error', errorMessage);
     } finally {
       setSubmitting(false);
@@ -337,8 +353,29 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
                 `/pg-locations/${pg.s_no}`
               );
               if (response.data.success) {
+                // Check if deleted PG was the selected one
+                const wasSelected = selectedPGLocationId === pg.s_no;
+                
+                // Refresh Redux store first and wait for it
+                const result = await dispatch(fetchPGLocations());
+                
+                // Refresh local state
+                await loadPGLocations();
+                
+                // If deleted PG was selected, the Redux slice will auto-select another one
+                // But we can also explicitly handle it here for immediate feedback
+                if (wasSelected && result.payload) {
+                  const updatedLocations = result.payload as PGLocation[];
+                  if (updatedLocations.length > 0) {
+                    // Select the first available PG
+                    dispatch(setSelectedPGLocation(updatedLocations[0].s_no));
+                  } else {
+                    // No PG locations left
+                    dispatch(setSelectedPGLocation(null));
+                  }
+                }
+                
                 Alert.alert('Success', 'PG location deleted successfully');
-                loadPGLocations();
               }
             } catch (error: any) {
               Alert.alert('Error', error?.response?.data?.message || 'Something went wrong');

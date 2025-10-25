@@ -64,10 +64,18 @@ const pgLocationSlice = createSlice({
       .addCase(fetchPGLocations.fulfilled, (state, action) => {
         state.loading = false;
         state.locations = action.payload as PGLocation[];
-        // Auto-select first PG location if none selected
         const locations = action.payload as PGLocation[];
-        if (!state.selectedPGLocationId && locations.length > 0) {
+        
+        // Check if currently selected PG still exists
+        const selectedStillExists = state.selectedPGLocationId 
+          ? locations.some(loc => loc.s_no === state.selectedPGLocationId)
+          : false;
+        
+        // If selected PG was deleted or none selected, auto-select first available
+        if (!selectedStillExists && locations.length > 0) {
           state.selectedPGLocationId = locations[0].s_no;
+        } else if (locations.length === 0) {
+          state.selectedPGLocationId = null;
         }
       })
       .addCase(fetchPGLocations.rejected, (state, action) => {

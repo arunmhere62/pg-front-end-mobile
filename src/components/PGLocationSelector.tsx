@@ -20,7 +20,7 @@ export const PGLocationSelector: React.FC = () => {
     if (safeLocations.length === 0 && !loading) {
       dispatch(fetchPGLocations() as any);
     }
-  }, []);
+  }, [safeLocations.length, loading]);
 
   const handleLocationChange = (locationId: number) => {
     dispatch(setSelectedPGLocation(locationId));

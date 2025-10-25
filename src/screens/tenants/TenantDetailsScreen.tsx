@@ -20,6 +20,9 @@ import { ScreenLayout } from '../../components/ScreenLayout';
 import { DatePicker } from '../../components/DatePicker';
 import axiosInstance from '../../services/axiosInstance';
 import { CONTENT_COLOR } from '@/constant';
+import AddTenantPaymentModal from '../../components/AddTenantPaymentModal';
+import { AddAdvancePaymentModal } from '../../components/AddAdvancePaymentModal';
+import advancePaymentService from '../../services/advancePaymentService';
 
 interface TenantDetailsScreenProps {
   navigation: any;
@@ -53,6 +56,12 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
   const [newCheckoutDate, setNewCheckoutDate] = useState('');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
+  // Payment modal state
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  
+  // Advance payment modal state
+  const [advancePaymentModalVisible, setAdvancePaymentModalVisible] = useState(false);
+
   useEffect(() => {
     loadTenantDetails();
   }, [tenantId]);
@@ -80,6 +89,32 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
       ...prev,
       [section]: !prev[section],
     }));
+  };
+
+  const handleSaveAdvancePayment = async (data: any) => {
+    try {
+      // Ensure pg_id is available from tenant or selected location
+      const pgId = currentTenant?.pg_id || selectedPGLocationId;
+      
+      if (!pgId) {
+        throw new Error('PG Location ID is required');
+      }
+
+      console.log('Creating advance payment with data:', { ...data, pg_id: pgId });
+
+      await advancePaymentService.createAdvancePayment(data, {
+        pg_id: pgId,
+        organization_id: user?.organization_id,
+        user_id: user?.s_no,
+      });
+      
+      Alert.alert('Success', 'Advance payment created successfully');
+      loadTenantDetails(); // Reload tenant details to show new payment
+    } catch (error: any) {
+      console.error('Error in handleSaveAdvancePayment:', error);
+      console.error('Error response:', error.response?.data);
+      throw error; // Re-throw to let modal handle it
+    }
   };
 
   const handleCall = (phoneNumber: string) => {
@@ -325,6 +360,43 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
         <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>✉️ Email</Text>
       </TouchableOpacity>
     )}
+  </View>
+
+  {/* Action Buttons */}
+  <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+    <TouchableOpacity
+      onPress={() => setPaymentModalVisible(true)}
+      style={{
+        flex: 1,
+        paddingVertical: 12,
+        backgroundColor: Theme.colors.secondary,
+        borderRadius: 8,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
+      }}
+    >
+      <Text style={{ fontSize: 18 }}>💰</Text>
+      <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Add Payment</Text>
+    </TouchableOpacity>
+    
+    <TouchableOpacity
+      onPress={() => setAdvancePaymentModalVisible(true)}
+      style={{
+        flex: 1,
+        paddingVertical: 12,
+        backgroundColor: '#10B981',
+        borderRadius: 8,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
+      }}
+    >
+      <Text style={{ fontSize: 18 }}>🎁</Text>
+      <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Add Advance</Text>
+    </TouchableOpacity>
   </View>
 </Card>
 
@@ -695,16 +767,43 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
                       style={{
                         flexDirection: 'row',
                         justifyContent: 'space-between',
+                        alignItems: 'center',
                         marginBottom: 4,
                       }}
                     >
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
-                        {new Date(payment.payment_date).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
+                          {new Date(payment.payment_date).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </Text>
+                        {payment.status && (
+                          <View style={{
+                            marginTop: 4,
+                            paddingHorizontal: 8,
+                            paddingVertical: 3,
+                            borderRadius: 6,
+                            alignSelf: 'flex-start',
+                            backgroundColor: 
+                              payment.status === 'PAID' ? '#10B98120' :
+                              payment.status === 'PENDING' ? '#F59E0B20' :
+                              payment.status === 'OVERDUE' ? '#EF444420' : '#9CA3AF20',
+                          }}>
+                            <Text style={{
+                              fontSize: 10,
+                              fontWeight: '600',
+                              color: 
+                                payment.status === 'PAID' ? '#10B981' :
+                                payment.status === 'PENDING' ? '#F59E0B' :
+                                payment.status === 'OVERDUE' ? '#EF4444' : '#6B7280',
+                            }}>
+                              {payment.status}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.primary }}>
                         ₹{payment.amount_paid}
                       </Text>
@@ -768,16 +867,41 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
                       style={{
                         flexDirection: 'row',
                         justifyContent: 'space-between',
+                        alignItems: 'center',
                         marginBottom: 4,
                       }}
                     >
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
-                        {new Date(payment.payment_date).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
+                          {new Date(payment.payment_date).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </Text>
+                        {payment.status && (
+                          <View style={{
+                            marginTop: 4,
+                            paddingHorizontal: 8,
+                            paddingVertical: 3,
+                            borderRadius: 6,
+                            alignSelf: 'flex-start',
+                            backgroundColor: 
+                              payment.status === 'PAID' ? '#10B98120' :
+                              payment.status === 'PENDING' ? '#F59E0B20' : '#9CA3AF20',
+                          }}>
+                            <Text style={{
+                              fontSize: 10,
+                              fontWeight: '600',
+                              color: 
+                                payment.status === 'PAID' ? '#10B981' :
+                                payment.status === 'PENDING' ? '#F59E0B' : '#6B7280',
+                            }}>
+                              {payment.status}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={{ fontSize: 16, fontWeight: '700', color: '#10B981' }}>
                         ₹{payment.amount_paid}
                       </Text>
@@ -841,16 +965,41 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
                       style={{
                         flexDirection: 'row',
                         justifyContent: 'space-between',
+                        alignItems: 'center',
                         marginBottom: 4,
                       }}
                     >
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
-                        {new Date(payment.payment_date).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
+                          {new Date(payment.payment_date).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </Text>
+                        {payment.status && (
+                          <View style={{
+                            marginTop: 4,
+                            paddingHorizontal: 8,
+                            paddingVertical: 3,
+                            borderRadius: 6,
+                            alignSelf: 'flex-start',
+                            backgroundColor: 
+                              payment.status === 'PAID' ? '#10B98120' :
+                              payment.status === 'PENDING' ? '#F59E0B20' : '#9CA3AF20',
+                          }}>
+                            <Text style={{
+                              fontSize: 10,
+                              fontWeight: '600',
+                              color: 
+                                payment.status === 'PAID' ? '#10B981' :
+                                payment.status === 'PENDING' ? '#F59E0B' : '#6B7280',
+                            }}>
+                              {payment.status}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={{ fontSize: 16, fontWeight: '700', color: '#F59E0B' }}>
                         ₹{payment.amount_paid}
                       </Text>
@@ -1162,6 +1311,34 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
           </View>
         </View>
       </Modal>
+
+      {/* Add Payment Modal */}
+      {tenant && (
+        <AddTenantPaymentModal
+          visible={paymentModalVisible}
+          tenantId={tenant.s_no}
+          tenantName={tenant.name}
+          roomId={tenant.room_id || 0}
+          bedId={tenant.bed_id || 0}
+          pgId={tenant.pg_id || selectedPGLocationId || 0}
+          rentAmount={tenant.rooms?.rent_price || 0}
+          onClose={() => setPaymentModalVisible(false)}
+          onSuccess={() => {
+            setPaymentModalVisible(false);
+            loadTenantDetails();
+          }}
+        />
+      )}
+
+      {/* Add Advance Payment Modal */}
+      {tenant && (
+        <AddAdvancePaymentModal
+          visible={advancePaymentModalVisible}
+          tenant={tenant}
+          onClose={() => setAdvancePaymentModalVisible(false)}
+          onSave={handleSaveAdvancePayment}
+        />
+      )}
       </View>
     </ScreenLayout>
   );

@@ -17,6 +17,7 @@ import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
+import { EditRoomModal } from './EditRoomModal';
 import { CONTENT_COLOR } from '@/constant';
 
 interface RoomsScreenProps {
@@ -32,6 +33,10 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [pagination, setPagination] = useState<any>(null);
+  
+  // Edit modal state
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
 
   useEffect(() => {
     loadRooms();
@@ -103,6 +108,20 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
     }
   };
 
+  const handleOpenEditModal = (roomId: number) => {
+    setEditingRoomId(roomId);
+    setEditModalVisible(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditModalVisible(false);
+    setEditingRoomId(null);
+  };
+
+  const handleEditSuccess = () => {
+    loadRooms();
+  };
+
   const handleDeleteRoom = (roomId: number, roomNo: string) => {
     Alert.alert(
       'Delete Room',
@@ -162,7 +181,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
 
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
-              onPress={() => navigation.navigate('EditRoom', { roomId: item.s_no })}
+              onPress={() => handleOpenEditModal(item.s_no)}
               style={{
                 backgroundColor: '#3B82F6',
                 paddingHorizontal: 12,
@@ -333,6 +352,14 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
       >
         <Text style={{ color: '#fff', fontSize: 32, fontWeight: '300' }}>+</Text>
       </TouchableOpacity>
+
+      {/* Edit Room Modal */}
+      <EditRoomModal
+        visible={editModalVisible}
+        roomId={editingRoomId}
+        onClose={handleCloseEditModal}
+        onSuccess={handleEditSuccess}
+      />
     </ScreenLayout>
   );
 };

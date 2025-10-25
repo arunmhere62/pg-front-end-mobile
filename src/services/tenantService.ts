@@ -13,6 +13,7 @@ export interface TenantPayment {
   start_date?: string;
   end_date?: string;
   payment_method?: string;
+  status?: string;
   remarks?: string;
 }
 
@@ -22,6 +23,7 @@ export interface AdvancePayment {
   amount_paid: number;
   actual_rent_amount?: number;
   payment_method?: string;
+  status?: string;
   remarks?: string;
 }
 
@@ -30,6 +32,7 @@ export interface RefundPayment {
   amount_paid: number;
   payment_method?: string;
   payment_date: string;
+  status?: string;
   remarks?: string;
   actual_rent_amount?: number;
 }

@@ -443,10 +443,34 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                     Rent Payments ({item.tenant_payments.length})
                   </Text>
                   {item.tenant_payments.slice(0, 3).map((payment: any, index: number) => (
-                    <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
-                      <Text style={{ fontSize: 10, color: Theme.colors.text.secondary }}>
-                        {new Date(payment.payment_date).toLocaleDateString()}
-                      </Text>
+                    <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
+                        <Text style={{ fontSize: 10, color: Theme.colors.text.secondary }}>
+                          {new Date(payment.payment_date).toLocaleDateString()}
+                        </Text>
+                        {payment.status && (
+                          <View style={{
+                            paddingHorizontal: 4,
+                            paddingVertical: 1,
+                            borderRadius: 4,
+                            backgroundColor: 
+                              payment.status === 'PAID' ? '#10B98120' :
+                              payment.status === 'PENDING' ? '#F59E0B20' :
+                              payment.status === 'OVERDUE' ? '#EF444420' : '#9CA3AF20',
+                          }}>
+                            <Text style={{
+                              fontSize: 8,
+                              fontWeight: '600',
+                              color: 
+                                payment.status === 'PAID' ? '#10B981' :
+                                payment.status === 'PENDING' ? '#F59E0B' :
+                                payment.status === 'OVERDUE' ? '#EF4444' : '#6B7280',
+                            }}>
+                              {payment.status}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={{ fontSize: 10, color: Theme.colors.text.primary, fontWeight: '600' }}>
                         ₹{payment.amount_paid}
                       </Text>
@@ -467,10 +491,32 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                     Advance Payments ({item.advance_payments.length})
                   </Text>
                   {item.advance_payments.map((payment: any, index: number) => (
-                    <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
-                      <Text style={{ fontSize: 10, color: Theme.colors.text.secondary }}>
-                        {new Date(payment.payment_date).toLocaleDateString()}
-                      </Text>
+                    <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
+                        <Text style={{ fontSize: 10, color: Theme.colors.text.secondary }}>
+                          {new Date(payment.payment_date).toLocaleDateString()}
+                        </Text>
+                        {payment.status && (
+                          <View style={{
+                            paddingHorizontal: 4,
+                            paddingVertical: 1,
+                            borderRadius: 4,
+                            backgroundColor: 
+                              payment.status === 'PAID' ? '#10B98120' :
+                              payment.status === 'PENDING' ? '#F59E0B20' : '#9CA3AF20',
+                          }}>
+                            <Text style={{
+                              fontSize: 8,
+                              fontWeight: '600',
+                              color: 
+                                payment.status === 'PAID' ? '#10B981' :
+                                payment.status === 'PENDING' ? '#F59E0B' : '#6B7280',
+                            }}>
+                              {payment.status}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={{ fontSize: 10, color: '#10B981', fontWeight: '600' }}>
                         ₹{payment.amount_paid}
                       </Text>
@@ -489,10 +535,32 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                     Refunds ({item.refund_payments.length})
                   </Text>
                   {item.refund_payments.map((payment: any, index: number) => (
-                    <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
-                      <Text style={{ fontSize: 10, color: Theme.colors.text.secondary }}>
-                        {new Date(payment.payment_date).toLocaleDateString()}
-                      </Text>
+                    <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
+                        <Text style={{ fontSize: 10, color: Theme.colors.text.secondary }}>
+                          {new Date(payment.payment_date).toLocaleDateString()}
+                        </Text>
+                        {payment.status && (
+                          <View style={{
+                            paddingHorizontal: 4,
+                            paddingVertical: 1,
+                            borderRadius: 4,
+                            backgroundColor: 
+                              payment.status === 'PAID' ? '#10B98120' :
+                              payment.status === 'PENDING' ? '#F59E0B20' : '#9CA3AF20',
+                          }}>
+                            <Text style={{
+                              fontSize: 8,
+                              fontWeight: '600',
+                              color: 
+                                payment.status === 'PAID' ? '#10B981' :
+                                payment.status === 'PENDING' ? '#F59E0B' : '#6B7280',
+                            }}>
+                              {payment.status}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={{ fontSize: 10, color: '#F59E0B', fontWeight: '600' }}>
                         ₹{payment.amount_paid}
                       </Text>

@@ -4,7 +4,10 @@ import { PGLocation } from '../types';
 
 export const pgLocationService = {
   getPGLocations: async () => {
-    const response = await axiosInstance.get(API_ENDPOINTS.PG_LOCATIONS.LIST);
+    // Add timestamp to prevent caching
+    const response = await axiosInstance.get(
+      `${API_ENDPOINTS.PG_LOCATIONS.LIST}?_t=${Date.now()}`
+    );
     return response.data;
   },
 
