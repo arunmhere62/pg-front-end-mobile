@@ -1,0 +1,1 @@
+export const CONTENT_COLOR ="#f5f5f5"

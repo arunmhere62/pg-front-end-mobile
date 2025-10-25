@@ -18,6 +18,8 @@ import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { ImageUpload } from '../../components/ImageUpload';
+import { Button } from '@/components/Button';
+import { CONTENT_COLOR } from '@/constant';
 
 interface AddEditRoomScreenProps {
   navigation: any;
@@ -181,14 +183,15 @@ export const AddEditRoomScreen: React.FC<AddEditRoomScreenProps> = ({ navigation
   }
 
   return (
-    <ScreenLayout>
+    <ScreenLayout backgroundColor={Theme.colors.background.blue}>
       <ScreenHeader
         title={isEditMode ? 'Edit Room' : 'Add New Room'}
         showBackButton={true}
         onBackPress={() => navigation.goBack()}
       />
 
-      <KeyboardAvoidingView
+     <View style={{flex : 1, backgroundColor : CONTENT_COLOR}}>
+       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 80}
@@ -363,28 +366,17 @@ export const AddEditRoomScreen: React.FC<AddEditRoomScreenProps> = ({ navigation
           </Card>
 
           {/* Submit Button */}
-          <TouchableOpacity
+          <Button
+            title={isEditMode ? 'Update Room' : 'Create Room'}
             onPress={handleSubmit}
-            disabled={loading}
-            style={{
-              backgroundColor: loading ? '#9CA3AF' : '#ffff',
-              padding: 16,
-              borderRadius: 12,
-              alignItems: 'center',
-              marginBottom: 32,
-            }}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={{ color: '#000', fontWeight: 'bold', fontSize: 16 }}>
-                {isEditMode ? 'Update' : 'Create'}
-              </Text>
-            )}
-          </TouchableOpacity>
+            loading={loading}
+            variant="primary"
+            style={{ marginBottom: 32 }}
+          />
         </View>
         </ScrollView>
       </KeyboardAvoidingView>
+     </View>
     </ScreenLayout>
   );
 };

@@ -25,6 +25,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { BedFormModal } from '../../components/BedFormModal';
 import { Ionicons } from '@expo/vector-icons';
+import { CONTENT_COLOR } from '@/constant';
 
 interface BedsScreenProps {
   navigation: any;
@@ -322,16 +323,15 @@ export const BedsScreen: React.FC<BedsScreenProps> = ({ navigation }) => {
   );
 
   return (
-    <ScreenLayout>
+    <ScreenLayout backgroundColor={Theme.colors.background.blue} contentBackgroundColor={CONTENT_COLOR}>
       <ScreenHeader
         onBackPress={() => navigation.goBack()}
         showBackButton
         title="Beds"
         subtitle={`${pagination?.total || 0} total`}
       />
-
       {/* Search and Filter Bar */}
-      <View style={{ backgroundColor: '#fff', padding: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border }}>
+      <View style={{  padding: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border }}>
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
           <TextInput
             style={{
@@ -391,6 +391,8 @@ export const BedsScreen: React.FC<BedsScreenProps> = ({ navigation }) => {
         </View>
 
       </View>
+<View style={{flex : 1 , backgroundColor : CONTENT_COLOR}}>
+  
 
       {/* Filter Modal Overlay */}
       <Modal
@@ -683,6 +685,7 @@ export const BedsScreen: React.FC<BedsScreenProps> = ({ navigation }) => {
         organizationId={user?.organization_id}
         userId={user?.s_no}
       />
+</View>
     </ScreenLayout>
   );
 };

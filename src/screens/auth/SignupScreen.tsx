@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Theme } from '../../theme';
 import axiosInstance from '../../services/axiosInstance';
 import { SearchableDropdown } from '../../components/SearchableDropdown';
+import { Button } from '../../components/Button';
 
 interface SignupScreenProps {
   navigation: any;
@@ -496,14 +497,14 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: Theme.colors.primary }}>
+    <View style={{ flex: 1, backgroundColor: Theme.colors.background.primary }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <KeyboardAvoidingView 
           style={{ flex: 1 }} 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
-          <View style={{ flex: 1, backgroundColor: Theme.colors.light }}>
+          <View style={{ flex: 1, backgroundColor: Theme.colors.background.secondary }}>
             <ScrollView 
               contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
               keyboardShouldPersistTaps="handled"
@@ -529,41 +530,25 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
             }}
           >
             {currentStep > 1 && (
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  backgroundColor: 'white',
-                  borderRadius: 8,
-                  padding: 16,
-                  alignItems: 'center',
-                  borderWidth: 1,
-                  borderColor: Theme.colors.primary,
-                }}
-                onPress={handleBack}
-              >
-                <Text style={{ color: Theme.colors.primary, fontWeight: 'bold', fontSize: 16 }}>Back</Text>
-              </TouchableOpacity>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Back"
+                  onPress={handleBack}
+                  variant="outline"
+                  size="lg"
+                />
+              </View>
             )}
 
-            <TouchableOpacity
-              style={{
-                flex: 1,
-                backgroundColor: Theme.colors.primary,
-                borderRadius: 8,
-                padding: 16,
-                alignItems: 'center',
-              }}
-              onPress={currentStep === 1 ? handleNext : handleSubmit}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
-                  {currentStep === 1 ? 'Next' : 'Create Account'}
-                </Text>
-              )}
-            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Button
+                title={currentStep === 1 ? 'Next' : 'Create Account'}
+                onPress={currentStep === 1 ? handleNext : handleSubmit}
+                loading={loading}
+                variant="primary"
+                size="lg"
+              />
+            </View>
           </View>
 
           {/* Login Link */}

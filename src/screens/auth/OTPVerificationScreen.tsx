@@ -78,7 +78,7 @@ export const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ na
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: Theme.colors.statusBar }}>
+    <View style={{ flex: 1, backgroundColor: Theme.colors.background.primary }}>
       <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -90,22 +90,22 @@ export const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ na
           >
             <View style={{ position: 'absolute', top: Theme.spacing.lg, left: Theme.spacing.lg, zIndex: 10 }}>
               <TouchableOpacity onPress={() => navigation.goBack()}>
-                <Text style={{ fontSize: 28, color: Theme.colors.text.inverse }}>←</Text>
+                <Text style={{ fontSize: 28, color: Theme.colors.primary }}>←</Text>
               </TouchableOpacity>
             </View>
             <View style={{ marginBottom: Theme.spacing.xl }}>
-              <Text style={{ fontSize: Theme.typography.fontSize['3xl'], fontWeight: Theme.typography.fontWeight.bold, color: Theme.colors.text.inverse, textAlign: 'center', marginBottom: Theme.spacing.sm }}>
+              <Text style={{ fontSize: Theme.typography.fontSize['3xl'], fontWeight: Theme.typography.fontWeight.bold, color: Theme.colors.primary, textAlign: 'center', marginBottom: Theme.spacing.sm }}>
                 Verify OTP
               </Text>
-              <Text style={{ fontSize: Theme.typography.fontSize.base, color: Theme.withOpacity(Theme.colors.text.inverse, 0.8), textAlign: 'center' }}>
+              <Text style={{ fontSize: Theme.typography.fontSize.base, color: Theme.colors.text.secondary, textAlign: 'center' }}>
                 Enter the 4-digit code sent to
               </Text>
-              <Text style={{ fontSize: Theme.typography.fontSize.base, fontWeight: Theme.typography.fontWeight.semibold, color: Theme.colors.text.inverse, textAlign: 'center' }}>
+              <Text style={{ fontSize: Theme.typography.fontSize.base, fontWeight: Theme.typography.fontWeight.semibold, color: Theme.colors.text.primary, textAlign: 'center' }}>
                 {phone}
               </Text>
             </View>
 
-            <Card style={{ padding: Theme.spacing.lg, marginBottom: Theme.spacing.lg }}>
+            <Card className='shadow-none' style={{ padding: Theme.spacing.lg, marginBottom: Theme.spacing.lg }}>
               <Text style={{
                 fontSize: Theme.typography.fontSize.base,
                 fontWeight: Theme.typography.fontWeight.semibold,
@@ -142,6 +142,8 @@ export const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ na
                   title="Verify OTP"
                   onPress={handleVerifyOtp}
                   loading={loading}
+                  variant="primary"
+                  size="lg"
                 />
               </View>
 

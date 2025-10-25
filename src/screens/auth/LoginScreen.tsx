@@ -48,7 +48,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: Theme.colors.statusBar }}>
+    <View style={{ flex: 1, backgroundColor: Theme.colors.background.primary }}>
       <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -56,15 +56,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         >
           <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: Theme.spacing.lg }}>
           <View style={{ marginBottom: Theme.spacing.xl }}>
-            <Text style={{ fontSize: Theme.typography.fontSize['4xl'], fontWeight: Theme.typography.fontWeight.bold, color: Theme.colors.text.inverse, textAlign: 'center', marginBottom: Theme.spacing.sm }}>
+            <Text style={{ fontSize: Theme.typography.fontSize['4xl'], fontWeight: Theme.typography.fontWeight.bold, color: Theme.colors.primary, textAlign: 'center', marginBottom: Theme.spacing.sm }}>
               PG Management
             </Text>
-            <Text style={{ fontSize: Theme.typography.fontSize.base, color: Theme.withOpacity(Theme.colors.text.inverse, 0.8), textAlign: 'center' }}>
+            <Text style={{ fontSize: Theme.typography.fontSize.base, color: Theme.colors.text.secondary, textAlign: 'center' }}>
               Login to manage your PG operations
             </Text>
           </View>
 
-          <Card className="mb-6">
+          <Card  className="mb-6 shadow-none">
             <Text className="text-2xl font-semibold text-dark mb-6">Login</Text>
             
             <Input
@@ -84,11 +84,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               title="Send OTP"
               onPress={handleSendOtp}
               loading={loading}
-              className="mt-4"
+              variant="primary"
+              size="md"
             />
-          </Card>
-
-          <Text className="text-sm text-gray-900 text-center mb-4">
+             <Text className='mt-6' style={{ fontSize: Theme.typography.fontSize.sm, color: Theme.colors.text.secondary, textAlign: 'center', marginBottom: Theme.spacing.md }}>
             You will receive a 6-digit OTP on your registered phone number
           </Text>
 
@@ -96,10 +95,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <Button
               title="Create New Account"
               onPress={() => navigation.navigate('Signup')}
-              variant="secondary"
+              variant="outline"
+              size='md'
             />
           </View>
+          </Card>
+         
           </ScrollView>
+
         </KeyboardAvoidingView>
       </SafeAreaView>
     </View>

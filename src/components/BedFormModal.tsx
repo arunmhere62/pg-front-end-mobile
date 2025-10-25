@@ -223,7 +223,7 @@ export const BedFormModal: React.FC<BedFormModalProps> = ({
                 >
                   <View>
                     <Text style={{ fontSize: 20, fontWeight: '700', color: Theme.colors.text.primary }}>
-                      {isEditMode ? '✏️ Edit Bed' : '➕ Add New Bed'}
+                      {isEditMode ? '✏️ Edit Bed' : 'Add New Bed'}
                     </Text>
                     <Text style={{ fontSize: 13, color: Theme.colors.text.secondary, marginTop: 2 }}>
                       Room {roomNo}

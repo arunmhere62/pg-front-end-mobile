@@ -17,6 +17,7 @@ import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
+import { CONTENT_COLOR } from '@/constant';
 
 interface RoomsScreenProps {
   navigation: any;
@@ -105,7 +106,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
   const handleDeleteRoom = (roomId: number, roomNo: string) => {
     Alert.alert(
       'Delete Room',
-      `Are you sure you want to delete Room ${roomNo}? This will also delete all beds in this room.`,
+      `Are you sure you want to delete Room ${roomNo}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -121,7 +122,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
               Alert.alert('Success', 'Room deleted successfully');
               loadRooms();
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to delete room');
+              Alert.alert('Error', error?.response?.data?.message || error.message || 'Failed to delete room');
             }
           },
         },
@@ -134,7 +135,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
       onPress={() => navigation.navigate('RoomDetails', { roomId: item.s_no })}
       activeOpacity={0.7}
     >
-      <Card style={{ margin: 16, marginBottom: 0, padding: 16 }}>
+      <Card className='' style={{ margin: 16, marginBottom: 0, padding: 16 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <View
@@ -244,10 +245,16 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
   );
 
   return (
-    <ScreenLayout>
-      <ScreenHeader onBackPress={() => navigation.goBack()} showBackButton title="Rooms" subtitle={`${pagination?.total || 0} total`} />
-
-      <View style={{ backgroundColor: '#fff', padding: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border }}>
+    <ScreenLayout backgroundColor={Theme.colors.background.blue}>
+      <ScreenHeader 
+        onBackPress={() => navigation.goBack()} 
+        showBackButton 
+        title="Rooms" 
+        subtitle={`${pagination?.total || 0} total`}
+        backgroundColor={Theme.colors.background.blue}
+        syncMobileHeaderBg={true}
+      />
+      <View style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border }}>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TextInput
             style={{
@@ -277,6 +284,8 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
         </View>
       </View>
 
+      <View style={{flex : 1, backgroundColor : CONTENT_COLOR}}>
+
       {loading && !refreshing ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator size="large" color={Theme.colors.primary} />
@@ -301,6 +310,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
           contentContainerStyle={{ paddingBottom: 80 }}
         />
       )}
+      </View>
 
       <TouchableOpacity
         onPress={() => navigation.navigate('AddRoom')}

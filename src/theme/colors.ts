@@ -1,82 +1,86 @@
 // Centralized color theme - Change colors here and they apply everywhere!
-// Based on GitHub's color palette
+// Clean white theme with professional blue accents
 
 export const Colors = {
-  // Primary Colors
-  primary: '#0969DA',        // GitHub blue - Main brand color
-  primaryLight: '#54A3FF',   // Lighter blue for hover/active states
-  primaryDark: '#0550AE',    // Darker blue for pressed states
+  // Primary Colors - Professional Blue
+  primary: '#2563EB',        // Modern blue - Main brand color
+  primaryLight: '#60A5FA',   // Lighter blue for hover/active states
+  primaryDark: '#1D4ED8',    // Darker blue for pressed states
   
   // Secondary Colors
-  secondary: '#1F883D',      // GitHub green - Success states
-  secondaryLight: '#26A641', // Lighter green
-  secondaryDark: '#116329',  // Darker green
+  secondary: '#10B981',      // Success green
+  secondaryLight: '#34D399', // Lighter green
+  secondaryDark: '#059669',  // Darker green
   
   // Status Colors
-  danger: '#CF222E',         // GitHub red - Errors/destructive actions
-  dangerLight: '#FF7B72',    // Lighter red
-  dangerDark: '#A40E26',     // Darker red
+  danger: '#EF4444',         // Red - Errors/destructive actions
+  dangerLight: '#F87171',    // Lighter red
+  dangerDark: '#DC2626',     // Darker red
   
-  warning: '#BF8700',        // GitHub yellow - Warnings
-  warningLight: '#D4A72C',   // Lighter yellow
-  warningDark: '#9A6700',    // Darker yellow
+  warning: '#F59E0B',        // Amber - Warnings
+  warningLight: '#FBBF24',   // Lighter amber
+  warningDark: '#D97706',    // Darker amber
   
-  info: '#0969DA',           // Info messages (same as primary)
+  info: '#2563EB',           // Info messages (same as primary)
   
   // Neutral Colors
-  dark: '#24292F',           // GitHub dark gray - Primary text
-  darkSecondary: '#57606A',  // Secondary text
-  darkTertiary: '#6E7781',   // Tertiary text/disabled
+  dark: '#1F2937',           // Dark gray - Primary text
+  darkSecondary: '#4B5563',  // Secondary text
+  darkTertiary: '#6B7280',   // Tertiary text/disabled
   
-  light: '#F6F8FA',          // GitHub light gray - Backgrounds
-  lightSecondary: '#EAEEF2', // Secondary backgrounds
+  light: '#F9FAFB',          // Very light gray - Backgrounds
+  lightSecondary: '#F3F4F6', // Secondary backgrounds
   
   canvas: '#FFFFFF',         // Pure white - Cards/surfaces
-  border: '#D0D7DE',         // Borders
+  border: '#E5E7EB',         // Light borders
   
   // Status Bar & Navigation
-  statusBar: '#0969DA',      // Status bar background
+  statusBar: '#2563EB',      // Blue status bar background
   statusBarText: '#FFFFFF',  // Status bar text/icons
   
   // Text Colors
   text: {
-    primary: '#24292F',      // Main text
-    secondary: '#57606A',    // Secondary text
-    tertiary: '#6E7781',     // Disabled/placeholder text
+    primary: '#1F2937',      // Main text
+    secondary: '#4B5563',    // Secondary text
+    tertiary: '#6B7280',     // Disabled/placeholder text
     inverse: '#FFFFFF',      // Text on dark backgrounds
-    link: '#0969DA',         // Links
+    link: '#2563EB',         // Links
   },
   
-  // Background Colors
+  // Background Colors - White theme
   background: {
-    primary: '#FFFFFF',      // Main background
-    secondary: '#F6F8FA',    // Secondary background
-    tertiary: '#EAEEF2',     // Tertiary background
+    primary: '#FFFFFF',      // Pure white main background
+    secondary: '#F9FAFB',    // Very light gray secondary background
+    tertiary: '#F3F4F6',     // Light gray tertiary background
+    blue: '#2563EB',         // Blue background (primary brand color)
+    blueLight: '#EFF6FF',    // Very light blue background
+    blueMedium: '#DBEAFE',   // Light blue background
+    blueDark: '#1D4ED8',     // Dark blue background
     overlay: 'rgba(0, 0, 0, 0.5)', // Modal overlays
   },
   
   // Component Specific
   card: {
     background: '#FFFFFF',
-    border: '#D0D7DE',
-    shadow: 'rgba(0, 0, 0, 0.1)',
+    border: '#E5E7EB',
+    shadow: 'rgba(37, 99, 235, 0.08)',
   },
   
   button: {
-    primary: '#0969DA',
+    primary: '#2563EB',      // Blue buttons
     primaryText: '#FFFFFF',
-    secondary: '#F6F8FA',
-    secondaryText: '#24292F',
-    disabled: '#EAEEF2',
-    disabledText: '#6E7781',
+    secondary: '#F9FAFB',
+    secondaryText: '#1F2937',
+    disabled: '#F3F4F6',
+    disabledText: '#9CA3AF',
   },
   
   input: {
     background: '#FFFFFF',
-    border: '#D0D7DE',
-    borderFocus: '#0969DA',
-    text: '#24292F',
-    placeholder: '#6E7781',
+    border: '#E5E7EB',
+    borderFocus: '#2563EB',  // Blue border on focus
+    text: '#1F2937',
+    placeholder: '#9CA3AF',
   },
   
   // Additional Colors

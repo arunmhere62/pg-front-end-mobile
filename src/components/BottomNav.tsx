@@ -32,7 +32,7 @@ export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, cur
   const accessibleTabs = allTabs.filter(tab => can(tab.permission));
   
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom + 50) }]}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       {accessibleTabs.map((tab) => {
         const isActive = currentRoute === tab.name;
         return (
@@ -42,13 +42,17 @@ export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, cur
             onPress={() => navigation.navigate(tab.name)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.icon, { opacity: isActive ? 1 : 0.85 }]}>{tab.icon}</Text>
+            <Text style={[styles.icon, { opacity: isActive ? 1 : 0.6 }]}>{tab.icon}</Text>
             <Text style={[
               styles.label,
-              { color: Theme.colors.text.inverse, opacity: isActive ? 1 : 0.85 }
+              { 
+                color: isActive ? Theme.colors.primary : Theme.colors.text.secondary,
+                fontWeight: isActive ? '700' : '600'
+              }
             ]}>
               {tab.label}
             </Text>
+            {isActive && <View style={styles.activeIndicator} />}
           </TouchableOpacity>
         );
       })}
@@ -65,31 +69,48 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: 'row',
-    backgroundColor: Theme.colors.primary,
-    borderTopWidth: 0,
-    minHeight: 60,
-    maxHeight: 80,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.06)',
     paddingTop: 8,
-    flexShrink: 0,
+    minHeight: 60,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -3 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 12,
+        borderTopWidth: 1.5,
+        borderTopColor: 'rgba(0, 0, 0, 0.08)',
+      },
+    }),
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 52,
+    paddingVertical: 8,
+    position: 'relative',
   },
   icon: {
     fontSize: 24,
-    height: 28,
-    lineHeight: 28,
     marginBottom: 4,
     textAlign: 'center',
   },
   label: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
     lineHeight: 14,
-    height: 14,
     textAlign: 'center',
+  },
+  activeIndicator: {
+    position: 'absolute',
+    top: 0,
+    width: 32,
+    height: 3,
+    backgroundColor: Theme.colors.primary,
+    borderRadius: 2,
   },
 });

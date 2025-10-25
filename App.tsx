@@ -1,10 +1,9 @@
 import React from 'react';
-import { StatusBar } from 'expo-status-bar';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { store, persistor } from './src/store';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, StatusBar } from 'react-native';
 import { NetworkLoggerModal } from './src/components/NetworkLoggerModal';
 import { Theme } from './src/theme';
 import { AppNavigator } from '@/navigation/AppNavigator';
@@ -21,7 +20,7 @@ export default function App() {
           }
           persistor={persistor}
         >
-          <StatusBar style="light" translucent backgroundColor="transparent" />
+          <StatusBar translucent backgroundColor="transparent" />
           <AppNavigator />
           <NetworkLoggerModal />
         </PersistGate>

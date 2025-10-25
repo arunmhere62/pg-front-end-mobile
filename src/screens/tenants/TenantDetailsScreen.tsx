@@ -17,6 +17,9 @@ import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
+import { DatePicker } from '../../components/DatePicker';
+import axiosInstance from '../../services/axiosInstance';
+import { CONTENT_COLOR } from '@/constant';
 
 interface TenantDetailsScreenProps {
   navigation: any;
@@ -44,6 +47,11 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
 
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  
+  // Checkout date modal state
+  const [checkoutDateModalVisible, setCheckoutDateModalVisible] = useState(false);
+  const [newCheckoutDate, setNewCheckoutDate] = useState('');
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
     loadTenantDetails();
@@ -96,11 +104,60 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
     setSelectedImage(null);
   };
 
+  const handleChangeCheckoutDate = () => {
+    setNewCheckoutDate(currentTenant?.check_out_date ? new Date(currentTenant.check_out_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+    setCheckoutDateModalVisible(true);
+  };
+
+  const handleClearCheckout = () => {
+    Alert.alert(
+      'Clear Checkout',
+      'This will reactivate the tenant and clear the checkout date. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setCheckoutLoading(true);
+              await axiosInstance.put(`/tenants/${tenantId}/checkout-date`, {
+                clear_checkout: true,
+              });
+              Alert.alert('Success', 'Checkout cleared and tenant reactivated successfully');
+              loadTenantDetails();
+            } catch (error: any) {
+              Alert.alert('Error', error?.response?.data?.message || 'Failed to clear checkout');
+            } finally {
+              setCheckoutLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const confirmUpdateCheckoutDate = async () => {
+    try {
+      setCheckoutLoading(true);
+      await axiosInstance.put(`/tenants/${tenantId}/checkout-date`, {
+        check_out_date: newCheckoutDate,
+      });
+      Alert.alert('Success', 'Checkout date updated successfully');
+      setCheckoutDateModalVisible(false);
+      loadTenantDetails();
+    } catch (error: any) {
+      Alert.alert('Error', error?.response?.data?.message || 'Failed to update checkout date');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
   if (loading || !currentTenant) {
     return (
-      <ScreenLayout>
+      <ScreenLayout backgroundColor={Theme.colors.background.blue}>
         <ScreenHeader title="Tenant Details" showBackButton={true} onBackPress={() => navigation.goBack()} />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{backgroundColor : CONTENT_COLOR, flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator size="large" color={Theme.colors.primary} />
           <Text style={{ marginTop: 16, color: Theme.colors.text.secondary }}>
             Loading tenant details...
@@ -117,135 +174,159 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
       : null;
 
   return (
-    <ScreenLayout>
-      <ScreenHeader title="Tenant Details" showBackButton={true} onBackPress={() => navigation.goBack()} />
+    <ScreenLayout  backgroundColor={Theme.colors.background.blue} >
+      <ScreenHeader 
+        title="Tenant Details" 
+        showBackButton={true} 
+        onBackPress={() => navigation.goBack()}
+        backgroundColor={Theme.colors.background.blue}
+        syncMobileHeaderBg={true}
+      >
+        
+      </ScreenHeader>
 
-      <ScrollView style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor : CONTENT_COLOR }}>
+        <ScrollView style={{ flex: 1 }}>
         {/* Header Card with Image */}
-        <Card style={{ margin: 16, padding: 16 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-            {/* Tenant Image/Avatar */}
-            <View
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: 40,
-                backgroundColor: Theme.colors.primary,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: 16,
-                overflow: 'hidden',
-              }}
-            >
-              {tenantImage ? (
-                <Image
-                  source={{ uri: tenantImage }}
-                  style={{ width: 80, height: 80 }}
-                  resizeMode="cover"
-                />
-              ) : (
-                <Text style={{ color: '#fff', fontSize: 32, fontWeight: 'bold' }}>
-                  {tenant.name.charAt(0).toUpperCase()}
-                </Text>
-              )}
-            </View>
+       <Card style={{ margin: 16, padding: 16, position: 'relative' }}>
+  {/* Edit Button - Top Right Corner */}
+  <TouchableOpacity
+    onPress={() => navigation.navigate('AddTenant', { tenantId: currentTenant.s_no })}
+    style={{
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      backgroundColor: '#fff',
+      borderRadius: 6,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    }}
+  >
+    <Text style={{ color: Theme.colors.primary, fontWeight: '600', fontSize: 14 }}>✏️ Edit</Text>
+  </TouchableOpacity>
 
-            {/* Name and Status */}
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  fontSize: 22,
-                  fontWeight: 'bold',
-                  color: Theme.colors.text.primary,
-                  marginBottom: 4,
-                }}
-              >
-                {tenant.name}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: Theme.colors.text.tertiary,
-                  marginBottom: 8,
-                }}
-              >
-                ID: {tenant.tenant_id}
-              </Text>
-              <View
-                style={{
-                  alignSelf: 'flex-start',
-                  paddingHorizontal: 12,
-                  paddingVertical: 4,
-                  borderRadius: 12,
-                  backgroundColor:
-                    tenant.status === 'ACTIVE' ? '#10B98120' : '#EF444420',
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: '600',
-                    color: tenant.status === 'ACTIVE' ? '#10B981' : '#EF4444',
-                  }}
-                >
-                  {tenant.status}
-                </Text>
-              </View>
-            </View>
-          </View>
+  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+    {/* Tenant Image/Avatar */}
+    <View
+      style={{
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: Theme.colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 16,
+        overflow: 'hidden',
+      }}
+    >
+      {tenantImage ? (
+        <Image
+          source={{ uri: tenantImage }}
+          style={{ width: 80, height: 80 }}
+          resizeMode="cover"
+        />
+      ) : (
+        <Text style={{ color: '#fff', fontSize: 32, fontWeight: 'bold' }}>
+          {tenant.name.charAt(0).toUpperCase()}
+        </Text>
+      )}
+    </View>
 
-          {/* Contact Actions */}
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {tenant.phone_no && (
-              <TouchableOpacity
-                onPress={() => handleCall(tenant.phone_no!)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  backgroundColor: Theme.colors.primary,
-                  borderRadius: 8,
-                  alignItems: 'center',
-                }}
-              >
-                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>
-                  📞 Call
-                </Text>
-              </TouchableOpacity>
-            )}
-            {tenant.whatsapp_number && (
-              <TouchableOpacity
-                onPress={() => handleWhatsApp(tenant.whatsapp_number!)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  backgroundColor: '#25D366',
-                  borderRadius: 8,
-                  alignItems: 'center',
-                }}
-              >
-                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>
-                  💬 WhatsApp
-                </Text>
-              </TouchableOpacity>
-            )}
-            {tenant.email && (
-              <TouchableOpacity
-                onPress={() => handleEmail(tenant.email!)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  backgroundColor: '#EA4335',
-                  borderRadius: 8,
-                  alignItems: 'center',
-                }}
-              >
-                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>
-                  ✉️ Email
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </Card>
+    {/* Name and Status */}
+    <View style={{ flex: 1 }}>
+      <Text
+        style={{
+          fontSize: 22,
+          fontWeight: 'bold',
+          color: Theme.colors.text.primary,
+          marginBottom: 4,
+        }}
+      >
+        {tenant.name}
+      </Text>
+      <Text
+        style={{
+          fontSize: 13,
+          color: Theme.colors.text.tertiary,
+          marginBottom: 8,
+        }}
+      >
+        ID: {tenant.tenant_id}
+      </Text>
+      <View
+        style={{
+          alignSelf: 'flex-start',
+          paddingHorizontal: 12,
+          paddingVertical: 4,
+          borderRadius: 12,
+          backgroundColor:
+            tenant.status === 'ACTIVE' ? '#10B98120' : '#EF444420',
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: '600',
+            color: tenant.status === 'ACTIVE' ? '#10B981' : '#EF4444',
+          }}
+        >
+          {tenant.status}
+        </Text>
+      </View>
+    </View>
+  </View>
+
+  {/* Contact Actions */}
+  <View style={{ flexDirection: 'row', gap: 8 }}>
+    {tenant.phone_no && (
+      <TouchableOpacity
+        onPress={() => handleCall(tenant.phone_no!)}
+        style={{
+          flex: 1,
+          paddingVertical: 10,
+          backgroundColor: Theme.colors.primary,
+          borderRadius: 8,
+          alignItems: 'center',
+        }}
+      >
+        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>📞 Call</Text>
+      </TouchableOpacity>
+    )}
+    {tenant.whatsapp_number && (
+      <TouchableOpacity
+        onPress={() => handleWhatsApp(tenant.whatsapp_number!)}
+        style={{
+          flex: 1,
+          paddingVertical: 10,
+          backgroundColor: '#25D366',
+          borderRadius: 8,
+          alignItems: 'center',
+        }}
+      >
+        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>💬 WhatsApp</Text>
+      </TouchableOpacity>
+    )}
+    {tenant.email && (
+      <TouchableOpacity
+        onPress={() => handleEmail(tenant.email!)}
+        style={{
+          flex: 1,
+          paddingVertical: 10,
+          backgroundColor: '#EA4335',
+          borderRadius: 8,
+          alignItems: 'center',
+        }}
+      >
+        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>✉️ Email</Text>
+      </TouchableOpacity>
+    )}
+  </View>
+</Card>
 
         {/* Pending Payment Alert */}
         {tenant.pending_payment && tenant.pending_payment.total_pending > 0 && (
@@ -461,17 +542,46 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
             </View>
 
             {tenant.check_out_date && (
-              <View>
-                <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary }}>
-                  Check-out Date
-                </Text>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
-                  {new Date(tenant.check_out_date).toLocaleDateString('en-IN', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </Text>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary }}>
+                      Check-out Date
+                    </Text>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
+                      {new Date(tenant.check_out_date).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    <TouchableOpacity
+                      onPress={handleChangeCheckoutDate}
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        backgroundColor: Theme.colors.primary,
+                        borderRadius: 4,
+                      }}
+                    >
+                      <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>Change</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleClearCheckout}
+                      disabled={checkoutLoading}
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        backgroundColor: checkoutLoading ? '#9CA3AF' : '#10B981',
+                        borderRadius: 4,
+                      }}
+                    >
+                      <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>Clear</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
             )}
           </View>
@@ -957,6 +1067,102 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
           )}
         </View>
       </Modal>
+
+      {/* Change Checkout Date Modal */}
+      <Modal
+        visible={checkoutDateModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setCheckoutDateModalVisible(false)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <View style={{
+            backgroundColor: '#fff',
+            borderRadius: 12,
+            padding: 20,
+            width: '85%',
+            maxWidth: 400,
+          }}>
+            <Text style={{
+              fontSize: 20,
+              fontWeight: '700',
+              color: Theme.colors.text.primary,
+              marginBottom: 16,
+            }}>
+              Change Checkout Date
+            </Text>
+            
+            <Text style={{
+              fontSize: 14,
+              color: Theme.colors.text.secondary,
+              marginBottom: 20,
+            }}>
+              Update the checkout date for {tenant.name}
+            </Text>
+
+            <DatePicker
+              label="New Checkout Date"
+              value={newCheckoutDate}
+              onChange={(date) => setNewCheckoutDate(date)}
+            />
+
+            <View style={{
+              flexDirection: 'row',
+              gap: 12,
+              marginTop: 24,
+            }}>
+              <TouchableOpacity
+                onPress={() => setCheckoutDateModalVisible(false)}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  backgroundColor: '#F3F4F6',
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{
+                  color: Theme.colors.text.primary,
+                  fontWeight: '600',
+                  fontSize: 16,
+                }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={confirmUpdateCheckoutDate}
+                disabled={checkoutLoading}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  backgroundColor: checkoutLoading ? '#9CA3AF' : Theme.colors.primary,
+                  alignItems: 'center',
+                }}
+              >
+                {checkoutLoading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={{
+                    color: '#fff',
+                    fontWeight: '600',
+                    fontSize: 16,
+                  }}>
+                    Update
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      </View>
     </ScreenLayout>
   );
 };

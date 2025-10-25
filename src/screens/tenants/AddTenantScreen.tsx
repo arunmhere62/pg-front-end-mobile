@@ -22,6 +22,7 @@ import { ImageUpload } from '../../components/ImageUpload';
 import { DatePicker } from '../../components/DatePicker';
 import { SearchableDropdown } from '../../components/SearchableDropdown';
 import axiosInstance from '../../services/axiosInstance';
+import { CONTENT_COLOR } from '@/constant';
 
 interface AddTenantScreenProps {
   navigation: any;
@@ -49,6 +50,11 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
   const { selectedPGLocationId } = useSelector((state: RootState) => state.pgLocations);
   const { user } = useSelector((state: RootState) => state.auth);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
+  
+  // Check if we're in edit mode
+  const tenantId = route?.params?.tenantId;
+  const isEditMode = !!tenantId;
 
   // Dropdown data
   const [roomList, setRoomList] = useState<OptionType[]>([]);
@@ -81,6 +87,13 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
   const [loadingCities, setLoadingCities] = useState(false);
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [loadingBeds, setLoadingBeds] = useState(false);
+
+  // Fetch tenant data if in edit mode
+  useEffect(() => {
+    if (isEditMode && tenantId) {
+      fetchTenantData();
+    }
+  }, [tenantId]);
 
   // Fetch states on mount
   useEffect(() => {
@@ -181,6 +194,9 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
       const response = await axiosInstance.get('/beds', {
         params: {
           room_id: roomId,
+          // Only show unoccupied beds when creating new tenant
+          // When editing, show all beds so user can see current bed
+          only_unoccupied: !isEditMode,
         },
       });
       if (response.data.success) {
@@ -197,6 +213,47 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
       Alert.alert('Error', 'Failed to load beds');
     } finally {
       setLoadingBeds(false);
+    }
+  };
+
+  const fetchTenantData = async () => {
+    try {
+      setInitialLoading(true);
+      const response = await axiosInstance.get(`/tenants/${tenantId}`);
+      const tenant = response.data.data;
+      
+      setFormData({
+        name: tenant.name || '',
+        phone_no: tenant.phone_no || '',
+        whatsapp_number: tenant.whatsapp_number || '',
+        email: tenant.email || '',
+        occupation: tenant.occupation || '',
+        tenant_address: tenant.tenant_address || '',
+        room_id: tenant.room_id || null,
+        bed_id: tenant.bed_id || null,
+        check_in_date: tenant.check_in_date ? new Date(tenant.check_in_date).toISOString().split('T')[0] : '',
+        check_out_date: tenant.check_out_date ? new Date(tenant.check_out_date).toISOString().split('T')[0] : '',
+        city_id: tenant.city_id || null,
+        state_id: tenant.state_id || null,
+        status: tenant.status || 'ACTIVE',
+      });
+      
+      if (tenant.images) {
+        setTenantImages(Array.isArray(tenant.images) ? tenant.images : []);
+      }
+      if (tenant.proof_documents) {
+        setProofDocuments(Array.isArray(tenant.proof_documents) ? tenant.proof_documents : []);
+      }
+      
+      // Fetch cities if state is selected
+      if (tenant.state_id) {
+        fetchCities(tenant.state_id);
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error?.response?.data?.message || 'Failed to load tenant data');
+      navigation.goBack();
+    } finally {
+      setInitialLoading(false);
     }
   };
 
@@ -274,26 +331,38 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
         state_id: formData.state_id || undefined,
         images: tenantImages.length > 0 ? tenantImages : undefined,
         proof_documents: proofDocuments.length > 0 ? proofDocuments : undefined,
-        status: 'ACTIVE' as const,
+        status: formData.status as 'ACTIVE' | 'INACTIVE',
       };
 
-      await dispatch(
-        createTenant({
-          data: tenantData,
-          headers: {
-            pg_id: selectedPGLocationId,
-            organization_id: user?.organization_id,
-            user_id: user?.s_no,
+      if (isEditMode) {
+        // Update existing tenant
+        await axiosInstance.put(`/tenants/${tenantId}`, tenantData);
+        Alert.alert('Success', 'Tenant updated successfully', [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
           },
-        })
-      ).unwrap();
+        ]);
+      } else {
+        // Create new tenant
+        await dispatch(
+          createTenant({
+            data: tenantData,
+            headers: {
+              pg_id: selectedPGLocationId,
+              organization_id: user?.organization_id,
+              user_id: user?.s_no,
+            },
+          })
+        ).unwrap();
 
-      Alert.alert('Success', 'Tenant created successfully', [
-        {
-          text: 'OK',
-          onPress: () => navigation.goBack(),
-        },
-      ]);
+        Alert.alert('Success', 'Tenant created successfully', [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]);
+      }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to create tenant');
     } finally {
@@ -301,15 +370,36 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
     }
   };
 
+  if (initialLoading) {
+    return (
+      <ScreenLayout backgroundColor={Theme.colors.background.blue}>
+        <ScreenHeader
+          title={isEditMode ? 'Edit Tenant' : 'Add New Tenant'}
+          showBackButton={true}
+          onBackPress={() => navigation.goBack()}
+          backgroundColor={Theme.colors.background.blue}
+          syncMobileHeaderBg={true}
+        />
+        <View style={{ flex: 1, backgroundColor: CONTENT_COLOR, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color={Theme.colors.primary} />
+          <Text style={{ marginTop: 16, color: Theme.colors.text.secondary }}>Loading tenant data...</Text>
+        </View>
+      </ScreenLayout>
+    );
+  }
+
   return (
-    <ScreenLayout>
+    <ScreenLayout backgroundColor={Theme.colors.background.blue}>
       <ScreenHeader
-        title="Add New Tenant"
+        title={isEditMode ? 'Edit Tenant' : 'Add New Tenant'}
         showBackButton={true}
         onBackPress={() => navigation.goBack()}
+        backgroundColor={Theme.colors.background.blue}
+        syncMobileHeaderBg={true}
       />
 
-      <KeyboardAvoidingView
+     <View  style={{ flex: 1, backgroundColor: CONTENT_COLOR,  }}>
+       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 80}
@@ -642,6 +732,7 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
         </View>
         </ScrollView>
       </KeyboardAvoidingView>
+     </View>
     </ScreenLayout>
   );
 };

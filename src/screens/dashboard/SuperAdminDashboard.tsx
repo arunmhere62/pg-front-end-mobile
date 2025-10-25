@@ -43,13 +43,13 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ naviga
   };
 
   return (
-    <ScreenLayout>
+    <ScreenLayout backgroundColor={Theme.colors.background.blue}>
       <ScreenHeader 
         title="SuperAdmin Dashboard" 
         subtitle={`Welcome back, ${user?.name}`}
       />
 
-      <View style={{ flex: 1, backgroundColor: Theme.colors.light }}>
+      <View style={{ flex: 1, backgroundColor: Theme.colors.background.secondary }}>
         <ScrollView
           contentContainerStyle={{ paddingBottom: 80 }}
           refreshControl={

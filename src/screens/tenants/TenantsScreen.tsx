@@ -22,6 +22,8 @@ import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { Ionicons } from '@expo/vector-icons';
+import axiosInstance from '../../services/axiosInstance';
+import { DatePicker } from '../../components/DatePicker';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -44,6 +46,12 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
   const [pendingAdvanceFilter, setPendingAdvanceFilter] = useState(false);
   const [expandedPaymentCards, setExpandedPaymentCards] = useState<Set<number>>(new Set());
   const flatListRef = React.useRef<any>(null);
+  
+  // Checkout modal state
+  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
+  const [selectedTenantForCheckout, setSelectedTenantForCheckout] = useState<{ id: number; name: string } | null>(null);
+  const [checkoutDate, setCheckoutDate] = useState(new Date().toISOString().split('T')[0]);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   
   // Toggle payment details for a tenant
   const togglePaymentDetails = (tenantId: number) => {
@@ -150,8 +158,8 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
               })).unwrap();
               Alert.alert('Success', 'Tenant deleted successfully');
               loadTenants(currentPage);
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete tenant');
+            } catch (error: any) {
+              Alert.alert('Error', error?.response?.data?.message || 'Failed to delete tenant');
             }
           },
         },
@@ -160,32 +168,29 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
   };
 
   const handleCheckout = (id: number, name: string) => {
-    Alert.alert(
-      'Checkout Tenant',
-      `Are you sure you want to checkout ${name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Checkout',
-          onPress: async () => {
-            try {
-              await dispatch(checkoutTenant({
-                id,
-                headers: {
-                  pg_id: selectedPGLocationId || undefined,
-                  organization_id: user?.organization_id || undefined,
-                  user_id: user?.s_no || undefined,
-                },
-              })).unwrap();
-              Alert.alert('Success', 'Tenant checked out successfully');
-              loadTenants(currentPage);
-            } catch (error) {
-              Alert.alert('Error', 'Failed to checkout tenant');
-            }
-          },
-        },
-      ]
-    );
+    // Show modal to select checkout date
+    setCheckoutModalVisible(true);
+    setSelectedTenantForCheckout({ id, name });
+  };
+
+  const confirmCheckout = async () => {
+    if (!selectedTenantForCheckout) return;
+
+    try {
+      setCheckoutLoading(true);
+      await axiosInstance.post(`/tenants/${selectedTenantForCheckout.id}/checkout`, {
+        check_out_date: checkoutDate,
+      });
+      Alert.alert('Success', 'Tenant checked out successfully');
+      setCheckoutModalVisible(false);
+      setSelectedTenantForCheckout(null);
+      setCheckoutDate(new Date().toISOString().split('T')[0]);
+      loadTenants(currentPage);
+    } catch (error: any) {
+      Alert.alert('Error', error?.response?.data?.message || 'Failed to checkout tenant');
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
   const clearFilters = () => {
@@ -472,7 +477,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                     </View>
                   ))}
                   <Text style={{ fontSize: 10, color: '#10B981', fontWeight: '600', marginTop: 2 }}>
-                    Total: ₹{item.advance_payments.reduce((sum: number, p: any) => sum + p.amount_paid, 0)}
+                    Total: ₹{item.advance_payments.reduce((sum: number, p: any) => sum + Number(p.amount_paid || 0), 0)}
                   </Text>
                 </View>
               )}
@@ -537,18 +542,21 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
             <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>Checkout</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity
-          onPress={() => handleDeleteTenant(item.s_no, item.name)}
-          style={{
-            paddingVertical: 10,
-            paddingHorizontal: 16,
-            backgroundColor: '#EF4444',
-            borderRadius: 8,
-            alignItems: 'center',
-          }}
-        >
-          <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>Delete</Text>
-        </TouchableOpacity>
+        {/* Only show delete button for checked-out tenants */}
+        {item.status === 'INACTIVE' && item.check_out_date && (
+          <TouchableOpacity
+            onPress={() => handleDeleteTenant(item.s_no, item.name)}
+            style={{
+              paddingVertical: 10,
+              paddingHorizontal: 16,
+              backgroundColor: '#EF4444',
+              borderRadius: 8,
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>Delete</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </Card>
     );
@@ -607,17 +615,17 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
           {/* Previous Button */}
           <TouchableOpacity
             onPress={() => goToPage(currentPage - 1)}
-            disabled={currentPage === 1}
+            disabled={currentPage === 1 || loading}
             style={{
               paddingHorizontal: 12,
               paddingVertical: 8,
               borderRadius: 8,
-              backgroundColor: currentPage === 1 ? '#E5E7EB' : Theme.colors.primary,
+              backgroundColor: (currentPage === 1 || loading) ? '#E5E7EB' : Theme.colors.primary,
               minWidth: 70,
             }}
           >
             <Text style={{ 
-              color: currentPage === 1 ? '#9CA3AF' : '#fff', 
+              color: (currentPage === 1 || loading) ? '#9CA3AF' : '#fff', 
               fontWeight: '600',
               fontSize: 14,
             }}>
@@ -630,6 +638,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
             <>
               <TouchableOpacity
                 onPress={() => goToPage(1)}
+                disabled={loading}
                 style={{
                   width: 36,
                   height: 36,
@@ -637,6 +646,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                   backgroundColor: currentPage === 1 ? Theme.colors.primary : '#F3F4F6',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  opacity: loading ? 0.5 : 1,
                 }}
               >
                 <Text style={{ 
@@ -653,6 +663,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
             <TouchableOpacity
               key={page}
               onPress={() => goToPage(page)}
+              disabled={loading}
               style={{
                 width: 36,
                 height: 36,
@@ -660,6 +671,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                 backgroundColor: page === currentPage ?   Theme.colors.primary : '#F3F4F6',
                 alignItems: 'center',
                 justifyContent: 'center',
+                opacity: loading ? 0.5 : 1,
               }}
             >
               <Text style={{ 
@@ -677,6 +689,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
               {endPage < totalPages - 1 && <Text style={{ color: Theme.colors.text.tertiary, paddingHorizontal: 4 }}>...</Text>}
               <TouchableOpacity
                 onPress={() => goToPage(totalPages)}
+                disabled={loading}
                 style={{
                   width: 36,
                   height: 36,
@@ -684,6 +697,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                   backgroundColor: currentPage === totalPages ? Theme.colors.primary : '#F3F4F6',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  opacity: loading ? 0.5 : 1,
                 }}
               >
                 <Text style={{ 
@@ -697,17 +711,17 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
           {/* Next Button */}
           <TouchableOpacity
             onPress={() => goToPage(currentPage + 1)}
-            disabled={currentPage === totalPages}
+            disabled={currentPage === totalPages || loading}
             style={{
               paddingHorizontal: 12,
               paddingVertical: 8,
               borderRadius: 8,
-              backgroundColor: currentPage === totalPages ? '#E5E7EB' : Theme.colors.primary,
+              backgroundColor: (currentPage === totalPages || loading) ? '#E5E7EB' : Theme.colors.primary,
               minWidth: 70,
             }}
           >
             <Text style={{ 
-              color: currentPage === totalPages ? '#9CA3AF' : '#fff', 
+              color: (currentPage === totalPages || loading) ? '#9CA3AF' : '#fff', 
               fontWeight: '600',
               fontSize: 14,
             }}>
@@ -720,11 +734,10 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
 };
 
   return (
-    <ScreenLayout>
+    <ScreenLayout backgroundColor={Theme.colors.background.blue}>
       <ScreenHeader title="Tenants" subtitle={`${pagination?.total || 0} total`} />
-
-      {/* Search & Filter Bar */}
-      <View style={{ backgroundColor: '#fff', padding: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border }}>
+    {/* Search & Filter Bar */}
+      <View style={{  padding: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border }}>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TextInput
             style={{
@@ -784,6 +797,9 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
         </View>
       </View>
 
+    <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+      
+     
       {/* Filter Modal Overlay */}
       <Modal
         visible={showFilters}
@@ -1120,7 +1136,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
       )}
 
       {/* Pagination */}
-      {!loading && tenants.length > 0 && renderPagination()}
+      {tenants.length > 0 && renderPagination()}
 
       {/* Pagination Info */}
       {pagination && tenants.length > 0 && (
@@ -1158,6 +1174,107 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
       >
         <Text style={{ color: '#fff', fontSize: 32, fontWeight: '300' }}>+</Text>
       </TouchableOpacity>
+
+      {/* Checkout Date Modal */}
+      <Modal
+        visible={checkoutModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setCheckoutModalVisible(false)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <View style={{
+            backgroundColor: '#fff',
+            borderRadius: 12,
+            padding: 20,
+            width: '85%',
+            maxWidth: 400,
+          }}>
+            <Text style={{
+              fontSize: 20,
+              fontWeight: '700',
+              color: Theme.colors.text.primary,
+              marginBottom: 16,
+            }}>
+              Checkout Tenant
+            </Text>
+            
+            {selectedTenantForCheckout && (
+              <Text style={{
+                fontSize: 14,
+                color: Theme.colors.text.secondary,
+                marginBottom: 20,
+              }}>
+                Checking out: {selectedTenantForCheckout.name}
+              </Text>
+            )}
+
+            <DatePicker
+              label="Checkout Date"
+              value={checkoutDate}
+              onChange={(date) => setCheckoutDate(date)}
+            />
+
+            <View style={{
+              flexDirection: 'row',
+              gap: 12,
+              marginTop: 24,
+            }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setCheckoutModalVisible(false);
+                  setSelectedTenantForCheckout(null);
+                }}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  backgroundColor: '#F3F4F6',
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{
+                  color: Theme.colors.text.primary,
+                  fontWeight: '600',
+                  fontSize: 16,
+                }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={confirmCheckout}
+                disabled={checkoutLoading}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  backgroundColor: checkoutLoading ? '#9CA3AF' : Theme.colors.primary,
+                  alignItems: 'center',
+                }}
+              >
+                {checkoutLoading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={{
+                    color: '#fff',
+                    fontWeight: '600',
+                    fontSize: 16,
+                  }}>
+                    Confirm
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
     </ScreenLayout>
   );
 };

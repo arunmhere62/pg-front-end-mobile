@@ -20,6 +20,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { BedFormModal } from '../../components/BedFormModal';
 import { Ionicons } from '@expo/vector-icons';
+import { CONTENT_COLOR } from '@/constant';
 
 interface RoomDetailsScreenProps {
   navigation: any;
@@ -156,17 +157,21 @@ export const RoomDetailsScreen: React.FC<RoomDetailsScreenProps> = ({ navigation
 
   if (loading) {
     return (
-      <ScreenLayout>
+      <ScreenLayout backgroundColor={Theme.colors.background.blue}>
         <ScreenHeader
           title="Room Details"
           showBackButton={true}
           onBackPress={() => navigation.goBack()}
+          backgroundColor={Theme.colors.background.blue}
+          syncMobileHeaderBg={true}
         />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color={Theme.colors.primary} />
-          <Text style={{ marginTop: 16, color: Theme.colors.text.secondary }}>
-            Loading room details...
-          </Text>
+        <View style={{ flex: 1, backgroundColor: CONTENT_COLOR }}>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator size="large" color={Theme.colors.primary} />
+            <Text style={{ marginTop: 16, color: Theme.colors.text.secondary }}>
+              Loading room details...
+            </Text>
+          </View>
         </View>
       </ScreenLayout>
     );
@@ -174,31 +179,38 @@ export const RoomDetailsScreen: React.FC<RoomDetailsScreenProps> = ({ navigation
 
   if (!room) {
     return (
-      <ScreenLayout>
+      <ScreenLayout backgroundColor={Theme.colors.background.blue}>
         <ScreenHeader
           title="Room Details"
           showBackButton={true}
           onBackPress={() => navigation.goBack()}
+          backgroundColor={Theme.colors.background.blue}
+          syncMobileHeaderBg={true}
         />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>❌</Text>
-          <Text style={{ fontSize: 18, fontWeight: '600', color: Theme.colors.text.primary }}>
-            Room Not Found
-          </Text>
+        <View style={{ flex: 1, backgroundColor: CONTENT_COLOR }}>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+            <Text style={{ fontSize: 48, marginBottom: 16 }}>🏠</Text>
+            <Text style={{ fontSize: 18, fontWeight: '600', color: Theme.colors.text.primary }}>
+              Room Not Found
+            </Text>
+          </View>
         </View>
       </ScreenLayout>
     );
   }
 
   return (
-    <ScreenLayout>
+    <ScreenLayout backgroundColor={Theme.colors.background.blue}>
       <ScreenHeader
         title={`Room ${room.room_no}`}
         showBackButton={true}
         onBackPress={() => navigation.goBack()}
+        backgroundColor={Theme.colors.background.blue}
+        syncMobileHeaderBg={true}
       />
 
-      <ScrollView
+     <View style ={{flex : 1, backgroundColor : CONTENT_COLOR}} >
+       <ScrollView
         style={{ flex: 1 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
@@ -475,6 +487,7 @@ export const RoomDetailsScreen: React.FC<RoomDetailsScreenProps> = ({ navigation
           )}
         </Card>
       </ScrollView>
+     </View>
 
       {/* Bed Form Modal */}
       <BedFormModal

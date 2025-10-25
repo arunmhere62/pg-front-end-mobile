@@ -340,8 +340,8 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
                 Alert.alert('Success', 'PG location deleted successfully');
                 loadPGLocations();
               }
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete PG location');
+            } catch (error: any) {
+              Alert.alert('Error', error?.response?.data?.message || 'Something went wrong');
             }
           },
         },
@@ -756,7 +756,7 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
   );
 
   return (
-    <ScreenLayout>
+    <ScreenLayout backgroundColor={Theme.colors.background.blue}>
       <ScreenHeader 
         title="PG Locations" 
         subtitle="Manage your PG locations"
