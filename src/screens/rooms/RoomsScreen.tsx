@@ -332,7 +332,10 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
       </View>
 
       <TouchableOpacity
-        onPress={() => navigation.navigate('AddRoom')}
+        onPress={() => {
+          setEditingRoomId(null);
+          setEditModalVisible(true);
+        }}
         style={{
           position: 'absolute',
           right: 20,

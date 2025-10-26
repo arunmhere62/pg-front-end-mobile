@@ -16,8 +16,10 @@ import { getAllRooms, Room } from '../../services/roomService';
 import { getAllBeds, Bed } from '../../services/bedService';
 import { paymentService } from '../../services/paymentService';
 import { Alert } from 'react-native';
-import { EditPaymentModal } from '../../components/EditPaymentModal';
+import { EditRentPaymentModal } from '../../components/EditRentPaymentModal';
+import { EditAdvancePaymentModal } from '../../components/EditAdvancePaymentModal';
 import advancePaymentService, { AdvancePayment } from '../../services/advancePaymentService';
+import refundPaymentService, { RefundPayment } from '../../services/refundPaymentService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -36,7 +38,7 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
   const { selectedPGLocationId } = useSelector((state: RootState) => state.pgLocations);
   
   // Tab state
-  const [activeTab, setActiveTab] = useState<'RENT' | 'ADVANCE'>('RENT');
+  const [activeTab, setActiveTab] = useState<'RENT' | 'ADVANCE' | 'REFUND'>('RENT');
   
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,6 +48,11 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
   const [advancePayments, setAdvancePayments] = useState<AdvancePayment[]>([]);
   const [advancePagination, setAdvancePagination] = useState<any>(null);
   const [loadingAdvance, setLoadingAdvance] = useState(false);
+  
+  // Refund payments state
+  const [refundPayments, setRefundPayments] = useState<RefundPayment[]>([]);
+  const [refundPagination, setRefundPagination] = useState<any>(null);
+  const [loadingRefund, setLoadingRefund] = useState(false);
   
   // Filter states
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PAID' | 'PENDING' | 'FAILED'>('ALL');
@@ -115,11 +122,29 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
     return [currentYear, currentYear - 1, currentYear - 2];
   }, []);
 
+  // Helper function to get tenant unavailability message
+  const getTenantUnavailableMessage = (reason?: 'NOT_FOUND' | 'DELETED' | 'CHECKED_OUT' | 'INACTIVE' | null) => {
+    switch (reason) {
+      case 'DELETED':
+        return { text: '⚠️ Tenant has been deleted', color: '#DC2626' };
+      case 'CHECKED_OUT':
+        return { text: '📤 Tenant has checked out', color: '#F59E0B' };
+      case 'INACTIVE':
+        return { text: '⏸️ Tenant is inactive', color: '#6B7280' };
+      case 'NOT_FOUND':
+        return { text: '❌ Tenant not found', color: '#DC2626' };
+      default:
+        return { text: '⚠️ Tenant unavailable', color: '#DC2626' };
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'RENT') {
       loadPayments(1);
-    } else {
+    } else if (activeTab === 'ADVANCE') {
       loadAdvancePayments(1);
+    } else {
+      loadRefundPayments(1);
     }
   }, [selectedPGLocationId, activeTab]);
 
@@ -127,8 +152,10 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
     React.useCallback(() => {
       if (activeTab === 'RENT') {
         loadPayments(currentPage);
-      } else {
+      } else if (activeTab === 'ADVANCE') {
         loadAdvancePayments(currentPage);
+      } else {
+        loadRefundPayments(currentPage);
       }
     }, [selectedPGLocationId, currentPage, activeTab])
   );
@@ -207,23 +234,68 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
     }
   };
 
+  const loadRefundPayments = async (page: number) => {
+    try {
+      setLoadingRefund(true);
+      setCurrentPage(page);
+      
+      const params: any = {
+        page,
+        limit: 10,
+      };
+
+      if (statusFilter !== 'ALL') params.status = statusFilter;
+      
+      // Priority: Date range (including quick filters) > Month/Year
+      if (startDate || endDate) {
+        if (startDate) params.start_date = startDate;
+        if (endDate) params.end_date = endDate;
+      } else if (selectedMonth && selectedYear) {
+        params.month = selectedMonth;
+        params.year = selectedYear;
+      }
+      
+      if (selectedRoomId) params.room_id = selectedRoomId;
+      if (selectedBedId) params.bed_id = selectedBedId;
+
+      const response = await refundPaymentService.getRefundPayments(params, {
+        pg_id: selectedPGLocationId || undefined,
+      });
+      
+      setRefundPayments(response.data);
+      setRefundPagination(response.pagination);
+      
+      if (flatListRef.current && page === 1) {
+        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+      }
+    } catch (error) {
+      console.error('Error loading refund payments:', error);
+    } finally {
+      setLoadingRefund(false);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     if (activeTab === 'RENT') {
       await loadPayments(currentPage);
-    } else {
+    } else if (activeTab === 'ADVANCE') {
       await loadAdvancePayments(currentPage);
+    } else {
+      await loadRefundPayments(currentPage);
     }
     setRefreshing(false);
   };
 
   const goToPage = (page: number) => {
-    const maxPages = activeTab === 'RENT' ? (pagination?.totalPages || 1) : (advancePagination?.totalPages || 1);
+    const maxPages = activeTab === 'RENT' ? (pagination?.totalPages || 1) : activeTab === 'ADVANCE' ? (advancePagination?.totalPages || 1) : (refundPagination?.totalPages || 1);
     if (page >= 1 && page <= maxPages) {
       if (activeTab === 'RENT') {
         loadPayments(page);
-      } else {
+      } else if (activeTab === 'ADVANCE') {
         loadAdvancePayments(page);
+      } else {
+        loadRefundPayments(page);
       }
     }
   };
@@ -339,6 +411,60 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
     }
   };
 
+  const handleDeleteRentPayment = (payment: Payment) => {
+    Alert.alert(
+      'Delete Rent Payment',
+      `Are you sure you want to delete this payment?\n\nTenant: ${payment.tenants?.name}\nAmount: ₹${payment.amount_paid}\nDate: ${formatDate(payment.payment_date || '')}`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await paymentService.deleteTenantPayment(payment.s_no);
+              Alert.alert('Success', 'Rent payment deleted successfully');
+              loadPayments(currentPage);
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to delete payment');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAdvancePayment = (payment: Payment) => {
+    Alert.alert(
+      'Delete Advance Payment',
+      `Are you sure you want to delete this payment?\n\nTenant: ${payment.tenants?.name}\nAmount: ₹${payment.amount_paid}\nDate: ${formatDate(payment.payment_date || '')}`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await advancePaymentService.deleteAdvancePayment(payment.s_no, {
+                pg_id: selectedPGLocationId || undefined,
+              });
+              Alert.alert('Success', 'Advance payment deleted successfully');
+              loadAdvancePayments(currentPage);
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to delete payment');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -414,7 +540,17 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
               backgroundColor: Theme.colors.background.blueLight,
             }}
           >
-            <Ionicons name="pencil" size={12} color={Theme.colors.primary} />
+            <Ionicons name="pencil" size={16} color={Theme.colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleDeleteRentPayment(item)}
+            style={{
+              padding: 6,
+              borderRadius: 6,
+              backgroundColor: '#FEE2E2',
+            }}
+          >
+            <Ionicons name="trash-outline" size={16} color="#EF4444" />
           </TouchableOpacity>
           <View
             style={{
@@ -517,27 +653,74 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
           </View>
         )}
 
-        {/* Mark as Paid Button for Pending Payments */}
-        {item.status === 'PENDING' && (
-          <TouchableOpacity
-            onPress={() => handleMarkAsPaid(item)}
-            style={{
-              marginTop: 12,
-              paddingVertical: 10,
-              paddingHorizontal: 16,
-              backgroundColor: Theme.colors.secondary,
-              borderRadius: 8,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons name="checkmark-circle-outline" size={12} color="#fff" />
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff', marginLeft: 6 }}>
-              Mark as Paid
-            </Text>
-          </TouchableOpacity>
-        )}
+        {/* Action Buttons */}
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+          {/* View Details Button */}
+          {item.tenants && !item.tenant_unavailable_reason ? (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('TenantDetails', { tenantId: item.tenant_id })}
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                backgroundColor: Theme.colors.background.blueLight,
+                borderRadius: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1,
+                borderColor: Theme.colors.primary,
+              }}
+            >
+              <Ionicons name="information-circle-outline" size={16} color={Theme.colors.primary} />
+              <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.primary, marginLeft: 6 }}>
+                View Details
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                backgroundColor: '#F3F4F6',
+                borderRadius: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+              }}
+            >
+              <Ionicons name="alert-circle-outline" size={16} color="#9CA3AF" />
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#9CA3AF', marginLeft: 6 }}>
+                Tenant Removed
+              </Text>
+            </View>
+          )}
+
+          {/* Mark as Paid Button for Pending Payments */}
+          {item.status === 'PENDING' && (
+            <TouchableOpacity
+              onPress={() => handleMarkAsPaid(item)}
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                backgroundColor: Theme.colors.secondary,
+                borderRadius: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff', marginLeft: 6 }}>
+                Mark as Paid
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </Card>
   );
@@ -572,8 +755,22 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
             </View>
           </View>
           <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary, marginBottom: 4 }}>
-            {item.tenants?.name || 'Unknown Tenant'}
+            {item.tenants?.name || 'Tenant Removed'}
           </Text>
+          {!item.tenants && item.tenant_unavailable_reason && (
+            <View style={{ 
+              backgroundColor: item.tenant_unavailable_reason === 'CHECKED_OUT' ? '#FEF3C7' : '#FEE2E2', 
+              paddingHorizontal: 8, 
+              paddingVertical: 4, 
+              borderRadius: 6, 
+              marginBottom: 4,
+              alignSelf: 'flex-start'
+            }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: getTenantUnavailableMessage(item.tenant_unavailable_reason).color }}>
+                {getTenantUnavailableMessage(item.tenant_unavailable_reason).text}
+              </Text>
+            </View>
+          )}
           <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary }}>
             ID: {item.tenants?.tenant_id || 'N/A'}
           </Text>
@@ -587,7 +784,17 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
               backgroundColor: Theme.withOpacity('#10B981', 0.1),
             }}
           >
-            <Ionicons name="pencil" size={12} color="#10B981" />
+            <Ionicons name="pencil" size={16} color="#10B981" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleDeleteAdvancePayment(item)}
+            style={{
+              padding: 6,
+              borderRadius: 6,
+              backgroundColor: '#FEE2E2',
+            }}
+          >
+            <Ionicons name="trash-outline" size={16} color="#EF4444" />
           </TouchableOpacity>
           <View
             style={{
@@ -694,8 +901,176 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
     </Card>
   );
 
+  // Render Refund Payment Card
+  const renderRefundPaymentItem = ({ item }: { item: RefundPayment }) => (
+    <Card style={{ 
+      marginHorizontal: 16, 
+      marginBottom: 12, 
+      padding: 16, 
+      borderLeftWidth: 4, 
+      borderLeftColor: '#EF4444',
+      backgroundColor: Theme.colors.canvas
+    }}>
+      {/* Header with Payment Type Badge */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+        <View style={{ flex: 1, marginRight: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+            <View style={{ 
+              paddingHorizontal: 10, 
+              paddingVertical: 4, 
+              borderRadius: 6, 
+              backgroundColor: '#FEE2E2' 
+            }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#DC2626' }}>
+                💸 REFUND
+              </Text>
+            </View>
+          </View>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: Theme.colors.text.primary }}>
+            {item.tenants?.name || 'Tenant Removed'}
+          </Text>
+          {!item.tenants && item.tenant_unavailable_reason && (
+            <View style={{ 
+              backgroundColor: item.tenant_unavailable_reason === 'CHECKED_OUT' ? '#FEF3C7' : '#FEE2E2', 
+              paddingHorizontal: 8, 
+              paddingVertical: 4, 
+              borderRadius: 6, 
+              marginTop: 4,
+              alignSelf: 'flex-start'
+            }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: getTenantUnavailableMessage(item.tenant_unavailable_reason).color }}>
+                {getTenantUnavailableMessage(item.tenant_unavailable_reason).text}
+              </Text>
+            </View>
+          )}
+          <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary, marginTop: 2 }}>
+            Room {item.rooms?.room_no || 'N/A'} • Bed {item.beds?.bed_no || 'N/A'}
+          </Text>
+        </View>
+
+        {/* Status Badge */}
+        <View style={{
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          borderRadius: 8,
+          backgroundColor: 
+            item.status === 'PAID' ? '#DCFCE7' :
+            item.status === 'PENDING' ? '#FEF3C7' :
+            '#FEE2E2',
+        }}>
+          <Text style={{
+            fontSize: 12,
+            fontWeight: '700',
+            color: 
+              item.status === 'PAID' ? '#16A34A' :
+              item.status === 'PENDING' ? '#CA8A04' :
+              '#DC2626',
+          }}>
+            {item.status}
+          </Text>
+        </View>
+      </View>
+
+      {/* Amount Section */}
+      <View style={{ 
+        flexDirection: 'row', 
+        justifyContent: 'space-between',
+        paddingVertical: 12,
+        borderTopWidth: 1,
+        borderTopColor: Theme.colors.border,
+        borderBottomWidth: 1,
+        borderBottomColor: Theme.colors.border,
+        marginBottom: 12,
+      }}>
+        <View>
+          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary }}>Refund Amount</Text>
+          <Text style={{ fontSize: 24, fontWeight: '700', color: '#DC2626' }}>
+            ₹{item.amount_paid}
+          </Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary }}>Refund Date</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary }}>
+            {new Date(item.payment_date).toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })}
+          </Text>
+        </View>
+      </View>
+
+      {/* Payment Details Grid */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
+        <View style={{ flex: 1, minWidth: '45%' }}>
+          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary }}>Payment Method</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary }}>
+            {getPaymentMethodIcon(item.payment_method)} {item.payment_method}
+          </Text>
+        </View>
+      </View>
+
+      {/* Remarks */}
+      {item.remarks && (
+        <View style={{ marginTop: 4, padding: 8, backgroundColor: Theme.colors.background.secondary, borderRadius: 6 }}>
+          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, marginBottom: 2 }}>Remarks</Text>
+          <Text style={{ fontSize: 12, color: Theme.colors.text.secondary }}>
+            {item.remarks}
+          </Text>
+        </View>
+      )}
+
+      {/* Action Buttons */}
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+        {item.tenants && !item.tenant_unavailable_reason ? (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('TenantDetails', { tenantId: item.tenant_id })}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              paddingHorizontal: 16,
+              backgroundColor: Theme.colors.background.blueLight,
+              borderRadius: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1,
+              borderColor: Theme.colors.primary,
+            }}
+          >
+            <Ionicons name="information-circle-outline" size={16} color={Theme.colors.primary} />
+            <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.primary, marginLeft: 6 }}>
+              View Details
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              paddingHorizontal: 16,
+              backgroundColor: '#F3F4F6',
+              borderRadius: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+            }}
+          >
+            <Ionicons name="alert-circle-outline" size={16} color="#9CA3AF" />
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#9CA3AF', marginLeft: 6 }}>
+              Tenant Removed
+            </Text>
+          </View>
+        )}
+      </View>
+    </Card>
+  );
+
   // Unified render function that chooses based on active tab
-  const renderPaymentItem = ({ item }: { item: Payment }) => {
+  const renderPaymentItem = ({ item }: { item: any }) => {
+    if (activeTab === 'REFUND') return renderRefundPaymentItem({ item });
     return activeTab === 'ADVANCE' ? renderAdvancePaymentItem({ item }) : renderRentPaymentItem({ item });
   };
 
@@ -703,7 +1078,7 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
     <ScreenLayout backgroundColor={Theme.colors.background.blue}>
       <ScreenHeader
         title="Tenant Payments"
-        subtitle={`${activeTab === 'RENT' ? (pagination?.total || 0) : (advancePagination?.total || 0)} payments`}
+        subtitle={`${activeTab === 'RENT' ? (pagination?.total || 0) : activeTab === 'ADVANCE' ? (advancePagination?.total || 0) : (refundPagination?.total || 0)} payments`}
         backgroundColor={Theme.colors.background.blue}
         syncMobileHeaderBg={true}
         showPGSelector={true}
@@ -713,25 +1088,31 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
         {/* Payments List */}
         <FlatList
           ref={flatListRef}
-          data={activeTab === 'RENT' ? payments : (advancePayments as any)}
+          data={activeTab === 'RENT' ? payments : activeTab === 'ADVANCE' ? (advancePayments as any) : (refundPayments as any)}
           renderItem={renderPaymentItem}
           keyExtractor={(item) => item.s_no.toString()}
           contentContainerStyle={{ paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListHeaderComponent={
             <View>
-              {/* Tabs */}
-              <View style={{ flexDirection: 'row', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, gap: 8 }}>
+              {/* Tabs - Horizontally Scrollable */}
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, gap: 8 }}
+              >
             <TouchableOpacity
               onPress={() => setActiveTab('RENT')}
               style={{
-              flex: 1,
+              minWidth: 140,
               paddingVertical: 12,
+              paddingHorizontal: 16,
               borderRadius: 12,
               backgroundColor: activeTab === 'RENT' ? Theme.colors.primary : Theme.colors.canvas,
               alignItems: 'center',
               borderWidth: 1,
               borderColor: activeTab === 'RENT' ? Theme.colors.primary : Theme.colors.border,
+              marginRight: 8,
             }}
           >
             <Text
@@ -741,19 +1122,21 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
                 color: activeTab === 'RENT' ? '#fff' : Theme.colors.text.secondary,
               }}
             >
-              💰 Rent Payments
+              💰 Rent
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setActiveTab('ADVANCE')}
             style={{
-              flex: 1,
+              minWidth: 140,
               paddingVertical: 12,
+              paddingHorizontal: 16,
               borderRadius: 12,
               backgroundColor: activeTab === 'ADVANCE' ? Theme.colors.primary : Theme.colors.canvas,
               alignItems: 'center',
               borderWidth: 1,
               borderColor: activeTab === 'ADVANCE' ? Theme.colors.primary : Theme.colors.border,
+              marginRight: 8,
             }}
           >
             <Text
@@ -763,10 +1146,33 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
                 color: activeTab === 'ADVANCE' ? '#fff' : Theme.colors.text.secondary,
               }}
             >
-              🎁 Advance Payments
+              🎁 Advance
             </Text>
           </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() => setActiveTab('REFUND')}
+            style={{
+              minWidth: 140,
+              paddingVertical: 12,
+              paddingHorizontal: 16,
+              borderRadius: 12,
+              backgroundColor: activeTab === 'REFUND' ? Theme.colors.primary : Theme.colors.canvas,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: activeTab === 'REFUND' ? Theme.colors.primary : Theme.colors.border,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: activeTab === 'REFUND' ? '#fff' : Theme.colors.text.secondary,
+              }}
+            >
+              💸 Refunds
+            </Text>
+          </TouchableOpacity>
+          </ScrollView>
 
           {/* Filter Button */}
           <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
@@ -1452,17 +1858,31 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
         </View>
       </Modal>
 
-      {/* Edit Payment Modal */}
-      <EditPaymentModal
-        visible={showEditModal}
-        payment={editingPayment}
-        paymentType={activeTab}
-        onClose={() => {
-          setShowEditModal(false);
-          setEditingPayment(null);
-        }}
-        onSave={handleSavePayment}
-      />
+      {/* Edit Rent Payment Modal */}
+      {activeTab === 'RENT' && (
+        <EditRentPaymentModal
+          visible={showEditModal}
+          payment={editingPayment}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingPayment(null);
+          }}
+          onSave={handleSavePayment}
+        />
+      )}
+
+      {/* Edit Advance Payment Modal */}
+      {activeTab === 'ADVANCE' && (
+        <EditAdvancePaymentModal
+          visible={showEditModal}
+          payment={editingPayment as any}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingPayment(null);
+          }}
+          onSave={handleSavePayment as any}
+        />
+      )}
     </ScreenLayout>
   );
 };

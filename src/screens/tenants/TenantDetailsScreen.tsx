@@ -117,6 +117,58 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
     }
   };
 
+  const handleDeleteRentPayment = (payment: any) => {
+    Alert.alert(
+      'Delete Rent Payment',
+      `Are you sure you want to delete this payment?\n\nAmount: ₹${payment.amount_paid}\nDate: ${new Date(payment.payment_date).toLocaleDateString('en-IN')}`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await axiosInstance.delete(`/tenant-payments/${payment.s_no}`);
+              Alert.alert('Success', 'Rent payment deleted successfully');
+              loadTenantDetails();
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to delete payment');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAdvancePayment = (payment: any) => {
+    Alert.alert(
+      'Delete Advance Payment',
+      `Are you sure you want to delete this payment?\n\nAmount: ₹${payment.amount_paid}\nDate: ${new Date(payment.payment_date).toLocaleDateString('en-IN')}`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await axiosInstance.delete(`/advance-payments/${payment.s_no}`);
+              Alert.alert('Success', 'Advance payment deleted successfully');
+              loadTenantDetails();
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to delete payment');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleCall = (phoneNumber: string) => {
     Linking.openURL(`tel:${phoneNumber}`);
   };
@@ -732,68 +784,89 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
         </Card>
 
         {/* Rent Payments */}
-        {tenant.tenant_payments && tenant.tenant_payments.length > 0 && (
-          <Card style={{ marginHorizontal: 16, marginBottom: 16, padding: 0, overflow: 'hidden' }}>
-            <TouchableOpacity
-              onPress={() => toggleSection('rentPayments')}
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: 16,
-                backgroundColor: '#F9FAFB',
-              }}
-            >
-              <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary }}>
-                💵 Rent Payments ({tenant.tenant_payments.length})
-              </Text>
-              <Text style={{ fontSize: 16, color: Theme.colors.text.secondary }}>
-                {expandedSections.rentPayments ? '▼' : '▶'}
-              </Text>
-            </TouchableOpacity>
+        <Card style={{ marginHorizontal: 16, marginBottom: 16, padding: 0, overflow: 'hidden' }}>
+          <TouchableOpacity
+            onPress={() => toggleSection('rentPayments')}
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: 16,
+              backgroundColor: '#F9FAFB',
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary }}>
+              💵 Rent Payments ({tenant.tenant_payments?.length || 0})
+            </Text>
+            <Text style={{ fontSize: 16, color: Theme.colors.text.secondary }}>
+              {expandedSections.rentPayments ? '▼' : '▶'}
+            </Text>
+          </TouchableOpacity>
 
-            {expandedSections.rentPayments && (
-              <View style={{ padding: 16, paddingTop: 0 }}>
-                {tenant.tenant_payments.map((payment, index) => (
+          {expandedSections.rentPayments && (
+            <View style={{ padding: 16, paddingTop: 0 }}>
+              {tenant.tenant_payments && tenant.tenant_payments.length > 0 ? (
+                tenant.tenant_payments.map((payment, index) => (
                   <View
                     key={payment.s_no}
                     style={{
-                      paddingVertical: 12,
-                      borderBottomWidth: index < tenant.tenant_payments!.length - 1 ? 1 : 0,
-                      borderBottomColor: '#E5E7EB',
+                      paddingVertical: 14,
+                      paddingHorizontal: 12,
+                      marginBottom: 12,
+                      backgroundColor: '#FAFAFA',
+                      borderRadius: 8,
+                      borderLeftWidth: 4,
+                      borderLeftColor: 
+                        payment.status === 'PAID' ? '#10B981' :
+                        payment.status === 'PENDING' ? '#F59E0B' :
+                        payment.status === 'OVERDUE' ? '#EF4444' : '#9CA3AF',
                     }}
                   >
+                    {/* Header Row */}
                     <View
                       style={{
                         flexDirection: 'row',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        marginBottom: 4,
+                        marginBottom: 8,
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: Theme.colors.text.primary }}>
+                          Payment Date
+                        </Text>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.secondary, marginTop: 2 }}>
                           {new Date(payment.payment_date).toLocaleDateString('en-IN', {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric',
                           })}
                         </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <TouchableOpacity
+                          onPress={() => handleDeleteRentPayment(payment)}
+                          style={{
+                            padding: 6,
+                            borderRadius: 6,
+                            backgroundColor: '#FEE2E2',
+                          }}
+                        >
+                          <Text style={{ fontSize: 16 }}>🗑️</Text>
+                        </TouchableOpacity>
                         {payment.status && (
                           <View style={{
-                            marginTop: 4,
-                            paddingHorizontal: 8,
-                            paddingVertical: 3,
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
                             borderRadius: 6,
-                            alignSelf: 'flex-start',
                             backgroundColor: 
                               payment.status === 'PAID' ? '#10B98120' :
                               payment.status === 'PENDING' ? '#F59E0B20' :
                               payment.status === 'OVERDUE' ? '#EF444420' : '#9CA3AF20',
                           }}>
                             <Text style={{
-                              fontSize: 10,
-                              fontWeight: '600',
+                              fontSize: 11,
+                              fontWeight: '700',
                               color: 
                                 payment.status === 'PAID' ? '#10B981' :
                                 payment.status === 'PENDING' ? '#F59E0B' :
@@ -804,130 +877,311 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
                           </View>
                         )}
                       </View>
-                      <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.primary }}>
-                        ₹{payment.amount_paid}
-                      </Text>
                     </View>
-                    {payment.start_date && payment.end_date && (
-                      <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary }}>
-                        Period: {new Date(payment.start_date).toLocaleDateString()} -{' '}
-                        {new Date(payment.end_date).toLocaleDateString()}
-                      </Text>
-                    )}
-                    {payment.payment_method && (
-                      <Text style={{ fontSize: 11, color: Theme.colors.text.secondary }}>
-                        Method: {payment.payment_method}
-                      </Text>
-                    )}
-                    {payment.remarks && (
-                      <Text style={{ fontSize: 11, color: Theme.colors.text.secondary, fontStyle: 'italic' }}>
-                        {payment.remarks}
-                      </Text>
-                    )}
+
+                    {/* Amount Section */}
+                    <View style={{ 
+                      flexDirection: 'row', 
+                      justifyContent: 'space-between',
+                      paddingVertical: 10,
+                      borderTopWidth: 1,
+                      borderTopColor: '#E5E7EB',
+                      marginBottom: 8,
+                    }}>
+                      <View>
+                        <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, marginBottom: 2 }}>
+                          Amount Paid
+                        </Text>
+                        <Text style={{ fontSize: 18, fontWeight: '700', color: Theme.colors.primary }}>
+                          ₹{payment.amount_paid?.toLocaleString('en-IN')}
+                        </Text>
+                      </View>
+                      {payment.actual_rent_amount && payment.actual_rent_amount !== payment.amount_paid && (
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, marginBottom: 2 }}>
+                            Actual Rent
+                          </Text>
+                          <Text style={{ fontSize: 15, fontWeight: '600', color: Theme.colors.text.secondary }}>
+                            ₹{payment.actual_rent_amount?.toLocaleString('en-IN')}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Details Grid */}
+                    <View style={{ gap: 6 }}>
+                      {/* Payment Period */}
+                      {payment.start_date && payment.end_date && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, width: 80 }}>
+                            Period:
+                          </Text>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary, flex: 1 }}>
+                            {new Date(payment.start_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} - {new Date(payment.end_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Payment Method */}
+                      {payment.payment_method && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, width: 80 }}>
+                            Method:
+                          </Text>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
+                            {payment.payment_method}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Room & Bed */}
+                      {((payment as any).rooms || (payment as any).beds) && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, width: 80 }}>
+                            Location:
+                          </Text>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
+                            {(payment as any).rooms?.room_no && `Room ${(payment as any).rooms.room_no}`}
+                            {(payment as any).rooms?.room_no && (payment as any).beds?.bed_no && ' • '}
+                            {(payment as any).beds?.bed_no && `Bed ${(payment as any).beds.bed_no}`}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Remarks */}
+                      {payment.remarks && (
+                        <View style={{ 
+                          marginTop: 6, 
+                          padding: 8, 
+                          backgroundColor: '#FFF', 
+                          borderRadius: 6,
+                          borderWidth: 1,
+                          borderColor: '#E5E7EB',
+                        }}>
+                          <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, marginBottom: 2, fontWeight: '600' }}>
+                            REMARKS
+                          </Text>
+                          <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, fontStyle: 'italic' }}>
+                            {payment.remarks}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
-                ))}
-              </View>
-            )}
-          </Card>
-        )}
+                ))
+              ) : (
+                <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 48, marginBottom: 12 }}>💵</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 4 }}>
+                    No Rent Payments
+                  </Text>
+                  <Text style={{ fontSize: 14, color: Theme.colors.text.secondary, textAlign: 'center' }}>
+                    No rent payment records found for this tenant
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+        </Card>
 
         {/* Advance Payments */}
-        {tenant.advance_payments && tenant.advance_payments.length > 0 && (
-          <Card style={{ marginHorizontal: 16, marginBottom: 16, padding: 0, overflow: 'hidden' }}>
-            <TouchableOpacity
-              onPress={() => toggleSection('advancePayments')}
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: 16,
-                backgroundColor: '#F0FDF4',
-              }}
-            >
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#10B981' }}>
-                💰 Advance Payments ({tenant.advance_payments.length})
-              </Text>
-              <Text style={{ fontSize: 16, color: Theme.colors.text.secondary }}>
-                {expandedSections.advancePayments ? '▼' : '▶'}
-              </Text>
-            </TouchableOpacity>
+        <Card style={{ marginHorizontal: 16, marginBottom: 16, padding: 0, overflow: 'hidden' }}>
+          <TouchableOpacity
+            onPress={() => toggleSection('advancePayments')}
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: 16,
+              backgroundColor: '#F0FDF4',
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#10B981' }}>
+              💰 Advance Payments ({tenant.advance_payments?.length || 0})
+            </Text>
+            <Text style={{ fontSize: 16, color: Theme.colors.text.secondary }}>
+              {expandedSections.advancePayments ? '▼' : '▶'}
+            </Text>
+          </TouchableOpacity>
 
-            {expandedSections.advancePayments && (
-              <View style={{ padding: 16, paddingTop: 0 }}>
-                {tenant.advance_payments.map((payment, index) => (
+          {expandedSections.advancePayments && (
+            <View style={{ padding: 16, paddingTop: 0 }}>
+              {tenant.advance_payments && tenant.advance_payments.length > 0 ? (
+                tenant.advance_payments.map((payment, index) => (
                   <View
                     key={payment.s_no}
                     style={{
-                      paddingVertical: 12,
-                      borderBottomWidth: index < tenant.advance_payments!.length - 1 ? 1 : 0,
-                      borderBottomColor: '#E5E7EB',
+                      paddingVertical: 14,
+                      paddingHorizontal: 12,
+                      marginBottom: 12,
+                      backgroundColor: '#F0FDF4',
+                      borderRadius: 8,
+                      borderLeftWidth: 4,
+                      borderLeftColor: 
+                        payment.status === 'PAID' ? '#10B981' :
+                        payment.status === 'PENDING' ? '#F59E0B' :
+                        payment.status === 'FAILED' ? '#EF4444' : '#9CA3AF',
                     }}
                   >
+                    {/* Header Row */}
                     <View
                       style={{
                         flexDirection: 'row',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        marginBottom: 4,
+                        marginBottom: 8,
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: Theme.colors.text.primary }}>
+                          Payment Date
+                        </Text>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.secondary, marginTop: 2 }}>
                           {new Date(payment.payment_date).toLocaleDateString('en-IN', {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric',
                           })}
                         </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <TouchableOpacity
+                          onPress={() => handleDeleteAdvancePayment(payment)}
+                          style={{
+                            padding: 6,
+                            borderRadius: 6,
+                            backgroundColor: '#FEE2E2',
+                          }}
+                        >
+                          <Text style={{ fontSize: 16 }}>🗑️</Text>
+                        </TouchableOpacity>
                         {payment.status && (
                           <View style={{
-                            marginTop: 4,
-                            paddingHorizontal: 8,
-                            paddingVertical: 3,
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
                             borderRadius: 6,
-                            alignSelf: 'flex-start',
                             backgroundColor: 
                               payment.status === 'PAID' ? '#10B98120' :
-                              payment.status === 'PENDING' ? '#F59E0B20' : '#9CA3AF20',
+                              payment.status === 'PENDING' ? '#F59E0B20' :
+                              payment.status === 'FAILED' ? '#EF444420' :
+                              payment.status === 'REFUNDED' ? '#3B82F620' : '#9CA3AF20',
                           }}>
                             <Text style={{
-                              fontSize: 10,
-                              fontWeight: '600',
+                              fontSize: 11,
+                              fontWeight: '700',
                               color: 
                                 payment.status === 'PAID' ? '#10B981' :
-                                payment.status === 'PENDING' ? '#F59E0B' : '#6B7280',
+                                payment.status === 'PENDING' ? '#F59E0B' :
+                                payment.status === 'FAILED' ? '#EF4444' :
+                                payment.status === 'REFUNDED' ? '#3B82F6' : '#6B7280',
                             }}>
                               {payment.status}
                             </Text>
                           </View>
                         )}
                       </View>
-                      <Text style={{ fontSize: 16, fontWeight: '700', color: '#10B981' }}>
-                        ₹{payment.amount_paid}
+                    </View>
+
+                    {/* Amount Section */}
+                    <View style={{ 
+                      paddingVertical: 10,
+                      borderTopWidth: 1,
+                      borderTopColor: '#D1FAE5',
+                      marginBottom: 8,
+                    }}>
+                      <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, marginBottom: 2 }}>
+                        Advance Amount
+                      </Text>
+                      <Text style={{ fontSize: 18, fontWeight: '700', color: '#10B981' }}>
+                        ₹{payment.amount_paid?.toLocaleString('en-IN')}
                       </Text>
                     </View>
-                    {payment.payment_method && (
-                      <Text style={{ fontSize: 11, color: Theme.colors.text.secondary }}>
-                        Method: {payment.payment_method}
-                      </Text>
-                    )}
-                    {payment.remarks && (
-                      <Text style={{ fontSize: 11, color: Theme.colors.text.secondary, fontStyle: 'italic' }}>
-                        {payment.remarks}
-                      </Text>
-                    )}
+
+                    {/* Details */}
+                    <View style={{ gap: 6 }}>
+                      {/* Payment Method */}
+                      {payment.payment_method && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, width: 80 }}>
+                            Method:
+                          </Text>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
+                            {payment.payment_method}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Room & Bed */}
+                      {((payment as any).rooms || (payment as any).beds) && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, width: 80 }}>
+                            Location:
+                          </Text>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
+                            {(payment as any).rooms?.room_no && `Room ${(payment as any).rooms.room_no}`}
+                            {(payment as any).rooms?.room_no && (payment as any).beds?.bed_no && ' • '}
+                            {(payment as any).beds?.bed_no && `Bed ${(payment as any).beds.bed_no}`}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Remarks */}
+                      {payment.remarks && (
+                        <View style={{ 
+                          marginTop: 6, 
+                          padding: 8, 
+                          backgroundColor: '#FFF', 
+                          borderRadius: 6,
+                          borderWidth: 1,
+                          borderColor: '#D1FAE5',
+                        }}>
+                          <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, marginBottom: 2, fontWeight: '600' }}>
+                            REMARKS
+                          </Text>
+                          <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, fontStyle: 'italic' }}>
+                            {payment.remarks}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
-                ))}
-                <View style={{ paddingTop: 12, borderTopWidth: 2, borderTopColor: '#10B981', marginTop: 8 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#10B981', textAlign: 'right' }}>
-                    Total Advance: ₹
-                    {tenant.advance_payments.reduce((sum, p) => sum + parseFloat(p.amount_paid.toString()), 0)}
+                ))
+              ) : (
+                <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 48, marginBottom: 12 }}>💰</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#10B981', marginBottom: 4 }}>
+                    No Advance Payments
+                  </Text>
+                  <Text style={{ fontSize: 14, color: Theme.colors.text.secondary, textAlign: 'center' }}>
+                    No advance payment records found for this tenant
                   </Text>
                 </View>
-              </View>
-            )}
-          </Card>
-        )}
+              )}
+              
+              {/* Total Advance Summary - Only show if there are payments */}
+              {tenant.advance_payments && tenant.advance_payments.length > 0 && (
+                <View style={{ 
+                  paddingVertical: 12, 
+                  paddingHorizontal: 16,
+                  borderTopWidth: 2, 
+                  borderTopColor: '#10B981', 
+                  marginTop: 8,
+                  backgroundColor: '#ECFDF5',
+                  borderRadius: 8,
+                }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#047857' }}>
+                      Total Advance Paid
+                    </Text>
+                    <Text style={{ fontSize: 18, fontWeight: '700', color: '#10B981' }}>
+                      ₹{tenant.advance_payments.reduce((sum, p) => sum + parseFloat(p.amount_paid.toString()), 0).toLocaleString('en-IN')}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+        </Card>
 
         {/* Refund Payments */}
         {tenant.refund_payments && tenant.refund_payments.length > 0 && (

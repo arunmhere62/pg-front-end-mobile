@@ -66,24 +66,13 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
   const [amountPaid, setAmountPaid] = useState('');
   const [actualRentAmount, setActualRentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('CASH');
-  const [status, setStatus] = useState('PAID');
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [status, setStatus] = useState('');
   const [remarks, setRemarks] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (visible && tenant) {
-      // Set default values
-      const today = new Date();
-      const formattedDate = today.toISOString().split('T')[0];
-      setPaymentDate(formattedDate);
-      
-      // Pre-fill with room rent if available
-      if (tenant.rooms?.rent_price) {
-        setAmountPaid(tenant.rooms.rent_price.toString());
-        setActualRentAmount(tenant.rooms.rent_price.toString());
-      }
-    }
+    // No automatic defaults; user must select all values explicitly
   }, [visible, tenant]);
 
   const handleSave = async () => {
@@ -95,6 +84,16 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
 
     if (!paymentDate) {
       Alert.alert('Validation Error', 'Please select payment date');
+      return;
+    }
+
+    if (!paymentMethod) {
+      Alert.alert('Validation Error', 'Please select a payment method');
+      return;
+    }
+
+    if (!status) {
+      Alert.alert('Validation Error', 'Please select a status');
       return;
     }
 
@@ -121,8 +120,8 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
       setAmountPaid('');
       setActualRentAmount('');
       setPaymentDate('');
-      setPaymentMethod('CASH');
-      setStatus('PAID');
+      setPaymentMethod('');
+      setStatus('');
       setRemarks('');
       
       onClose();
@@ -140,8 +139,8 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
       setAmountPaid('');
       setActualRentAmount('');
       setPaymentDate('');
-      setPaymentMethod('CASH');
-      setStatus('PAID');
+      setPaymentMethod('');
+      setStatus('');
       setRemarks('');
       onClose();
     }

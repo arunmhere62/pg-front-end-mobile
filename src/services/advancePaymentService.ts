@@ -14,11 +14,15 @@ export interface AdvancePayment {
   remarks?: string;
   created_at: string;
   updated_at: string;
+  tenant_unavailable_reason?: 'NOT_FOUND' | 'DELETED' | 'CHECKED_OUT' | 'INACTIVE' | null;
   tenants?: {
     s_no: number;
     tenant_id: string;
     name: string;
     phone_no?: string;
+    is_deleted?: boolean;
+    status?: string;
+    check_out_date?: string;
   };
   rooms?: {
     s_no: number;

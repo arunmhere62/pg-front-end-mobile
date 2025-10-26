@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
-import { getRoomById, updateRoom, Room } from '../../services/roomService';
+import { getRoomById, updateRoom, createRoom, Room } from '../../services/roomService';
 import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ImageUpload } from '../../components/ImageUpload';
@@ -117,8 +117,8 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
       return;
     }
 
-    if (!selectedPGLocationId || !roomId) {
-      Alert.alert('Error', 'Invalid room or PG location');
+    if (!selectedPGLocationId) {
+      Alert.alert('Error', 'Invalid PG location');
       return;
     }
 
@@ -132,17 +132,26 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
         images: formData.images.length > 0 ? formData.images : undefined,
       };
 
-      await updateRoom(roomId, roomData, {
-        pg_id: selectedPGLocationId,
-        organization_id: user?.organization_id,
-        user_id: user?.s_no,
-      });
+      if (roomId) {
+        await updateRoom(roomId, roomData, {
+          pg_id: selectedPGLocationId,
+          organization_id: user?.organization_id,
+          user_id: user?.s_no,
+        });
+        Alert.alert('Success', 'Room updated successfully');
+      } else {
+        await createRoom(roomData, {
+          pg_id: selectedPGLocationId,
+          organization_id: user?.organization_id,
+          user_id: user?.s_no,
+        });
+        Alert.alert('Success', 'Room created successfully');
+      }
 
-      Alert.alert('Success', 'Room updated successfully');
       onSuccess();
       onClose();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update room');
+      Alert.alert('Error', error.message || (roomId ? 'Failed to update room' : 'Failed to create room'));
     } finally {
       setLoading(false);
     }

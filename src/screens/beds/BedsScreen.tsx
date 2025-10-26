@@ -107,7 +107,6 @@ export const BedsScreen: React.FC<BedsScreenProps> = ({ navigation }) => {
         // Load all beds
         response = await getAllBeds(
           {
-            pg_id: selectedPGLocationId,
             limit: 100,
           },
           {
@@ -149,7 +148,6 @@ export const BedsScreen: React.FC<BedsScreenProps> = ({ navigation }) => {
       setLoading(true);
       const response = await getAllBeds(
         {
-          pg_id: selectedPGLocationId,
           search: searchQuery,
           limit: 100,
         },
@@ -202,7 +200,9 @@ export const BedsScreen: React.FC<BedsScreenProps> = ({ navigation }) => {
             Alert.alert('Success', 'Bed deleted successfully');
             loadBeds();
           } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to delete bed');
+            const backendMsg = error?.response?.data?.message ?? error?.response?.data?.error ?? error?.response?.data?.errors ?? error?.message;
+            const msg = Array.isArray(backendMsg) ? backendMsg.join('\n') : backendMsg || 'Failed to delete bed';
+            Alert.alert('Error', msg);
           }
         },
       },

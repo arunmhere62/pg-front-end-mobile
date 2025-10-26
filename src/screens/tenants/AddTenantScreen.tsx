@@ -664,7 +664,6 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
               onChange={(date) => updateField('check_in_date', date)}
               error={errors.check_in_date}
               required={true}
-              minimumDate={new Date()}
             />
           </Card>
 

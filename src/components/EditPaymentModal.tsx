@@ -54,6 +54,8 @@ export const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
   const [amountPaid, setAmountPaid] = useState('');
   const [actualRentAmount, setActualRentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [status, setStatus] = useState('PENDING');
   const [remarks, setRemarks] = useState('');
@@ -65,6 +67,8 @@ export const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
       setAmountPaid(payment.amount_paid?.toString() || '');
       setActualRentAmount(payment.actual_rent_amount?.toString() || '');
       setPaymentDate(payment.payment_date ? new Date(payment.payment_date).toISOString().split('T')[0] : '');
+      setStartDate(payment.start_date ? new Date(payment.start_date).toISOString().split('T')[0] : '');
+      setEndDate(payment.end_date ? new Date(payment.end_date).toISOString().split('T')[0] : '');
       setPaymentMethod((payment.payment_method as string) || 'CASH');
       setStatus((payment.status as string) || 'PENDING');
       setRemarks(payment.remarks || '');
@@ -86,6 +90,18 @@ export const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
       newErrors.paymentDate = 'Payment date is required';
     }
 
+    if (paymentType === 'RENT') {
+      if (!startDate) {
+        newErrors.startDate = 'Start date is required';
+      }
+      if (!endDate) {
+        newErrors.endDate = 'End date is required';
+      }
+      if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+        newErrors.endDate = 'End date must be after start date';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -95,14 +111,22 @@ export const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
 
     try {
       setLoading(true);
-      await onSave(payment.s_no, {
+      const updateData: any = {
         amount_paid: parseFloat(amountPaid),
         actual_rent_amount: parseFloat(actualRentAmount),
         payment_date: paymentDate,
         payment_method: paymentMethod as any,
         status: status as any,
         remarks: remarks.trim() || undefined,
-      });
+      };
+
+      // Add start_date and end_date for rent payments
+      if (paymentType === 'RENT') {
+        updateData.start_date = startDate;
+        updateData.end_date = endDate;
+      }
+
+      await onSave(payment.s_no, updateData);
       onClose();
     } catch (error) {
       console.error('Error updating payment:', error);
@@ -268,6 +292,29 @@ export const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
                 required
                 error={errors.paymentDate}
               />
+
+              {/* Payment Period - Only for Rent Payments */}
+              {paymentType === 'RENT' && (
+                <>
+                  {/* Start Date */}
+                  <DatePicker
+                    label="Payment Period Start Date"
+                    value={startDate}
+                    onChange={(date: string) => setStartDate(date)}
+                    required
+                    error={errors.startDate}
+                  />
+
+                  {/* End Date */}
+                  <DatePicker
+                    label="Payment Period End Date"
+                    value={endDate}
+                    onChange={(date: string) => setEndDate(date)}
+                    required
+                    error={errors.endDate}
+                  />
+                </>
+              )}
 
               {/* Payment Method */}
               <View style={{ marginBottom: 16 }}>

@@ -6,26 +6,20 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../theme';
+import { AdvancePayment } from '../services/advancePaymentService';
 import { DatePicker } from './DatePicker';
-import { paymentService } from '../services/paymentService';
 
-interface AddTenantPaymentModalProps {
+interface EditAdvancePaymentModalProps {
   visible: boolean;
-  tenantId: number;
-  tenantName: string;
-  roomId: number;
-  bedId: number;
-  pgId: number;
-  rentAmount?: number;
+  payment: AdvancePayment | null;
   onClose: () => void;
-  onSuccess: () => void;
+  onSave: (id: number, data: Partial<AdvancePayment>) => Promise<void>;
 }
 
 const PAYMENT_METHODS = [
@@ -35,125 +29,78 @@ const PAYMENT_METHODS = [
   { label: 'Bank Transfer', value: 'BANK_TRANSFER', icon: 'card-outline' },
 ];
 
-const PAYMENT_STATUS = [
+const ADVANCE_PAYMENT_STATUSES = [
   { label: 'Paid', value: 'PAID', color: Theme.colors.secondary },
   { label: 'Pending', value: 'PENDING', color: Theme.colors.warning },
   { label: 'Failed', value: 'FAILED', color: Theme.colors.danger },
+  { label: 'Refunded', value: 'REFUNDED', color: Theme.colors.primary },
 ];
 
-const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
+export const EditAdvancePaymentModal: React.FC<EditAdvancePaymentModalProps> = ({
   visible,
-  tenantId,
-  tenantName,
-  roomId,
-  bedId,
-  pgId,
-  rentAmount = 0,
+  payment,
   onClose,
-  onSuccess,
+  onSave,
 }) => {
+  const [amount, setAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const [status, setStatus] = useState('PENDING');
+  const [remarks, setRemarks] = useState('');
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    amount_paid: '',
-    actual_rent_amount: '',
-    payment_date: '',
-    payment_method: '',
-    status: '',
-    start_date: '',
-    end_date: '',
-    remarks: '',
-  });
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<any>({});
 
   useEffect(() => {
-    // No automatic defaults; user must select all values explicitly
-  }, [visible]);
+    if (payment) {
+      setAmount(payment.amount_paid?.toString() || '');
+      setPaymentDate(payment.payment_date ? new Date(payment.payment_date).toISOString().split('T')[0] : '');
+      setPaymentMethod((payment.payment_method as string) || 'CASH');
+      setStatus((payment.status as string) || 'PENDING');
+      setRemarks(payment.remarks || '');
+    }
+  }, [payment]);
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+  const validate = () => {
+    const newErrors: any = {};
 
-    if (!formData.amount_paid || parseFloat(formData.amount_paid) <= 0) {
-      newErrors.amount_paid = 'Amount paid is required';
+    if (!amount || parseFloat(amount) <= 0) {
+      newErrors.amount = 'Valid amount is required';
     }
 
-    if (!formData.actual_rent_amount || parseFloat(formData.actual_rent_amount) <= 0) {
-      newErrors.actual_rent_amount = 'Actual rent amount is required';
-    }
-
-    if (!formData.payment_date) {
-      newErrors.payment_date = 'Payment date is required';
-    }
-
-    if (!formData.start_date) {
-      newErrors.start_date = 'Start date is required';
-    }
-
-    if (!formData.end_date) {
-      newErrors.end_date = 'End date is required';
-    }
-
-    if (!formData.payment_method) {
-      newErrors.payment_method = 'Payment method is required';
-    }
-
-    if (!formData.status) {
-      newErrors.status = 'Status is required';
+    if (!paymentDate) {
+      newErrors.paymentDate = 'Payment date is required';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) {
-      return;
-    }
+  const handleSave = async () => {
+    if (!validate() || !payment) return;
 
-    setLoading(true);
     try {
-      const paymentData = {
-        tenant_id: tenantId,
-        pg_id: pgId,
-        room_id: roomId,
-        bed_id: bedId,
-        amount_paid: parseFloat(formData.amount_paid),
-        actual_rent_amount: parseFloat(formData.actual_rent_amount),
-        payment_date: formData.payment_date,
-        payment_method: formData.payment_method as 'GPAY' | 'PHONEPE' | 'CASH' | 'BANK_TRANSFER',
-        status: formData.status as 'PAID' | 'PENDING' | 'FAILED' | 'REFUNDED',
-        start_date: formData.start_date,
-        end_date: formData.end_date,
-        remarks: formData.remarks || undefined,
-      };
-
-      await paymentService.createTenantPayment(paymentData);
-      
-      Alert.alert('Success', 'Payment added successfully');
-      onSuccess();
-      handleClose();
-    } catch (error: any) {
-      console.error('Error creating payment:', error);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to add payment');
+      setLoading(true);
+      await onSave(payment.s_no, {
+        amount_paid: parseFloat(amount),
+        payment_date: paymentDate,
+        payment_method: paymentMethod as any,
+        status: status as any,
+        remarks: remarks.trim() || undefined,
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error updating advance payment:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleClose = () => {
-    setFormData({
-      amount_paid: '',
-      actual_rent_amount: '',
-      payment_date: '',
-      payment_method: '',
-      status: '',
-      start_date: '',
-      end_date: '',
-      remarks: '',
-    });
     setErrors({});
     onClose();
   };
+
+  if (!payment) return null;
 
   return (
     <Modal
@@ -202,7 +149,7 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                     color: Theme.colors.text.primary,
                   }}
                 >
-                  Add Payment
+                  Edit Advance Payment
                 </Text>
                 <Text
                   style={{
@@ -211,7 +158,7 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                     marginTop: 4,
                   }}
                 >
-                  {tenantName}
+                  {payment.tenants?.name} • {payment.rooms?.room_no || 'N/A'}/{payment.beds?.bed_no || 'N/A'}
                 </Text>
               </View>
               <TouchableOpacity onPress={handleClose}>
@@ -225,7 +172,7 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
               contentContainerStyle={{ padding: 20 }}
               showsVerticalScrollIndicator={false}
             >
-              {/* Amount Paid */}
+              {/* Amount */}
               <View style={{ marginBottom: 16 }}>
                 <Text
                   style={{
@@ -235,13 +182,13 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                     marginBottom: 8,
                   }}
                 >
-                  Amount Paid <Text style={{ color: Theme.colors.danger }}>*</Text>
+                  Amount <Text style={{ color: Theme.colors.danger }}>*</Text>
                 </Text>
                 <TextInput
                   style={{
                     backgroundColor: Theme.colors.input.background,
                     borderWidth: 1,
-                    borderColor: errors.amount_paid ? Theme.colors.danger : Theme.colors.input.border,
+                    borderColor: errors.amount ? Theme.colors.danger : Theme.colors.input.border,
                     borderRadius: 8,
                     paddingHorizontal: 16,
                     paddingVertical: 12,
@@ -251,48 +198,12 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                   placeholder="Enter amount"
                   placeholderTextColor={Theme.colors.input.placeholder}
                   keyboardType="numeric"
-                  value={formData.amount_paid}
-                  onChangeText={(text) => setFormData({ ...formData, amount_paid: text })}
+                  value={amount}
+                  onChangeText={setAmount}
                 />
-                {errors.amount_paid && (
+                {errors.amount && (
                   <Text style={{ color: Theme.colors.danger, fontSize: 12, marginTop: 4 }}>
-                    {errors.amount_paid}
-                  </Text>
-                )}
-              </View>
-
-              {/* Actual Rent Amount */}
-              <View style={{ marginBottom: 16 }}>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: '500',
-                    color: Theme.colors.text.primary,
-                    marginBottom: 8,
-                  }}
-                >
-                  Actual Rent Amount <Text style={{ color: Theme.colors.danger }}>*</Text>
-                </Text>
-                <TextInput
-                  style={{
-                    backgroundColor: Theme.colors.input.background,
-                    borderWidth: 1,
-                    borderColor: errors.actual_rent_amount ? Theme.colors.danger : Theme.colors.input.border,
-                    borderRadius: 8,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    fontSize: 16,
-                    color: Theme.colors.text.primary,
-                  }}
-                  placeholder="Enter actual rent"
-                  placeholderTextColor={Theme.colors.input.placeholder}
-                  keyboardType="numeric"
-                  value={formData.actual_rent_amount}
-                  onChangeText={(text) => setFormData({ ...formData, actual_rent_amount: text })}
-                />
-                {errors.actual_rent_amount && (
-                  <Text style={{ color: Theme.colors.danger, fontSize: 12, marginTop: 4 }}>
-                    {errors.actual_rent_amount}
+                    {errors.amount}
                   </Text>
                 )}
               </View>
@@ -300,45 +211,11 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
               {/* Payment Date */}
               <DatePicker
                 label="Payment Date"
-                value={formData.payment_date}
-                onChange={(date: string) => setFormData({ ...formData, payment_date: date })}
+                value={paymentDate}
+                onChange={(date: string) => setPaymentDate(date)}
                 required
-                error={errors.payment_date}
+                error={errors.paymentDate}
               />
-
-              {/* Payment Period */}
-              <View style={{ marginBottom: 16 }}>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: '500',
-                    color: Theme.colors.text.primary,
-                    marginBottom: 8,
-                  }}
-                >
-                  Payment Period <Text style={{ color: Theme.colors.danger }}>*</Text>
-                </Text>
-                <View style={{ flexDirection: 'row', gap: 12 }}>
-                  <View style={{ flex: 1 }}>
-                    <DatePicker
-                      label="Start Date"
-                      value={formData.start_date}
-                      onChange={(date: string) => setFormData({ ...formData, start_date: date })}
-                      required
-                      error={errors.start_date}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <DatePicker
-                      label="End Date"
-                      value={formData.end_date}
-                      onChange={(date: string) => setFormData({ ...formData, end_date: date })}
-                      required
-                      error={errors.end_date}
-                    />
-                  </View>
-                </View>
-              </View>
 
               {/* Payment Method */}
               <View style={{ marginBottom: 16 }}>
@@ -356,7 +233,7 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                   {PAYMENT_METHODS.map((method) => (
                     <TouchableOpacity
                       key={method.value}
-                      onPress={() => setFormData({ ...formData, payment_method: method.value })}
+                      onPress={() => setPaymentMethod(method.value)}
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
@@ -365,11 +242,11 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                         borderRadius: 8,
                         borderWidth: 1,
                         borderColor:
-                          formData.payment_method === method.value
+                          paymentMethod === method.value
                             ? Theme.colors.primary
                             : Theme.colors.border,
                         backgroundColor:
-                          formData.payment_method === method.value
+                          paymentMethod === method.value
                             ? Theme.colors.background.blueLight
                             : Theme.colors.canvas,
                       }}
@@ -378,7 +255,7 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                         name={method.icon as any}
                         size={18}
                         color={
-                          formData.payment_method === method.value
+                          paymentMethod === method.value
                             ? Theme.colors.primary
                             : Theme.colors.text.secondary
                         }
@@ -387,9 +264,9 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                         style={{
                           marginLeft: 8,
                           fontSize: 14,
-                          fontWeight: formData.payment_method === method.value ? '600' : '400',
+                          fontWeight: paymentMethod === method.value ? '600' : '400',
                           color:
-                            formData.payment_method === method.value
+                            paymentMethod === method.value
                               ? Theme.colors.primary
                               : Theme.colors.text.primary,
                         }}
@@ -401,7 +278,7 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                 </View>
               </View>
 
-              {/* Payment Status */}
+              {/* Status */}
               <View style={{ marginBottom: 16 }}>
                 <Text
                   style={{
@@ -413,21 +290,22 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                 >
                   Status <Text style={{ color: Theme.colors.danger }}>*</Text>
                 </Text>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {PAYMENT_STATUS.map((status) => (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {ADVANCE_PAYMENT_STATUSES.map((statusOption) => (
                     <TouchableOpacity
-                      key={status.value}
-                      onPress={() => setFormData({ ...formData, status: status.value })}
+                      key={statusOption.value}
+                      onPress={() => setStatus(statusOption.value)}
                       style={{
                         flex: 1,
+                        minWidth: '45%',
                         paddingVertical: 10,
                         borderRadius: 8,
                         borderWidth: 1,
                         borderColor:
-                          formData.status === status.value ? status.color : Theme.colors.border,
+                          status === statusOption.value ? statusOption.color : Theme.colors.border,
                         backgroundColor:
-                          formData.status === status.value
-                            ? Theme.withOpacity(status.color, 0.1)
+                          status === statusOption.value
+                            ? Theme.withOpacity(statusOption.color, 0.1)
                             : Theme.colors.canvas,
                         alignItems: 'center',
                       }}
@@ -435,14 +313,14 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                       <Text
                         style={{
                           fontSize: 14,
-                          fontWeight: formData.status === status.value ? '600' : '400',
+                          fontWeight: status === statusOption.value ? '600' : '400',
                           color:
-                            formData.status === status.value
-                              ? status.color
+                            status === statusOption.value
+                              ? statusOption.color
                               : Theme.colors.text.primary,
                         }}
                       >
-                        {status.label}
+                        {statusOption.label}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -478,8 +356,8 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                   placeholderTextColor={Theme.colors.input.placeholder}
                   multiline
                   numberOfLines={3}
-                  value={formData.remarks}
-                  onChangeText={(text) => setFormData({ ...formData, remarks: text })}
+                  value={remarks}
+                  onChangeText={setRemarks}
                 />
               </View>
             </ScrollView>
@@ -493,7 +371,7 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
               }}
             >
               <TouchableOpacity
-                onPress={handleSubmit}
+                onPress={handleSave}
                 disabled={loading}
                 style={{
                   backgroundColor: loading ? Theme.colors.button.disabled : Theme.colors.primary,
@@ -512,7 +390,7 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                       fontWeight: '600',
                     }}
                   >
-                    Add Payment
+                    Save Changes
                   </Text>
                 )}
               </TouchableOpacity>
@@ -523,5 +401,3 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
     </Modal>
   );
 };
-
-export default AddTenantPaymentModal;
