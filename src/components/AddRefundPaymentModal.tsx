@@ -15,14 +15,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../theme';
 import { DatePicker } from './DatePicker';
 
-interface AddAdvancePaymentModalProps {
+interface AddRefundPaymentModalProps {
   visible: boolean;
   tenant: {
     s_no: number;
     name: string;
     room_id?: number;
     bed_id?: number;
-    check_in_date?: string;
     rooms?: {
       room_no: string;
       rent_price?: number;
@@ -58,7 +57,7 @@ const PAYMENT_STATUS = [
   { label: 'Failed', value: 'FAILED', color: Theme.colors.danger },
 ];
 
-export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
+export const AddRefundPaymentModal: React.FC<AddRefundPaymentModalProps> = ({
   visible,
   tenant,
   onClose,
@@ -73,21 +72,26 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Set default actual rent amount when modal opens
-    if (visible && tenant?.rooms?.rent_price) {
-      setActualRentAmount(tenant.rooms.rent_price.toString());
+    // Reset form when modal opens and set default actual rent amount
+    if (visible) {
+      setAmountPaid('');
+      setActualRentAmount(tenant?.rooms?.rent_price ? tenant.rooms.rent_price.toString() : '');
+      setPaymentDate('');
+      setPaymentMethod('');
+      setStatus('');
+      setRemarks('');
     }
   }, [visible, tenant]);
 
   const handleSave = async () => {
     // Validation
     if (!amountPaid || parseFloat(amountPaid) <= 0) {
-      Alert.alert('Validation Error', 'Please enter a valid amount');
+      Alert.alert('Validation Error', 'Please enter a valid refund amount');
       return;
     }
 
     if (!paymentDate) {
-      Alert.alert('Validation Error', 'Please select payment date');
+      Alert.alert('Validation Error', 'Please select refund date');
       return;
     }
 
@@ -130,8 +134,8 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
       
       onClose();
     } catch (error: any) {
-      console.error('Error creating advance payment:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to create advance payment';
+      console.error('Error creating refund payment:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create refund payment';
       Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
@@ -163,12 +167,18 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'flex-end',
+          }}
+        >
           <View
             style={{
-              backgroundColor: Theme.colors.canvas,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
+              backgroundColor: '#fff',
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
               maxHeight: '90%',
             }}
           >
@@ -180,78 +190,41 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
                 alignItems: 'center',
                 padding: 20,
                 borderBottomWidth: 1,
-                borderBottomColor: Theme.colors.border,
+                borderBottomColor: '#E5E7EB',
               }}
             >
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: Theme.colors.text.primary }}>
-                  Add Advance Payment
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontWeight: '700',
+                    color: Theme.colors.text.primary,
+                  }}
+                >
+                  🔄 Add Refund Payment
                 </Text>
-                <Text style={{ fontSize: 14, color: Theme.colors.text.secondary, marginTop: 4 }}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: Theme.colors.text.secondary,
+                    marginTop: 4,
+                  }}
+                >
                   {tenant.name} • Room {tenant.rooms?.room_no} • Bed {tenant.beds?.bed_no}
                 </Text>
               </View>
-              <TouchableOpacity
-                onPress={handleClose}
-                disabled={loading}
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: Theme.colors.light,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Ionicons name="close" size={20} color={Theme.colors.text.primary} />
+              <TouchableOpacity onPress={handleClose} disabled={loading}>
+                <Ionicons name="close" size={28} color={Theme.colors.text.secondary} />
               </TouchableOpacity>
             </View>
 
-            {/* Joining Date Info */}
-            {tenant.check_in_date && (
-              <View
-                style={{
-                  marginHorizontal: 20,
-                  marginTop: 16,
-                  padding: 12,
-                  backgroundColor: Theme.colors.background.blueLight,
-                  borderRadius: 8,
-                  borderLeftWidth: 3,
-                  borderLeftColor: Theme.colors.primary,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: '600',
-                    color: Theme.colors.primary,
-                    marginBottom: 4,
-                  }}
-                >
-                  📋 Payment Reference
-                </Text>
-                <View style={{ flexDirection: 'row' }}>
-                  <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary, width: 100 }}>
-                    Joining Date:
-                  </Text>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
-                    {new Date(tenant.check_in_date).toLocaleDateString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {/* Form Content */}
+            {/* Form */}
             <ScrollView
-              style={{ maxHeight: 500 }}
+              style={{ maxHeight: '80%' }}
               contentContainerStyle={{ padding: 20 }}
-              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
             >
-              {/* Amount Paid */}
+              {/* Refund Amount */}
               <View style={{ marginBottom: 16 }}>
                 <Text
                   style={{
@@ -261,9 +234,14 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
                     marginBottom: 8,
                   }}
                 >
-                  Amount Paid <Text style={{ color: Theme.colors.danger }}>*</Text>
+                  Refund Amount <Text style={{ color: Theme.colors.danger }}>*</Text>
                 </Text>
                 <TextInput
+                  value={amountPaid}
+                  onChangeText={setAmountPaid}
+                  placeholder="Enter refund amount"
+                  placeholderTextColor={Theme.colors.input.placeholder}
+                  keyboardType="numeric"
                   style={{
                     backgroundColor: Theme.colors.input.background,
                     borderWidth: 1,
@@ -274,15 +252,10 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
                     fontSize: 16,
                     color: Theme.colors.text.primary,
                   }}
-                  placeholder="Enter amount"
-                  placeholderTextColor={Theme.colors.input.placeholder}
-                  keyboardType="numeric"
-                  value={amountPaid}
-                  onChangeText={setAmountPaid}
                 />
               </View>
 
-              {/* Actual Rent Amount */}
+              {/* Actual Rent Amount (Optional) */}
               <View style={{ marginBottom: 16 }}>
                 <Text
                   style={{
@@ -295,6 +268,11 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
                   Actual Rent Amount
                 </Text>
                 <TextInput
+                  value={actualRentAmount}
+                  onChangeText={setActualRentAmount}
+                  placeholder="Enter actual rent amount"
+                  placeholderTextColor={Theme.colors.input.placeholder}
+                  keyboardType="numeric"
                   style={{
                     backgroundColor: Theme.colors.input.background,
                     borderWidth: 1,
@@ -305,17 +283,12 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
                     fontSize: 16,
                     color: Theme.colors.text.primary,
                   }}
-                  placeholder="Enter actual rent"
-                  placeholderTextColor={Theme.colors.input.placeholder}
-                  keyboardType="numeric"
-                  value={actualRentAmount}
-                  onChangeText={setActualRentAmount}
                 />
               </View>
 
-              {/* Payment Date */}
+              {/* Refund Date */}
               <DatePicker
-                label="Payment Date"
+                label="Refund Date"
                 value={paymentDate}
                 onChange={(date: string) => setPaymentDate(date)}
                 required
@@ -382,7 +355,7 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
                 </View>
               </View>
 
-              {/* Payment Status */}
+              {/* Status */}
               <View style={{ marginBottom: 16 }}>
                 <Text
                   style={{
@@ -405,7 +378,9 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
                         borderRadius: 8,
                         borderWidth: 1,
                         borderColor:
-                          status === statusOption.value ? statusOption.color : Theme.colors.border,
+                          status === statusOption.value
+                            ? statusOption.color
+                            : Theme.colors.border,
                         backgroundColor:
                           status === statusOption.value
                             ? Theme.withOpacity(statusOption.color, 0.1)
@@ -443,6 +418,12 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
                   Remarks
                 </Text>
                 <TextInput
+                  value={remarks}
+                  onChangeText={setRemarks}
+                  placeholder="Add any notes (optional)"
+                  placeholderTextColor={Theme.colors.input.placeholder}
+                  multiline
+                  numberOfLines={3}
                   style={{
                     backgroundColor: Theme.colors.input.background,
                     borderWidth: 1,
@@ -455,17 +436,11 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
                     textAlignVertical: 'top',
                     minHeight: 80,
                   }}
-                  placeholder="Add any notes (optional)"
-                  placeholderTextColor={Theme.colors.input.placeholder}
-                  multiline
-                  numberOfLines={3}
-                  value={remarks}
-                  onChangeText={setRemarks}
                 />
               </View>
             </ScrollView>
 
-            {/* Footer */}
+            {/* Footer Buttons */}
             <View
               style={{
                 flexDirection: 'row',
@@ -486,10 +461,17 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
                   alignItems: 'center',
                 }}
               >
-                <Text style={{ fontSize: 16, fontWeight: '600', color: Theme.colors.text.primary }}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '600',
+                    color: Theme.colors.text.primary,
+                  }}
+                >
                   Cancel
                 </Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 onPress={handleSave}
                 disabled={loading}
@@ -497,7 +479,7 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
                   flex: 1,
                   paddingVertical: 14,
                   borderRadius: 12,
-                  backgroundColor: loading ? Theme.colors.light : Theme.colors.primary,
+                  backgroundColor: loading ? Theme.colors.light : '#F59E0B',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
@@ -505,8 +487,14 @@ export const AddAdvancePaymentModal: React.FC<AddAdvancePaymentModalProps> = ({
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>
-                    Save Payment
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: '600',
+                      color: '#fff',
+                    }}
+                  >
+                    Save Refund
                   </Text>
                 )}
               </TouchableOpacity>

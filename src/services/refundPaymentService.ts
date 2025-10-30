@@ -41,6 +41,7 @@ export interface RefundPayment {
 
 export interface CreateRefundPaymentDto {
   tenant_id: number;
+  pg_id: number;
   room_id: number;
   bed_id: number;
   amount_paid: number;

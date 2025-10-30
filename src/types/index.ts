@@ -7,6 +7,7 @@ export interface User {
   role_name?: string;
   organization_id: number;
   organization_name?: string;
+  pg_id?: number;
   status?: 'ACTIVE' | 'INACTIVE';
   address?: string;
   city_id?: number;

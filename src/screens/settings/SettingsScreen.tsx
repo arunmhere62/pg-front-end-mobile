@@ -7,6 +7,7 @@ import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
+import { CONTENT_COLOR } from '@/constant';
 
 interface SettingsScreenProps {
   navigation: any;
@@ -38,7 +39,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
   };
 
   const settingsOptions = [
-    { title: 'Profile', icon: '👤', onPress: () => {} },
+    { title: 'Profile', icon: '👤', onPress: () => navigation.navigate('UserProfile') },
     { title: 'Notifications', icon: '🔔', onPress: () => {} },
     { title: 'Privacy', icon: '🔒', onPress: () => {} },
     { title: 'Help & Support', icon: '❓', onPress: () => {} },
@@ -46,7 +47,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
   ];
 
   return (
-    <ScreenLayout>
+    <ScreenLayout backgroundColor={Theme.colors.background.blue} contentBackgroundColor={CONTENT_COLOR}>
       <ScreenHeader title="Settings" />
 
         <View style={{ flex: 1, backgroundColor: Theme.colors.light }}>

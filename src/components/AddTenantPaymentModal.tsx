@@ -24,6 +24,9 @@ interface AddTenantPaymentModalProps {
   bedId: number;
   pgId: number;
   rentAmount?: number;
+  joiningDate?: string;
+  lastPaymentStartDate?: string;
+  lastPaymentEndDate?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -49,6 +52,9 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
   bedId,
   pgId,
   rentAmount = 0,
+  joiningDate,
+  lastPaymentStartDate,
+  lastPaymentEndDate,
   onClose,
   onSuccess,
 }) => {
@@ -67,8 +73,14 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // No automatic defaults; user must select all values explicitly
-  }, [visible]);
+    // Set default actual rent amount when modal opens
+    if (visible && rentAmount > 0) {
+      setFormData(prev => ({
+        ...prev,
+        actual_rent_amount: rentAmount.toString(),
+      }));
+    }
+  }, [visible, rentAmount]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -218,6 +230,65 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                 <Ionicons name="close" size={24} color={Theme.colors.text.primary} />
               </TouchableOpacity>
             </View>
+
+            {/* Payment Info Card */}
+            {(joiningDate || lastPaymentStartDate || lastPaymentEndDate) && (
+              <View
+                style={{
+                  marginHorizontal: 20,
+                  marginTop: 16,
+                  padding: 12,
+                  backgroundColor: Theme.colors.background.blueLight,
+                  borderRadius: 8,
+                  borderLeftWidth: 3,
+                  borderLeftColor: Theme.colors.primary,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: '600',
+                    color: Theme.colors.primary,
+                    marginBottom: 8,
+                  }}
+                >
+                  📋 Payment Reference
+                </Text>
+                {joiningDate && (
+                  <View style={{ flexDirection: 'row', marginBottom: 4 }}>
+                    <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary, width: 100 }}>
+                      Joining Date:
+                    </Text>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
+                      {new Date(joiningDate).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                  </View>
+                )}
+                {lastPaymentStartDate && lastPaymentEndDate && (
+                  <View style={{ flexDirection: 'row' }}>
+                    <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary, width: 100 }}>
+                      Last Payment:
+                    </Text>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
+                      {new Date(lastPaymentStartDate).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                      })}
+                      {' - '}
+                      {new Date(lastPaymentEndDate).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
 
             {/* Form */}
             <ScrollView

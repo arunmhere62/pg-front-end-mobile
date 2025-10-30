@@ -22,7 +22,9 @@ import axiosInstance from '../../services/axiosInstance';
 import { CONTENT_COLOR } from '@/constant';
 import AddTenantPaymentModal from '../../components/AddTenantPaymentModal';
 import { AddAdvancePaymentModal } from '../../components/AddAdvancePaymentModal';
+import { AddRefundPaymentModal } from '../../components/AddRefundPaymentModal';
 import advancePaymentService from '../../services/advancePaymentService';
+import refundPaymentService from '../../services/refundPaymentService';
 
 interface TenantDetailsScreenProps {
   navigation: any;
@@ -61,6 +63,9 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
   
   // Advance payment modal state
   const [advancePaymentModalVisible, setAdvancePaymentModalVisible] = useState(false);
+  
+  // Refund payment modal state
+  const [refundPaymentModalVisible, setRefundPaymentModalVisible] = useState(false);
 
   useEffect(() => {
     loadTenantDetails();
@@ -117,6 +122,35 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
     }
   };
 
+  const handleSaveRefundPayment = async (data: any) => {
+    try {
+      // Ensure pg_id is available from tenant or selected location
+      const pgId = currentTenant?.pg_id || selectedPGLocationId;
+      
+      if (!pgId) {
+        throw new Error('PG Location ID is required');
+      }
+
+      console.log('Creating refund payment with data:', { ...data, pg_id: pgId });
+
+      await refundPaymentService.createRefundPayment(
+        { ...data, pg_id: pgId },
+        {
+          pg_id: pgId,
+          organization_id: user?.organization_id,
+          user_id: user?.s_no,
+        }
+      );
+      
+      Alert.alert('Success', 'Refund payment created successfully');
+      loadTenantDetails(); // Reload tenant details to show new payment
+    } catch (error: any) {
+      console.error('Error in handleSaveRefundPayment:', error);
+      console.error('Error response:', error.response?.data);
+      throw error; // Re-throw to let modal handle it
+    }
+  };
+
   const handleDeleteRentPayment = (payment: any) => {
     Alert.alert(
       'Delete Rent Payment',
@@ -162,6 +196,36 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
               loadTenantDetails();
             } catch (error: any) {
               Alert.alert('Error', error.response?.data?.message || 'Failed to delete payment');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteRefundPayment = (payment: any) => {
+    Alert.alert(
+      'Delete Refund Payment',
+      `Are you sure you want to delete this refund?\n\nAmount: ₹${payment.amount_paid}\nDate: ${new Date(payment.payment_date).toLocaleDateString('en-IN')}`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await refundPaymentService.deleteRefundPayment(payment.s_no, {
+                pg_id: selectedPGLocationId || undefined,
+                organization_id: user?.organization_id,
+                user_id: user?.s_no,
+              });
+              Alert.alert('Success', 'Refund payment deleted successfully');
+              loadTenantDetails();
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to delete refund payment');
             }
           },
         },
@@ -448,6 +512,25 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
     >
       <Text style={{ fontSize: 18 }}>🎁</Text>
       <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Add Advance</Text>
+    </TouchableOpacity>
+  </View>
+  
+  {/* Refund Button */}
+  <View style={{ marginTop: 8 }}>
+    <TouchableOpacity
+      onPress={() => setRefundPaymentModalVisible(true)}
+      style={{
+        paddingVertical: 12,
+        backgroundColor: '#F59E0B',
+        borderRadius: 8,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
+      }}
+    >
+      <Text style={{ fontSize: 18 }}>🔄</Text>
+      <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Add Refund</Text>
     </TouchableOpacity>
   </View>
 </Card>
@@ -1219,8 +1302,8 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
                       style={{
                         flexDirection: 'row',
                         justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: 4,
+                        alignItems: 'flex-start',
+                        marginBottom: 8,
                       }}
                     >
                       <View style={{ flex: 1 }}>
@@ -1254,9 +1337,23 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
                           </View>
                         )}
                       </View>
-                      <Text style={{ fontSize: 16, fontWeight: '700', color: '#F59E0B' }}>
-                        ₹{payment.amount_paid}
-                      </Text>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={{ fontSize: 16, fontWeight: '700', color: '#F59E0B', marginBottom: 8 }}>
+                          ₹{payment.amount_paid}
+                        </Text>
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                          <TouchableOpacity
+                            onPress={() => handleDeleteRefundPayment(payment)}
+                            style={{
+                              padding: 6,
+                              borderRadius: 6,
+                              backgroundColor: '#FEE2E2',
+                            }}
+                          >
+                            <Text style={{ fontSize: 16 }}>🗑️</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
                     </View>
                     {payment.payment_method && (
                       <Text style={{ fontSize: 11, color: Theme.colors.text.secondary }}>
@@ -1576,6 +1673,17 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
           bedId={tenant.bed_id || 0}
           pgId={tenant.pg_id || selectedPGLocationId || 0}
           rentAmount={tenant.rooms?.rent_price || 0}
+          joiningDate={tenant.check_in_date}
+          lastPaymentStartDate={
+            tenant.tenant_payments && tenant.tenant_payments.length > 0
+              ? tenant.tenant_payments[0].start_date
+              : undefined
+          }
+          lastPaymentEndDate={
+            tenant.tenant_payments && tenant.tenant_payments.length > 0
+              ? tenant.tenant_payments[0].end_date
+              : undefined
+          }
           onClose={() => setPaymentModalVisible(false)}
           onSuccess={() => {
             setPaymentModalVisible(false);
@@ -1591,6 +1699,16 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
           tenant={tenant}
           onClose={() => setAdvancePaymentModalVisible(false)}
           onSave={handleSaveAdvancePayment}
+        />
+      )}
+
+      {/* Add Refund Payment Modal */}
+      {tenant && (
+        <AddRefundPaymentModal
+          visible={refundPaymentModalVisible}
+          tenant={tenant}
+          onClose={() => setRefundPaymentModalVisible(false)}
+          onSave={handleSaveRefundPayment}
         />
       )}
       </View>

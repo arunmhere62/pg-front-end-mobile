@@ -27,9 +27,12 @@ import { RoomDetailsScreen } from '../screens/rooms/RoomDetailsScreen';
 import { BedsScreen } from '../screens/beds/BedsScreen';
 import { PaymentsScreen } from '../screens/payments/PaymentsScreen';
 import { SettingsScreen } from '../screens/settings/SettingsScreen';
+import { UserProfileScreen } from '../screens/settings/UserProfileScreen';
 import { PGLocationsScreen } from '../screens/pg-locations/PGLocationsScreen';
 import { OrganizationsScreen } from '../screens/organizations/OrganizationsScreen';
 import { BottomNav } from '../components/BottomNav';
+import { ExpenseScreen } from '@/screens/expense/ExpenseScreen';
+import { EmployeeSalaryScreen } from '@/screens/employee-salary/EmployeeSalaryScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -130,6 +133,9 @@ export const AppNavigator = () => {
             <Stack.Screen name="Beds" component={BedsScreen} />
             <Stack.Screen name="TenantDetails" component={TenantDetailsScreen} />
             <Stack.Screen name="AddTenant" component={AddTenantScreen} />
+            <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+            <Stack.Screen name="Expenses" component={ExpenseScreen} />
+            <Stack.Screen name="EmployeeSalary" component={EmployeeSalaryScreen} />
           </>
         )}
       </Stack.Navigator>
