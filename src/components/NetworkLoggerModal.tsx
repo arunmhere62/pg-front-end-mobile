@@ -8,15 +8,41 @@ import {
   StyleSheet,
   Clipboard,
   Alert,
+  Animated,
+  PanResponder,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Accelerometer } from 'expo-sensors';
 import { networkLogger, NetworkLog } from '../utils/networkLogger';
 
+// Screen dimensions
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Button size
+const BUTTON_SIZE = 56;
+
+// Safe area boundaries (prevent blocking system gestures)
+const BOUNDARY_PADDING = 10; // Minimum distance from edges
+const TOP_SAFE_AREA = 50; // Extra space for status bar/notch
+const BOTTOM_SAFE_AREA = 80; // Extra space for gesture bar/navigation
+
+// Global function to open logger from anywhere
+let globalOpenLogger: (() => void) | null = null;
+
+export const openNetworkLogger = () => {
+  if (globalOpenLogger) {
+    globalOpenLogger();
+  } else {
+    console.warn('Network logger not initialized yet');
+  }
+};
+
 export const NetworkLoggerModal: React.FC = () => {
   const [visible, setVisible] = useState(false);
   const [logs, setLogs] = useState<NetworkLog[]>([]);
   const [selectedLog, setSelectedLog] = useState<NetworkLog | null>(null);
+  const [showFloatingButton, setShowFloatingButton] = useState(true);
   const [expandedSections, setExpandedSections] = useState<{
     headers: boolean;
     request: boolean;
@@ -29,6 +55,21 @@ export const NetworkLoggerModal: React.FC = () => {
     curl: false,
   });
 
+  // Floating button position
+  const pan = useState(new Animated.ValueXY({ x: 20, y: 100 }))[0];
+
+  // Register global open function
+  useEffect(() => {
+    globalOpenLogger = () => {
+      const currentLogs = networkLogger.getLogs();
+      setLogs(currentLogs);
+      setVisible(true);
+    };
+    return () => {
+      globalOpenLogger = null;
+    };
+  }, []);
+
   // Refresh logs when modal becomes visible
   useEffect(() => {
     if (visible) {
@@ -39,25 +80,52 @@ export const NetworkLoggerModal: React.FC = () => {
 
   useEffect(() => {
     let subscription: any;
-    const SHAKE_THRESHOLD = 2.5;
+    const SHAKE_THRESHOLD = 2.0; // Lowered threshold for easier detection
     let lastUpdate = 0;
-    const SHAKE_TIMEOUT = 1000; // 1 second between shakes
+    const SHAKE_TIMEOUT = 800; // Reduced timeout for better responsiveness
 
-    Accelerometer.setUpdateInterval(100);
+    const setupAccelerometer = async () => {
+      try {
+        // Request permission and check availability
+        const { status } = await Accelerometer.requestPermissionsAsync();
+        
+        if (status !== 'granted') {
+          console.log('Accelerometer permission not granted');
+          return;
+        }
 
-    subscription = Accelerometer.addListener(({ x, y, z }) => {
-      const currentTime = Date.now();
-      if (currentTime - lastUpdate < SHAKE_TIMEOUT) return;
+        const isAvailable = await Accelerometer.isAvailableAsync();
+        
+        if (!isAvailable) {
+          console.log('Accelerometer not available on this device');
+          return;
+        }
 
-      const acceleration = Math.sqrt(x * x + y * y + z * z);
-      
-      if (acceleration > SHAKE_THRESHOLD) {
-        lastUpdate = currentTime;
-        const currentLogs = networkLogger.getLogs();
-        setLogs(currentLogs);
-        setVisible(true);
+        Accelerometer.setUpdateInterval(100);
+
+        subscription = Accelerometer.addListener(({ x, y, z }) => {
+          const currentTime = Date.now();
+          if (currentTime - lastUpdate < SHAKE_TIMEOUT) return;
+
+          const acceleration = Math.sqrt(x * x + y * y + z * z);
+          
+          // Only log when shake is detected (not every frame)
+          if (acceleration > SHAKE_THRESHOLD) {
+            lastUpdate = currentTime;
+            console.log('✅ Shake detected! Acceleration:', acceleration.toFixed(2));
+            const currentLogs = networkLogger.getLogs();
+            setLogs(currentLogs);
+            setVisible(true);
+          }
+        });
+
+        console.log('📱 Network Logger: Shake to open (threshold:', SHAKE_THRESHOLD, ')');
+      } catch (error) {
+        console.error('Error setting up accelerometer:', error);
       }
-    });
+    };
+
+    setupAccelerometer();
 
     return () => {
       subscription && subscription.remove();
@@ -472,8 +540,91 @@ export const NetworkLoggerModal: React.FC = () => {
     );
   };
 
+  // Pan responder for draggable floating button with boundaries
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => {
+      pan.setOffset({
+        x: (pan.x as any)._value,
+        y: (pan.y as any)._value,
+      });
+    },
+    onPanResponderMove: Animated.event(
+      [null, { dx: pan.x, dy: pan.y }],
+      { useNativeDriver: false }
+    ),
+    onPanResponderRelease: (_, gestureState) => {
+      pan.flattenOffset();
+      
+      // Get current position
+      const currentX = (pan.x as any)._value;
+      const currentY = (pan.y as any)._value;
+      
+      // Calculate boundaries
+      const minX = BOUNDARY_PADDING;
+      const maxX = SCREEN_WIDTH - BUTTON_SIZE - BOUNDARY_PADDING;
+      const minY = TOP_SAFE_AREA;
+      const maxY = SCREEN_HEIGHT - BUTTON_SIZE - BOTTOM_SAFE_AREA;
+      
+      // Clamp position within boundaries
+      let newX = currentX;
+      let newY = currentY;
+      
+      if (currentX < minX) newX = minX;
+      if (currentX > maxX) newX = maxX;
+      if (currentY < minY) newY = minY;
+      if (currentY > maxY) newY = maxY;
+      
+      // Animate to bounded position if needed
+      if (newX !== currentX || newY !== currentY) {
+        Animated.spring(pan, {
+          toValue: { x: newX, y: newY },
+          useNativeDriver: false,
+          friction: 7,
+        }).start();
+      }
+    },
+  });
+
+  const openLogger = () => {
+    const currentLogs = networkLogger.getLogs();
+    setLogs(currentLogs);
+    setVisible(true);
+  };
+
   return (
     <>
+      {/* Floating Debug Button - Always Visible */}
+      {showFloatingButton && !visible && (
+        <Animated.View
+          style={[
+            styles.floatingButton,
+            {
+              transform: [{ translateX: pan.x }, { translateY: pan.y }],
+            },
+          ]}
+          {...panResponder.panHandlers}
+        >
+          <TouchableOpacity
+            onPress={openLogger}
+            onLongPress={() => {
+              networkLogger.clearLogs();
+              setLogs([]);
+              Alert.alert('Success', 'Network logs cleared!');
+            }}
+            style={styles.floatingButtonInner}
+          >
+            <Text style={styles.floatingButtonText}>🔍</Text>
+            {logs.length > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{logs.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
       <Modal
         visible={visible}
         animationType="slide"
@@ -777,5 +928,43 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 11,
+  },
+  floatingButton: {
+    position: 'absolute',
+    zIndex: 9999,
+    elevation: 10,
+  },
+  floatingButtonInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#10B981',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  floatingButtonText: {
+    fontSize: 24,
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });

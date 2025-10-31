@@ -26,10 +26,11 @@ const initialState: TenantState = {
 
 export const fetchTenants = createAsyncThunk(
   'tenants/fetchAll',
-  async (params: GetTenantsParams, { rejectWithValue }) => {
+  async (params: GetTenantsParams & { append?: boolean }, { rejectWithValue }) => {
     try {
-      const response = await tenantService.getAllTenants(params);
-      return response;
+      const { append, ...apiParams } = params;
+      const response = await tenantService.getAllTenants(apiParams);
+      return { ...response, append: append || false };
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch tenants');
     }
@@ -131,7 +132,13 @@ const tenantSlice = createSlice({
       })
       .addCase(fetchTenants.fulfilled, (state, action) => {
         state.loading = false;
-        state.tenants = action.payload.data;
+        const data = action.payload.data;
+        // Append data for infinite scroll or replace for new search
+        if (action.payload.append && action.payload.pagination?.page > 1) {
+          state.tenants = [...state.tenants, ...data];
+        } else {
+          state.tenants = data;
+        }
         state.pagination = action.payload.pagination;
       })
       .addCase(fetchTenants.rejected, (state, action) => {

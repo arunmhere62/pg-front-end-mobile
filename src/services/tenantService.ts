@@ -186,10 +186,7 @@ export const getAllTenants = async (
   if (user_id) headers['X-User-Id'] = user_id.toString();
 
   const url = `/tenants?${queryParams.toString()}`;
-  console.log('📡 API Request:', { url, headers, room_id });
-
   const response = await axiosInstance.get(url, { headers });
-  console.log('📥 API Response:', { total: response.data.data?.length, pagination: response.data.pagination });
   
   return response.data;
 };

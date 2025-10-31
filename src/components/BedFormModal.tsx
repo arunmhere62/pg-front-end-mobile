@@ -149,7 +149,34 @@ export const BedFormModal: React.FC<BedFormModalProps> = ({
       onSuccess();
       onClose();
     } catch (error: any) {
-      Alert.alert('Error', error.message || `Failed to ${isEditMode ? 'update' : 'create'} bed`);
+      // Extract error message from various possible formats
+      let errorMessage = `Failed to ${isEditMode ? 'update' : 'create'} bed`;
+      
+      if (error?.response?.data?.message) {
+        // API error message (most common)
+        errorMessage = error.response.data.message;
+      } else if (error?.response?.data?.error) {
+        // Alternative error format
+        errorMessage = error.response.data.error;
+      } else if (error?.message) {
+        // JavaScript error message
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        // String error
+        errorMessage = error;
+      }
+      
+      // Log error for debugging (only in development)
+      if (__DEV__) {
+        console.log('❌ Bed creation/update failed:', {
+          status: error?.response?.status,
+          message: errorMessage,
+          bedNumber: formData.bed_no,
+          roomId: roomId,
+        });
+      }
+      
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StatusBar, Platform } from 'react-native';
 import { Theme } from '../theme';
 import { PGLocationSelector } from './PGLocationSelector';
 
@@ -51,12 +51,14 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
     
     StatusBar.setBarStyle(style === 'light' ? 'light-content' : 'dark-content', true);
     
-    // Set notification bar background color
+    // Set notification bar background color (Android only)
     // Priority: notificationBarColor > syncMobileHeaderBg > ScreenLayout default
-    if (notificationBarColor) {
-      StatusBar.setBackgroundColor(notificationBarColor, true);
-    } else if (syncMobileHeaderBg) {
-      StatusBar.setBackgroundColor(backgroundColor, true);
+    if (Platform.OS === 'android') {
+      if (notificationBarColor) {
+        StatusBar.setBackgroundColor(notificationBarColor, true);
+      } else if (syncMobileHeaderBg) {
+        StatusBar.setBackgroundColor(backgroundColor, true);
+      }
     }
   }, [backgroundColor, statusBarStyle, syncMobileHeaderBg, notificationBarColor]);
 

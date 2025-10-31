@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, ViewStyle, StatusBar } from 'react-native';
+import { View, ViewStyle, StatusBar, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Theme } from '../theme';
 
@@ -18,9 +18,11 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   contentBackgroundColor,
   style,
 }) => {
-  // Set status bar background color to match screen
+  // Set status bar background color to match screen (Android only)
   useEffect(() => {
-    StatusBar.setBackgroundColor(backgroundColor, true);
+    if (Platform.OS === 'android') {
+      StatusBar.setBackgroundColor(backgroundColor, true);
+    }
   }, [backgroundColor]);
 
   return (

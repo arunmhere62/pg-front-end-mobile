@@ -25,9 +25,6 @@ export const usePermissions = () => {
   const user = useSelector((state: RootState) => state.auth.user);
   const userRole = user?.role_name || '';
 
-  // Debug logging
-  console.log('🔐 usePermissions - User Role:', userRole);
-  console.log('🔐 usePermissions - User Data:', user);
 
   return {
     /**

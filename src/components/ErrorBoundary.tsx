@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Theme } from '../theme';
+import { openNetworkLogger } from './NetworkLoggerModal';
 
 interface Props {
   children: ReactNode;
@@ -111,6 +112,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 paddingVertical: 14,
                 borderRadius: 8,
                 alignItems: 'center',
+                marginBottom: 12,
               }}
             >
               <Text style={{
@@ -119,6 +121,34 @@ export class ErrorBoundary extends Component<Props, State> {
                 fontWeight: '600',
               }}>
                 Try Again
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                try {
+                  openNetworkLogger();
+                } catch (error) {
+                  console.error('Failed to open network logger:', error);
+                }
+              }}
+              style={{
+                backgroundColor: '#10B981',
+                paddingVertical: 14,
+                borderRadius: 8,
+                alignItems: 'center',
+                flexDirection: 'row',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+            >
+              <Text style={{ fontSize: 20 }}>🔍</Text>
+              <Text style={{
+                color: '#fff',
+                fontSize: 16,
+                fontWeight: '600',
+              }}>
+                View Network Logs
               </Text>
             </TouchableOpacity>
           </View>

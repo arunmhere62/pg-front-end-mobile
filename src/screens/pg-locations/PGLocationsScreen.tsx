@@ -23,7 +23,6 @@ let ImagePicker: any = null;
 try {
   ImagePicker = require('expo-image-picker');
 } catch (e) {
-  console.log('expo-image-picker not installed');
 }
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';

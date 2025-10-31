@@ -53,7 +53,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   useEffect(() => {
     if (searchQuery) {
       const filtered = items.filter((item) =>
-        item.label.toLowerCase().includes(searchQuery.toLowerCase())
+        item?.label?.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredItems(filtered);
     } else {
@@ -189,7 +189,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
               <Text style={styles.searchIcon}>🔍</Text>
               <TextInput
                 style={styles.searchInput}
-                placeholder={`Search ${label.toLowerCase()}...`}
+                placeholder={`Search ${label?.toLowerCase() || 'items'}...`}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoCapitalize="none"

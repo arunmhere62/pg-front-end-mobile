@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -8,8 +8,14 @@ import { NetworkLoggerModal } from './src/components/NetworkLoggerModal';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { Theme } from './src/theme';
 import { AppNavigator } from '@/navigation/AppNavigator';
+import { setupGlobalErrorHandlers } from './src/utils/errorHandler';
 
 export default function App() {
+  useEffect(() => {
+    // Initialize global error handlers
+    setupGlobalErrorHandlers();
+  }, []);
+
   return (
     <ErrorBoundary>
       <SafeAreaProvider>

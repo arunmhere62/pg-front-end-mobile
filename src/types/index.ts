@@ -82,7 +82,7 @@ export interface Payment {
   amount_paid: number;
   payment_date?: string;
   payment_method: 'GPAY' | 'PHONEPE' | 'CASH' | 'BANK_TRANSFER';
-  status: 'PAID' | 'PENDING' | 'FAILED' | 'REFUNDED';
+  status: 'PAID' | 'PARTIAL' | 'PENDING' | 'FAILED' | 'REFUNDED';
   remarks?: string;
   actual_rent_amount: number;
   start_date?: string;

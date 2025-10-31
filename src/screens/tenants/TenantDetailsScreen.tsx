@@ -23,8 +23,12 @@ import { CONTENT_COLOR } from '@/constant';
 import AddTenantPaymentModal from '../../components/AddTenantPaymentModal';
 import { AddAdvancePaymentModal } from '../../components/AddAdvancePaymentModal';
 import { AddRefundPaymentModal } from '../../components/AddRefundPaymentModal';
+import { EditRentPaymentModal } from '../../components/EditRentPaymentModal';
+import { EditAdvancePaymentModal } from '../../components/EditAdvancePaymentModal';
 import advancePaymentService from '../../services/advancePaymentService';
 import refundPaymentService from '../../services/refundPaymentService';
+import { paymentService } from '../../services/paymentService';
+import { Ionicons } from '@expo/vector-icons';
 
 interface TenantDetailsScreenProps {
   navigation: any;
@@ -66,6 +70,14 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
   
   // Refund payment modal state
   const [refundPaymentModalVisible, setRefundPaymentModalVisible] = useState(false);
+  
+  // Edit rent payment modal state
+  const [editRentPaymentModalVisible, setEditRentPaymentModalVisible] = useState(false);
+  const [editingRentPayment, setEditingRentPayment] = useState<any>(null);
+  
+  // Edit advance payment modal state
+  const [editAdvancePaymentModalVisible, setEditAdvancePaymentModalVisible] = useState(false);
+  const [editingAdvancePayment, setEditingAdvancePayment] = useState<any>(null);
 
   useEffect(() => {
     loadTenantDetails();
@@ -105,8 +117,6 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
         throw new Error('PG Location ID is required');
       }
 
-      console.log('Creating advance payment with data:', { ...data, pg_id: pgId });
-
       await advancePaymentService.createAdvancePayment(data, {
         pg_id: pgId,
         organization_id: user?.organization_id,
@@ -116,8 +126,6 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
       Alert.alert('Success', 'Advance payment created successfully');
       loadTenantDetails(); // Reload tenant details to show new payment
     } catch (error: any) {
-      console.error('Error in handleSaveAdvancePayment:', error);
-      console.error('Error response:', error.response?.data);
       throw error; // Re-throw to let modal handle it
     }
   };
@@ -130,8 +138,6 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
       if (!pgId) {
         throw new Error('PG Location ID is required');
       }
-
-      console.log('Creating refund payment with data:', { ...data, pg_id: pgId });
 
       await refundPaymentService.createRefundPayment(
         { ...data, pg_id: pgId },
@@ -147,6 +153,29 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
     } catch (error: any) {
       console.error('Error in handleSaveRefundPayment:', error);
       console.error('Error response:', error.response?.data);
+      throw error; // Re-throw to let modal handle it
+    }
+  };
+
+  const handleEditRentPayment = (payment: any) => {
+    // Enrich payment with tenant, room, and bed info for display in modal
+    const enrichedPayment = {
+      ...payment,
+      tenants: payment.tenants || { name: currentTenant?.name },
+      rooms: payment.rooms || currentTenant?.rooms,
+      beds: payment.beds || currentTenant?.beds,
+    };
+    setEditingRentPayment(enrichedPayment);
+    setEditRentPaymentModalVisible(true);
+  };
+
+  const handleSaveRentPayment = async (id: number, data: any) => {
+    try {
+      await paymentService.updateTenantPayment(id, data);
+      setEditRentPaymentModalVisible(false);
+      setEditingRentPayment(null);
+      loadTenantDetails();
+    } catch (error: any) {
       throw error; // Re-throw to let modal handle it
     }
   };
@@ -175,6 +204,33 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
         },
       ]
     );
+  };
+
+  const handleEditAdvancePayment = (payment: any) => {
+    // Enrich payment with tenant, room, and bed info for display in modal
+    const enrichedPayment = {
+      ...payment,
+      tenants: payment.tenants || { name: currentTenant?.name },
+      rooms: payment.rooms || currentTenant?.rooms,
+      beds: payment.beds || currentTenant?.beds,
+    };
+    setEditingAdvancePayment(enrichedPayment);
+    setEditAdvancePaymentModalVisible(true);
+  };
+
+  const handleUpdateAdvancePayment = async (id: number, data: any) => {
+    try {
+      await advancePaymentService.updateAdvancePayment(id, data, {
+        pg_id: selectedPGLocationId || undefined,
+        organization_id: user?.organization_id,
+        user_id: user?.s_no,
+      });
+      setEditAdvancePaymentModalVisible(false);
+      setEditingAdvancePayment(null);
+      loadTenantDetails();
+    } catch (error: any) {
+      throw error; // Re-throw to let modal handle it
+    }
   };
 
   const handleDeleteAdvancePayment = (payment: any) => {
@@ -928,6 +984,16 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
                       </View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <TouchableOpacity
+                          onPress={() => handleEditRentPayment(payment)}
+                          style={{
+                            padding: 6,
+                            borderRadius: 6,
+                            backgroundColor: Theme.colors.background.blueLight,
+                          }}
+                        >
+                          <Ionicons name="pencil" size={16} color={Theme.colors.primary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
                           onPress={() => handleDeleteRentPayment(payment)}
                           style={{
                             padding: 6,
@@ -935,7 +1001,7 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
                             backgroundColor: '#FEE2E2',
                           }}
                         >
-                          <Text style={{ fontSize: 16 }}>🗑️</Text>
+                          <Ionicons name="trash-outline" size={16} color="#EF4444" />
                         </TouchableOpacity>
                         {payment.status && (
                           <View style={{
@@ -1129,6 +1195,16 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
                       </View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <TouchableOpacity
+                          onPress={() => handleEditAdvancePayment(payment)}
+                          style={{
+                            padding: 6,
+                            borderRadius: 6,
+                            backgroundColor: Theme.colors.background.blueLight,
+                          }}
+                        >
+                          <Ionicons name="pencil" size={16} color={Theme.colors.primary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
                           onPress={() => handleDeleteAdvancePayment(payment)}
                           style={{
                             padding: 6,
@@ -1136,7 +1212,7 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
                             backgroundColor: '#FEE2E2',
                           }}
                         >
-                          <Text style={{ fontSize: 16 }}>🗑️</Text>
+                          <Ionicons name="trash-outline" size={16} color="#EF4444" />
                         </TouchableOpacity>
                         {payment.status && (
                           <View style={{
@@ -1711,6 +1787,31 @@ export const TenantDetailsScreen: React.FC<TenantDetailsScreenProps> = ({
           onSave={handleSaveRefundPayment}
         />
       )}
+
+      {/* Edit Rent Payment Modal */}
+      <EditRentPaymentModal
+        visible={editRentPaymentModalVisible}
+        payment={editingRentPayment}
+        onClose={() => {
+          setEditRentPaymentModalVisible(false);
+          setEditingRentPayment(null);
+        }}
+        onSave={handleSaveRentPayment}
+        onSuccess={() => {
+          loadTenantDetails();
+        }}
+      />
+
+      {/* Edit Advance Payment Modal */}
+      <EditAdvancePaymentModal
+        visible={editAdvancePaymentModalVisible}
+        payment={editingAdvancePayment}
+        onClose={() => {
+          setEditAdvancePaymentModalVisible(false);
+          setEditingAdvancePayment(null);
+        }}
+        onSave={handleUpdateAdvancePayment}
+      />
       </View>
     </ScreenLayout>
   );

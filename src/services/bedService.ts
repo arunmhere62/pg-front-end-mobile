@@ -17,11 +17,12 @@ export interface Bed {
       location_name: string;
     };
   };
-  tenants?: {
+  tenants?: Array<{
     s_no: number;
     name: string;
-    phone: string;
-  };
+    phone_no: string;
+    status: string;
+  }>;
 }
 
 export interface CreateBedDto {

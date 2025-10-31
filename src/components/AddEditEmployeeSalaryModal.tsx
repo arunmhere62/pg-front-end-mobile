@@ -75,7 +75,6 @@ export const AddEditEmployeeSalaryModal: React.FC<AddEditEmployeeSalaryModalProp
     try {
       setLoadingEmployees(true);
       const response = await userService.getUsers();
-      console.log('Employees response:', response);
       
       if (response.success) {
         setEmployees(response.data || []);
@@ -83,7 +82,6 @@ export const AddEditEmployeeSalaryModal: React.FC<AddEditEmployeeSalaryModalProp
         setEmployees(response);
       }
     } catch (error) {
-      console.error('Error fetching employees:', error);
       Alert.alert('Error', 'Failed to load employees list');
     } finally {
       setLoadingEmployees(false);
@@ -112,10 +110,8 @@ export const AddEditEmployeeSalaryModal: React.FC<AddEditEmployeeSalaryModalProp
   };
 
   const handleSave = async () => {
-    console.log('💾 Save button clicked');
     
     if (!validate()) {
-      console.log('❌ Validation failed');
       return;
     }
 
@@ -129,31 +125,22 @@ export const AddEditEmployeeSalaryModal: React.FC<AddEditEmployeeSalaryModalProp
         remarks: remarks.trim() || undefined,
       };
 
-      console.log('📤 Sending salary data:', data);
-
       if (salary) {
-        // Update existing salary
-        console.log('Updating salary ID:', salary.s_no);
         await employeeSalaryService.updateSalary(salary.s_no, data);
         Alert.alert('Success', 'Salary record updated successfully');
       } else {
-        // Create new salary
-        console.log('Creating new salary for employee:', selectedEmployeeId);
         const createData = {
           user_id: selectedEmployeeId!,
           month: month,
           ...data,
         };
         const response = await employeeSalaryService.createSalary(createData);
-        console.log('✅ Salary created:', response);
         Alert.alert('Success', 'Salary record added successfully');
       }
 
       handleClose();
       onSave();
     } catch (error: any) {
-      console.error('❌ Error saving salary:', error);
-      console.error('Error response:', error.response?.data);
       Alert.alert('Error', error.response?.data?.message || 'Failed to save salary record');
     } finally {
       setLoading(false);

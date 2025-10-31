@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../theme';
@@ -20,6 +21,7 @@ interface EditRentPaymentModalProps {
   payment: Payment | null;
   onClose: () => void;
   onSave: (id: number, data: Partial<Payment>) => Promise<void>;
+  onSuccess?: () => void;
 }
 
 const PAYMENT_METHODS = [
@@ -29,11 +31,11 @@ const PAYMENT_METHODS = [
   { label: 'Bank Transfer', value: 'BANK_TRANSFER', icon: 'card-outline' },
 ];
 
-const RENT_PAYMENT_STATUSES = [
-  { label: 'Paid', value: 'PAID', color: Theme.colors.secondary },
-  { label: 'Pending', value: 'PENDING', color: Theme.colors.warning },
-  { label: 'Overdue', value: 'OVERDUE', color: Theme.colors.danger },
-  { label: 'Cancelled', value: 'CANCELLED', color: Theme.colors.text.tertiary },
+const PAYMENT_STATUS = [
+  { label: '✅ Paid', value: 'PAID', color: '#10B981', icon: 'checkmark-circle' },
+  { label: '🔵 Partial', value: 'PARTIAL', color: '#3B82F6', icon: 'pie-chart' },
+  { label: '⏳ Pending', value: 'PENDING', color: '#F59E0B', icon: 'time' },
+  { label: '❌ Failed', value: 'FAILED', color: '#EF4444', icon: 'close-circle' },
 ];
 
 export const EditRentPaymentModal: React.FC<EditRentPaymentModalProps> = ({
@@ -41,6 +43,7 @@ export const EditRentPaymentModal: React.FC<EditRentPaymentModalProps> = ({
   payment,
   onClose,
   onSave,
+  onSuccess,
 }) => {
   const [amountPaid, setAmountPaid] = useState('');
   const [actualRentAmount, setActualRentAmount] = useState('');
@@ -100,8 +103,62 @@ export const EditRentPaymentModal: React.FC<EditRentPaymentModalProps> = ({
   const handleSave = async () => {
     if (!validate() || !payment) return;
 
+    // Auto-calculate status based on amounts
+    const paidAmount = parseFloat(amountPaid);
+    const rentAmount = parseFloat(actualRentAmount);
+    
+    let autoStatus: string;
+    let autoStatusLabel: string;
+    
+    if (paidAmount >= rentAmount) {
+      autoStatus = 'PAID';
+      autoStatusLabel = '✅ Paid';
+    } else if (paidAmount > 0) {
+      autoStatus = 'PARTIAL';
+      autoStatusLabel = '🔵 Partial';
+    } else {
+      autoStatus = 'PENDING';
+      autoStatusLabel = '⏳ Pending';
+    }
+
+    // Show confirmation with auto-calculated status
+    Alert.alert(
+      'Confirm Payment Status',
+      `Based on the amounts:\n\nAmount Paid: ₹${paidAmount}\nRent Amount: ₹${rentAmount}\n\nSuggested Status: ${autoStatusLabel}\n\nIs this correct?`,
+      [
+        {
+          text: 'Change Status',
+          onPress: () => {
+            // Show manual selection dialog
+            Alert.alert(
+              'Select Payment Status',
+              'Please select the payment status:',
+              [
+                ...PAYMENT_STATUS.map((statusOption) => ({
+                  text: statusOption.label,
+                  onPress: () => saveWithStatus(statusOption.value),
+                })),
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                },
+              ]
+            );
+          },
+        },
+        {
+          text: 'Confirm',
+          onPress: () => saveWithStatus(autoStatus),
+        },
+      ]
+    );
+  };
+
+  const saveWithStatus = async (selectedStatus: string) => {
+    if (!payment) return;
+    
+    setLoading(true);
     try {
-      setLoading(true);
       await onSave(payment.s_no, {
         amount_paid: parseFloat(amountPaid),
         actual_rent_amount: parseFloat(actualRentAmount),
@@ -109,12 +166,21 @@ export const EditRentPaymentModal: React.FC<EditRentPaymentModalProps> = ({
         start_date: startDate,
         end_date: endDate,
         payment_method: paymentMethod as any,
-        status: status as any,
+        status: selectedStatus as any,
         remarks: remarks.trim() || undefined,
       });
+      
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
+      
+      // Close modal after successful save
+      Alert.alert('Success', 'Payment updated successfully');
       onClose();
     } catch (error) {
       console.error('Error updating rent payment:', error);
+      Alert.alert('Error', 'Failed to update payment');
     } finally {
       setLoading(false);
     }
@@ -183,7 +249,7 @@ export const EditRentPaymentModal: React.FC<EditRentPaymentModalProps> = ({
                     marginTop: 4,
                   }}
                 >
-                  {payment.tenants?.name} • {payment.rooms?.room_no}/{payment.beds?.bed_no}
+                  {payment.tenants?.name || 'Unknown'} • {payment.rooms?.room_no || 'N/A'}/{payment.beds?.bed_no || 'N/A'}
                 </Text>
               </View>
               <TouchableOpacity onPress={handleClose}>
@@ -373,53 +439,29 @@ export const EditRentPaymentModal: React.FC<EditRentPaymentModalProps> = ({
                 </View>
               </View>
 
-              {/* Status */}
-              <View style={{ marginBottom: 16 }}>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: '500',
-                    color: Theme.colors.text.primary,
-                    marginBottom: 8,
-                  }}
-                >
-                  Status <Text style={{ color: Theme.colors.danger }}>*</Text>
+              {/* Status Note */}
+              <View style={{
+                marginBottom: 16,
+                padding: 12,
+                backgroundColor: Theme.colors.background.blueLight,
+                borderRadius: 8,
+                borderLeftWidth: 3,
+                borderLeftColor: Theme.colors.primary,
+              }}>
+                <Text style={{
+                  fontSize: 12,
+                  fontWeight: '600',
+                  color: Theme.colors.primary,
+                  marginBottom: 4,
+                }}>
+                  ℹ️ Payment Status
                 </Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {RENT_PAYMENT_STATUSES.map((statusOption) => (
-                    <TouchableOpacity
-                      key={statusOption.value}
-                      onPress={() => setStatus(statusOption.value)}
-                      style={{
-                        flex: 1,
-                        minWidth: '45%',
-                        paddingVertical: 10,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor:
-                          status === statusOption.value ? statusOption.color : Theme.colors.border,
-                        backgroundColor:
-                          status === statusOption.value
-                            ? Theme.withOpacity(statusOption.color, 0.1)
-                            : Theme.colors.canvas,
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontWeight: status === statusOption.value ? '600' : '400',
-                          color:
-                            status === statusOption.value
-                              ? statusOption.color
-                              : Theme.colors.text.primary,
-                        }}
-                      >
-                        {statusOption.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                <Text style={{
+                  fontSize: 12,
+                  color: Theme.colors.text.secondary,
+                }}>
+                  You will be asked to select the payment status when you save the changes.
+                </Text>
               </View>
 
               {/* Remarks */}

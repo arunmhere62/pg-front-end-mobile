@@ -304,7 +304,7 @@ export const BedsScreen: React.FC<BedsScreenProps> = ({ navigation }) => {
       )}
 
       {/* Tenant Info */}
-      {item.tenants && (
+      {item.tenants && item.tenants.length > 0 && (
         <View
           style={{
             backgroundColor: '#FEF3C7',
@@ -315,8 +315,10 @@ export const BedsScreen: React.FC<BedsScreenProps> = ({ navigation }) => {
           }}
         >
           <Text style={{ fontSize: 11, color: '#92400E', fontWeight: '600', marginBottom: 4 }}>TENANT</Text>
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#78350F' }}>{item.tenants.name}</Text>
-          <Text style={{ fontSize: 12, color: '#92400E', marginTop: 2 }}>{item.tenants.phone}</Text>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#78350F' }}>{item.tenants[0].name}</Text>
+          {item.tenants[0].phone_no && (
+            <Text style={{ fontSize: 12, color: '#92400E', marginTop: 2 }}>{item.tenants[0].phone_no}</Text>
+          )}
         </View>
       )}
     </Card>

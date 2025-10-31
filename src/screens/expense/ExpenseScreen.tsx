@@ -47,28 +47,20 @@ export const ExpenseScreen: React.FC<ExpenseScreenProps> = ({ navigation }) => {
 
   // Debug user data
   useEffect(() => {
-    console.log('=== ExpenseScreen Debug ===');
-    console.log('User:', user);
-    console.log('Selected PG ID:', selectedPGLocationId);
   }, [user, selectedPGLocationId]);
 
   const fetchExpenses = useCallback(async (pageNum: number = 1, append: boolean = false) => {
-    console.log('fetchExpenses called with:', { selectedPGLocationId, pageNum, append, filters: { startDate, endDate, expenseTypeFilter, paymentMethodFilter } });
     
     if (!selectedPGLocationId) {
       setLoading(false);
       setRefreshing(false);
-      console.log('❌ No PG Location selected');
       return;
     }
 
     try {
       if (!append) setLoading(true);
-      
-      console.log('📡 Fetching expenses for PG ID:', selectedPGLocationId);
       // Note: Filters will be applied via headers and query params in future API update
       const response = await expenseService.getExpenses(pageNum, 10);
-      console.log('✅ Expenses response:', response);
       
       // Apply client-side filters for now
       let filteredData = response.data;
@@ -105,11 +97,8 @@ export const ExpenseScreen: React.FC<ExpenseScreenProps> = ({ navigation }) => {
         }
         setHasMore(response.pagination.hasMore);
         setTotalExpenses(filteredData.length);
-        console.log('📊 Loaded expenses count:', filteredData.length);
       }
     } catch (error: any) {
-      console.error('❌ Error fetching expenses:', error);
-      console.error('Error details:', error.response?.data || error.message);
       Alert.alert('Error', error.response?.data?.message || 'Failed to load expenses');
     } finally {
       setLoading(false);
@@ -136,8 +125,6 @@ export const ExpenseScreen: React.FC<ExpenseScreenProps> = ({ navigation }) => {
   };
 
   const handleAddExpense = () => {
-    console.log('➕ Add Expense button clicked');
-    console.log('Selected PG ID:', selectedPGLocationId);
     setEditingExpense(null);
     setShowAddModal(true);
   };
@@ -162,7 +149,6 @@ export const ExpenseScreen: React.FC<ExpenseScreenProps> = ({ navigation }) => {
               Alert.alert('Success', 'Expense deleted successfully');
               onRefresh();
             } catch (error) {
-              console.error('Error deleting expense:', error);
               Alert.alert('Error', 'Failed to delete expense');
             }
           },

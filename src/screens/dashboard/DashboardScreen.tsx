@@ -67,6 +67,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     { title: 'Rooms', icon: 'home', screen: 'Rooms', color: '#22C55E' },
     { title: 'Beds', icon: 'bed', screen: 'Beds', color: '#3B82F6' },
     { title: 'Tenants', icon: 'people', screen: 'Tenants', color: '#06B6D4' },
+    { title: 'Visitors', icon: 'person-add', screen: 'Visitors', color: '#10B981' },
+    { title: 'Employees', icon: 'people-circle', screen: 'Employees', color: '#F59E0B' },
     { title: 'Payments', icon: 'cash', screen: 'Payments', color: '#EAB308' },
     { title: 'Expenses', icon: 'receipt', screen: 'Expenses', color: '#EF4444' },
     { title: 'Employee Salary', icon: 'wallet', screen: 'EmployeeSalary', color: '#8B5CF6' },

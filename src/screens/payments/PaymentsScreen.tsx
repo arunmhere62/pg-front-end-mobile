@@ -43,6 +43,9 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
   
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreRent, setHasMoreRent] = useState(true);
+  const [hasMoreAdvance, setHasMoreAdvance] = useState(true);
+  const [hasMoreRefund, setHasMoreRefund] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   
   // Advance payments state
@@ -71,6 +74,9 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [showEditRefundModal, setShowEditRefundModal] = useState(false);
   const [editingRefundPayment, setEditingRefundPayment] = useState<RefundPayment | null>(null);
+  
+  // Scroll position tracking
+  const [visibleItemsCount, setVisibleItemsCount] = useState(0);
   
   const flatListRef = React.useRef<any>(null);
   
@@ -142,34 +148,42 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
   };
 
   useEffect(() => {
+    // Reset and load fresh data when PG location or tab changes
+    setCurrentPage(1);
     if (activeTab === 'RENT') {
-      loadPayments(1);
+      setHasMoreRent(true);
+      loadPayments(1, true);
     } else if (activeTab === 'ADVANCE') {
-      loadAdvancePayments(1);
+      setHasMoreAdvance(true);
+      loadAdvancePayments(1, true);
     } else {
-      loadRefundPayments(1);
+      setHasMoreRefund(true);
+      loadRefundPayments(1, true);
     }
   }, [selectedPGLocationId, activeTab]);
 
   useFocusEffect(
     React.useCallback(() => {
-      if (activeTab === 'RENT') {
-        loadPayments(currentPage);
-      } else if (activeTab === 'ADVANCE') {
-        loadAdvancePayments(currentPage);
-      } else {
-        loadRefundPayments(currentPage);
+      // Only reload current data on focus, don't reset
+      if (currentPage === 1) {
+        if (activeTab === 'RENT') {
+          loadPayments(1, true);
+        } else if (activeTab === 'ADVANCE') {
+          loadAdvancePayments(1, true);
+        } else {
+          loadRefundPayments(1, true);
+        }
       }
-    }, [selectedPGLocationId, currentPage, activeTab])
+    }, [selectedPGLocationId, activeTab])
   );
 
-  const loadPayments = async (page: number) => {
+  const loadPayments = async (page: number, reset: boolean = false) => {
     try {
-      setCurrentPage(page);
+      if (!hasMoreRent && !reset) return;
       
       const params: any = {
         page,
-        limit: 10,
+        limit: 20, // Increased for better infinite scroll experience
       };
 
       if (statusFilter !== 'ALL') params.status = statusFilter;
@@ -185,25 +199,32 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
       
       if (selectedRoomId) params.room_id = selectedRoomId;
       if (selectedBedId) params.bed_id = selectedBedId;
-
-      await dispatch(fetchPayments(params)).unwrap();
       
-      if (flatListRef.current && page === 1) {
-        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+      // Add append flag for infinite scroll
+      params.append = !reset && page > 1;
+
+      const result = await dispatch(fetchPayments(params)).unwrap();
+      
+      setCurrentPage(page);
+      setHasMoreRent(result.pagination ? page < result.pagination.totalPages : false);
+      
+      if (flatListRef.current && reset) {
+        flatListRef.current.scrollToOffset({ offset: 0, animated: false });
       }
     } catch (error) {
       console.error('Error loading payments:', error);
     }
   };
 
-  const loadAdvancePayments = async (page: number) => {
+  const loadAdvancePayments = async (page: number, reset: boolean = false) => {
     try {
+      if (!hasMoreAdvance && !reset) return;
+      
       setLoadingAdvance(true);
-      setCurrentPage(page);
       
       const params: any = {
         page,
-        limit: 10,
+        limit: 20, // Increased for better infinite scroll experience
       };
 
       if (statusFilter !== 'ALL') params.status = statusFilter;
@@ -224,11 +245,18 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
         pg_id: selectedPGLocationId || undefined,
       });
       
-      setAdvancePayments(response.data);
-      setAdvancePagination(response.pagination);
+      if (reset || page === 1) {
+        setAdvancePayments(response.data);
+      } else {
+        setAdvancePayments(prev => [...prev, ...response.data]);
+      }
       
-      if (flatListRef.current && page === 1) {
-        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+      setAdvancePagination(response.pagination);
+      setCurrentPage(page);
+      setHasMoreAdvance(response.pagination ? page < response.pagination.totalPages : false);
+      
+      if (flatListRef.current && reset) {
+        flatListRef.current.scrollToOffset({ offset: 0, animated: false });
       }
     } catch (error) {
       console.error('Error loading advance payments:', error);
@@ -237,14 +265,15 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
     }
   };
 
-  const loadRefundPayments = async (page: number) => {
+  const loadRefundPayments = async (page: number, reset: boolean = false) => {
     try {
+      if (!hasMoreRefund && !reset) return;
+      
       setLoadingRefund(true);
-      setCurrentPage(page);
       
       const params: any = {
         page,
-        limit: 10,
+        limit: 20, // Increased for better infinite scroll experience
       };
 
       if (statusFilter !== 'ALL') params.status = statusFilter;
@@ -265,11 +294,18 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
         pg_id: selectedPGLocationId || undefined,
       });
       
-      setRefundPayments(response.data);
-      setRefundPagination(response.pagination);
+      if (reset || page === 1) {
+        setRefundPayments(response.data);
+      } else {
+        setRefundPayments(prev => [...prev, ...response.data]);
+      }
       
-      if (flatListRef.current && page === 1) {
-        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+      setRefundPagination(response.pagination);
+      setCurrentPage(page);
+      setHasMoreRefund(response.pagination ? page < response.pagination.totalPages : false);
+      
+      if (flatListRef.current && reset) {
+        flatListRef.current.scrollToOffset({ offset: 0, animated: false });
       }
     } catch (error) {
       console.error('Error loading refund payments:', error);
@@ -280,28 +316,47 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
 
   const onRefresh = async () => {
     setRefreshing(true);
+    setCurrentPage(1);
     if (activeTab === 'RENT') {
-      await loadPayments(currentPage);
+      setHasMoreRent(true);
+      await loadPayments(1, true);
     } else if (activeTab === 'ADVANCE') {
-      await loadAdvancePayments(currentPage);
+      setHasMoreAdvance(true);
+      await loadAdvancePayments(1, true);
     } else {
-      await loadRefundPayments(currentPage);
+      setHasMoreRefund(true);
+      await loadRefundPayments(1, true);
     }
     setRefreshing(false);
   };
 
-  const goToPage = (page: number) => {
-    const maxPages = activeTab === 'RENT' ? (pagination?.totalPages || 1) : activeTab === 'ADVANCE' ? (advancePagination?.totalPages || 1) : (refundPagination?.totalPages || 1);
-    if (page >= 1 && page <= maxPages) {
-      if (activeTab === 'RENT') {
-        loadPayments(page);
-      } else if (activeTab === 'ADVANCE') {
-        loadAdvancePayments(page);
-      } else {
-        loadRefundPayments(page);
-      }
+  const loadMorePayments = () => {
+    const hasMore = activeTab === 'RENT' ? hasMoreRent : activeTab === 'ADVANCE' ? hasMoreAdvance : hasMoreRefund;
+    const isLoading = activeTab === 'RENT' ? loading : activeTab === 'ADVANCE' ? loadingAdvance : loadingRefund;
+    
+    if (!hasMore || isLoading) return;
+    
+    const nextPage = currentPage + 1;
+    if (activeTab === 'RENT') {
+      loadPayments(nextPage, false);
+    } else if (activeTab === 'ADVANCE') {
+      loadAdvancePayments(nextPage, false);
+    } else {
+      loadRefundPayments(nextPage, false);
     }
   };
+
+  const handleViewableItemsChanged = React.useCallback(({ viewableItems }: any) => {
+    if (viewableItems && viewableItems.length > 0) {
+      const lastVisibleIndex = viewableItems[viewableItems.length - 1]?.index || 0;
+      setVisibleItemsCount(lastVisibleIndex + 1);
+    }
+  }, []);
+
+  const viewabilityConfig = React.useRef({
+    itemVisiblePercentThreshold: 50,
+    minimumViewTime: 100,
+  }).current;
 
   const getFilterCount = () => {
     let count = 0;
@@ -323,12 +378,32 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
     setEndDate('');
     setSelectedRoomId(null);
     setSelectedBedId(null);
-    loadPayments(1);
+    setCurrentPage(1);
+    if (activeTab === 'RENT') {
+      setHasMoreRent(true);
+      loadPayments(1, true);
+    } else if (activeTab === 'ADVANCE') {
+      setHasMoreAdvance(true);
+      loadAdvancePayments(1, true);
+    } else {
+      setHasMoreRefund(true);
+      loadRefundPayments(1, true);
+    }
   };
 
   const applyFilters = () => {
     setShowFilters(false);
-    loadPayments(1);
+    setCurrentPage(1);
+    if (activeTab === 'RENT') {
+      setHasMoreRent(true);
+      loadPayments(1, true);
+    } else if (activeTab === 'ADVANCE') {
+      setHasMoreAdvance(true);
+      loadAdvancePayments(1, true);
+    } else {
+      setHasMoreRefund(true);
+      loadRefundPayments(1, true);
+    }
   };
 
   const applyQuickFilter = (filter: 'LAST_WEEK' | 'LAST_MONTH') => {
@@ -368,7 +443,9 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
         Alert.alert('Success', 'Payment marked as paid successfully');
         setShowStatusModal(false);
         setSelectedPayment(null);
-        loadPayments(currentPage);
+        setCurrentPage(1);
+        setHasMoreRent(true);
+        loadPayments(1, true);
       }
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to update payment status');
@@ -401,11 +478,14 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
         setShowEditModal(false);
         setEditingPayment(null);
         
-        // Reload appropriate payments
+        // Reload appropriate payments from page 1 to get fresh data
+        setCurrentPage(1);
         if (activeTab === 'ADVANCE') {
-          loadAdvancePayments(currentPage);
+          setHasMoreAdvance(true);
+          loadAdvancePayments(1, true);
         } else {
-          loadPayments(currentPage);
+          setHasMoreRent(true);
+          loadPayments(1, true);
         }
       }
     } catch (error: any) {
@@ -430,7 +510,9 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
             try {
               await paymentService.deleteTenantPayment(payment.s_no);
               Alert.alert('Success', 'Rent payment deleted successfully');
-              loadPayments(currentPage);
+              setCurrentPage(1);
+              setHasMoreRent(true);
+              loadPayments(1, true);
             } catch (error: any) {
               Alert.alert('Error', error.response?.data?.message || 'Failed to delete payment');
             }
@@ -458,7 +540,9 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
                 pg_id: selectedPGLocationId || undefined,
               });
               Alert.alert('Success', 'Advance payment deleted successfully');
-              loadAdvancePayments(currentPage);
+              setCurrentPage(1);
+              setHasMoreAdvance(true);
+              loadAdvancePayments(1, true);
             } catch (error: any) {
               Alert.alert('Error', error.response?.data?.message || 'Failed to delete payment');
             }
@@ -486,7 +570,9 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
                 pg_id: selectedPGLocationId || undefined,
               });
               Alert.alert('Success', 'Refund payment deleted successfully');
-              loadRefundPayments(currentPage);
+              setCurrentPage(1);
+              setHasMoreRefund(true);
+              loadRefundPayments(1, true);
             } catch (error: any) {
               Alert.alert('Error', error.response?.data?.message || 'Failed to delete refund payment');
             }
@@ -509,7 +595,9 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
       Alert.alert('Success', 'Refund payment updated successfully');
       setShowEditRefundModal(false);
       setEditingRefundPayment(null);
-      loadRefundPayments(currentPage);
+      setCurrentPage(1);
+      setHasMoreRefund(true);
+      loadRefundPayments(1, true);
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to update refund payment');
       throw error;
@@ -1204,6 +1292,43 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
       />
 
       <View style={{ flex: 1, backgroundColor: Theme.colors.background.secondary }}>
+        {/* Scroll Position Indicator */}
+        {visibleItemsCount > 0 && (
+          <View style={{
+            position: 'absolute',
+            bottom: 100,
+            right: 16,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 20,
+            zIndex: 1000,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+            elevation: 5,
+          }}>
+            <Text style={{ 
+              fontSize: 12, 
+              fontWeight: '700', 
+              color: '#fff',
+              textAlign: 'center',
+            }}>
+              {visibleItemsCount} of {activeTab === 'RENT' ? (pagination?.total || payments.length) : activeTab === 'ADVANCE' ? (advancePagination?.total || advancePayments.length) : (refundPagination?.total || refundPayments.length)}
+            </Text>
+            <Text style={{ 
+              fontSize: 10, 
+              color: '#fff',
+              opacity: 0.8,
+              textAlign: 'center',
+              marginTop: 2,
+            }}>
+              {activeTab === 'RENT' ? (pagination?.total || payments.length) - visibleItemsCount : activeTab === 'ADVANCE' ? (advancePagination?.total || advancePayments.length) - visibleItemsCount : (refundPagination?.total || refundPayments.length) - visibleItemsCount} remaining
+            </Text>
+          </View>
+        )}
+        
         {/* Payments List */}
         <FlatList
           ref={flatListRef}
@@ -1388,85 +1513,21 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
             ) : null
           }
           ListFooterComponent={
-            (activeTab === 'RENT' ? loading : loadingAdvance) ? (
+            (activeTab === 'RENT' ? loading : activeTab === 'ADVANCE' ? loadingAdvance : loadingRefund) && currentPage > 1 ? (
               <View style={{ paddingVertical: 20 }}>
-                <ActivityIndicator size="large" color={Theme.colors.primary} />
+                <ActivityIndicator size="small" color={Theme.colors.primary} />
+                <Text style={{ textAlign: 'center', marginTop: 8, fontSize: 12, color: Theme.colors.text.secondary }}>
+                  Loading more...
+                </Text>
               </View>
             ) : null
           }
+          onEndReached={loadMorePayments}
+          onEndReachedThreshold={0.5}
+          onViewableItemsChanged={handleViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
         />
 
-        {/* Pagination */}
-        {((activeTab === 'RENT' && pagination && pagination.totalPages > 1) || 
-          (activeTab === 'ADVANCE' && advancePagination && advancePagination.totalPages > 1)) && (
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'center',
-              alignItems: 'center',
-              paddingVertical: 16,
-              paddingHorizontal: 16,
-              backgroundColor: Theme.colors.canvas,
-              borderTopWidth: 1,
-              borderTopColor: Theme.colors.border,
-            }}
-          >
-            <TouchableOpacity
-              onPress={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 1 || loading}
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 8,
-                backgroundColor: (currentPage === 1 || loading) ? Theme.colors.light : Theme.colors.primary,
-              }}
-            >
-              <Text style={{ color: (currentPage === 1 || loading) ? Theme.colors.text.tertiary : '#fff', fontWeight: '600' }}>
-                ← Prev
-              </Text>
-            </TouchableOpacity>
-
-            <Text style={{ marginHorizontal: 16, fontSize: 14, color: Theme.colors.text.primary }}>
-              Page {currentPage} of {activeTab === 'RENT' ? (pagination?.totalPages || 1) : (advancePagination?.totalPages || 1)}
-            </Text>
-
-            <TouchableOpacity
-              onPress={() => goToPage(currentPage + 1)}
-              disabled={currentPage === (activeTab === 'RENT' ? (pagination?.totalPages || 1) : (advancePagination?.totalPages || 1)) || (activeTab === 'RENT' ? loading : loadingAdvance)}
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 8,
-                backgroundColor: (currentPage === (activeTab === 'RENT' ? (pagination?.totalPages || 1) : (advancePagination?.totalPages || 1)) || (activeTab === 'RENT' ? loading : loadingAdvance)) ? Theme.colors.light : Theme.colors.primary,
-              }}
-            >
-              <Text
-                style={{
-                  color: (currentPage === (activeTab === 'RENT' ? (pagination?.totalPages || 1) : (advancePagination?.totalPages || 1)) || (activeTab === 'RENT' ? loading : loadingAdvance)) ? Theme.colors.text.tertiary : '#fff',
-                  fontWeight: '600',
-                }}
-              >
-                Next →
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Pagination Info */}
-        {pagination && payments.length > 0 && (
-          <View
-            style={{
-              padding: 12,
-              backgroundColor: Theme.colors.background.secondary,
-              borderTopWidth: 1,
-              borderTopColor: Theme.colors.border,
-            }}
-          >
-            <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, textAlign: 'center' }}>
-              Page {currentPage} of {pagination.totalPages} • Total: {pagination.total} payments
-            </Text>
-          </View>
-        )}
       </View>
 
       {/* Filter Modal */}
@@ -1987,6 +2048,10 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
             setEditingPayment(null);
           }}
           onSave={handleSavePayment}
+          onSuccess={() => {
+            // Reload payments after successful update
+            loadPayments(1, true);
+          }}
         />
       )}
 

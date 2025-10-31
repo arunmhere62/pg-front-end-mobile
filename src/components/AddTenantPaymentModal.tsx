@@ -39,9 +39,10 @@ const PAYMENT_METHODS = [
 ];
 
 const PAYMENT_STATUS = [
-  { label: 'Paid', value: 'PAID', color: Theme.colors.secondary },
-  { label: 'Pending', value: 'PENDING', color: Theme.colors.warning },
-  { label: 'Failed', value: 'FAILED', color: Theme.colors.danger },
+  { label: '✅ Paid', value: 'PAID', color: '#10B981', icon: 'checkmark-circle' },
+  { label: '🔵 Partial', value: 'PARTIAL', color: '#3B82F6', icon: 'pie-chart' },
+  { label: '⏳ Pending', value: 'PENDING', color: '#F59E0B', icon: 'time' },
+  { label: '❌ Failed', value: 'FAILED', color: '#EF4444', icon: 'close-circle' },
 ];
 
 const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
@@ -109,10 +110,6 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
       newErrors.payment_method = 'Payment method is required';
     }
 
-    if (!formData.status) {
-      newErrors.status = 'Status is required';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -122,6 +119,58 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
       return;
     }
 
+    // Auto-calculate status based on amounts
+    const amountPaid = parseFloat(formData.amount_paid);
+    const actualAmount = parseFloat(formData.actual_rent_amount);
+    
+    let autoStatus: string;
+    let autoStatusLabel: string;
+    
+    if (amountPaid >= actualAmount) {
+      autoStatus = 'PAID';
+      autoStatusLabel = '✅ Paid';
+    } else if (amountPaid > 0) {
+      autoStatus = 'PARTIAL';
+      autoStatusLabel = '🔵 Partial';
+    } else {
+      autoStatus = 'PENDING';
+      autoStatusLabel = '⏳ Pending';
+    }
+
+    // Show confirmation with auto-calculated status
+    Alert.alert(
+      'Confirm Payment Status',
+      `Based on the amounts:\n\nAmount Paid: ₹${amountPaid}\nRent Amount: ₹${actualAmount}\n\nSuggested Status: ${autoStatusLabel}\n\nIs this correct?`,
+      [
+        {
+          text: 'Change Status',
+          onPress: () => {
+            // Show manual selection dialog
+            Alert.alert(
+              'Select Payment Status',
+              'Please select the payment status:',
+              [
+                ...PAYMENT_STATUS.map((statusOption) => ({
+                  text: statusOption.label,
+                  onPress: () => savePayment(statusOption.value),
+                })),
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                },
+              ]
+            );
+          },
+        },
+        {
+          text: 'Confirm',
+          onPress: () => savePayment(autoStatus),
+        },
+      ]
+    );
+  };
+
+  const savePayment = async (status: string) => {
     setLoading(true);
     try {
       const paymentData = {
@@ -133,7 +182,7 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
         actual_rent_amount: parseFloat(formData.actual_rent_amount),
         payment_date: formData.payment_date,
         payment_method: formData.payment_method as 'GPAY' | 'PHONEPE' | 'CASH' | 'BANK_TRANSFER',
-        status: formData.status as 'PAID' | 'PENDING' | 'FAILED' | 'REFUNDED',
+        status: status as 'PAID' | 'PARTIAL' | 'PENDING' | 'FAILED' | 'REFUNDED',
         start_date: formData.start_date,
         end_date: formData.end_date,
         remarks: formData.remarks || undefined,
@@ -472,52 +521,29 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                 </View>
               </View>
 
-              {/* Payment Status */}
-              <View style={{ marginBottom: 16 }}>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: '500',
-                    color: Theme.colors.text.primary,
-                    marginBottom: 8,
-                  }}
-                >
-                  Status <Text style={{ color: Theme.colors.danger }}>*</Text>
+              {/* Payment Status Note */}
+              <View style={{
+                marginBottom: 16,
+                padding: 12,
+                backgroundColor: Theme.colors.background.blueLight,
+                borderRadius: 8,
+                borderLeftWidth: 3,
+                borderLeftColor: Theme.colors.primary,
+              }}>
+                <Text style={{
+                  fontSize: 12,
+                  fontWeight: '600',
+                  color: Theme.colors.primary,
+                  marginBottom: 4,
+                }}>
+                  ℹ️ Payment Status
                 </Text>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {PAYMENT_STATUS.map((status) => (
-                    <TouchableOpacity
-                      key={status.value}
-                      onPress={() => setFormData({ ...formData, status: status.value })}
-                      style={{
-                        flex: 1,
-                        paddingVertical: 10,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor:
-                          formData.status === status.value ? status.color : Theme.colors.border,
-                        backgroundColor:
-                          formData.status === status.value
-                            ? Theme.withOpacity(status.color, 0.1)
-                            : Theme.colors.canvas,
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontWeight: formData.status === status.value ? '600' : '400',
-                          color:
-                            formData.status === status.value
-                              ? status.color
-                              : Theme.colors.text.primary,
-                        }}
-                      >
-                        {status.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                <Text style={{
+                  fontSize: 12,
+                  color: Theme.colors.text.secondary,
+                }}>
+                  You will be asked to select the payment status when you add the payment.
+                </Text>
               </View>
 
               {/* Remarks */}

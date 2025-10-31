@@ -360,6 +360,45 @@ export const RoomDetailsScreen: React.FC<RoomDetailsScreenProps> = ({ navigation
           </Card>
         </View>
 
+        {/* Bed Availability Stats */}
+        {beds.length > 0 && (
+          <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 16 }}>
+            <Card
+              style={{
+                flex: 1,
+                padding: 16,
+                backgroundColor: '#D1FAE5',
+                borderLeftWidth: 4,
+                borderLeftColor: '#059669',
+              }}
+            >
+              <Text style={{ fontSize: 11, color: '#047857', fontWeight: '600', marginBottom: 4 }}>
+                AVAILABLE
+              </Text>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#047857' }}>
+                {beds.filter(b => !b.is_occupied).length}
+              </Text>
+            </Card>
+
+            <Card
+              style={{
+                flex: 1,
+                padding: 16,
+                backgroundColor: '#FEE2E2',
+                borderLeftWidth: 4,
+                borderLeftColor: '#DC2626',
+              }}
+            >
+              <Text style={{ fontSize: 11, color: '#B91C1C', fontWeight: '600', marginBottom: 4 }}>
+                OCCUPIED
+              </Text>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#B91C1C' }}>
+                {beds.filter(b => b.is_occupied).length}
+              </Text>
+            </Card>
+          </View>
+        )}
+
         {/* PG Location Info */}
         {room.pg_locations && (
           <Card style={{ margin: 16, marginTop: 0, padding: 16 }}>
@@ -428,26 +467,37 @@ export const RoomDetailsScreen: React.FC<RoomDetailsScreenProps> = ({ navigation
                     borderColor: Theme.colors.border,
                   }}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
                     <View
                       style={{
                         width: 36,
                         height: 36,
                         borderRadius: 18,
-                        backgroundColor: '#EFF6FF',
+                        backgroundColor: bed.is_occupied ? '#FEE2E2' : '#D1FAE5',
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
                     >
                       <Text style={{ fontSize: 16 }}>🛏️</Text>
                     </View>
-                    <View>
+                    <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
                         {bed.bed_no}
                       </Text>
-                      <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary }}>
-                        {bed.is_occupied ? '🔴 Occupied' : '🟢 Available'}
-                      </Text>
+                      {bed.is_occupied && bed.tenants && bed.tenants.length > 0 ? (
+                        <View>
+                          <Text style={{ fontSize: 11, color: '#DC2626', fontWeight: '600' }}>
+                            🔴 Occupied
+                          </Text>
+                          <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, marginTop: 2 }}>
+                            {bed.tenants[0].name}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={{ fontSize: 11, color: '#059669', fontWeight: '600' }}>
+                          🟢 Available
+                        </Text>
+                      )}
                     </View>
                   </View>
                   <View style={{ flexDirection: 'row', gap: 6 }}>

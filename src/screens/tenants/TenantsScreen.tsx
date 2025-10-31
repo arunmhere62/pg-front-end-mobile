@@ -39,6 +39,8 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [visibleItemsCount, setVisibleItemsCount] = useState(0);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -78,18 +80,25 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
   }, [tenants]);
 
   useEffect(() => {
-    loadTenants(1);
+    setCurrentPage(1);
+    setHasMore(true);
+    loadTenants(1, true);
   }, [selectedPGLocationId, statusFilter, selectedRoomId, pendingRentFilter, pendingAdvanceFilter]);
 
   // Reload tenants when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      loadTenants(currentPage);
-    }, [selectedPGLocationId, statusFilter, selectedRoomId, pendingRentFilter, pendingAdvanceFilter, currentPage])
+      // Always reload from page 1 when screen comes into focus
+      setCurrentPage(1);
+      setHasMore(true);
+      loadTenants(1, true);
+    }, [selectedPGLocationId, statusFilter, selectedRoomId, pendingRentFilter, pendingAdvanceFilter])
   );
 
-  const loadTenants = async (page: number) => {
+  const loadTenants = async (page: number, reset: boolean = false) => {
     try {
+      if (!hasMore && !reset) return;
+      
       setCurrentPage(page);
       
       // When room filter is active, fetch all tenants from that room
@@ -97,7 +106,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
       
       const params = {
         page: isRoomFiltered ? 1 : page,
-        limit: isRoomFiltered ? 1000 : 10, // Fetch all tenants when room filtered
+        limit: isRoomFiltered ? 1000 : 20, // Increased from 10 to 20 for better infinite scroll
         pg_id: selectedPGLocationId || undefined,
         organization_id: user?.organization_id || undefined,
         user_id: user?.s_no || undefined,
@@ -108,13 +117,13 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
         pending_advance: pendingAdvanceFilter || undefined,
       };
       
-      console.log('🔍 Loading tenants with params:', params);
+      const result = await dispatch(fetchTenants({ ...params, append: !reset && page > 1 })).unwrap();
       
-      await dispatch(fetchTenants(params)).unwrap();
+      setHasMore(result.pagination ? page < result.pagination.totalPages : false);
       
-      // Scroll to top when page changes
-      if (flatListRef.current && page === 1) {
-        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+      // Scroll to top when resetting
+      if (flatListRef.current && reset) {
+        flatListRef.current.scrollToOffset({ offset: 0, animated: false });
       }
     } catch (error) {
       console.error('Error loading tenants:', error);
@@ -123,19 +132,40 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadTenants(currentPage);
+    setCurrentPage(1);
+    setHasMore(true);
+    await loadTenants(1, true);
     setRefreshing(false);
+  };
+
+  const applyFilters = () => {
+    setCurrentPage(1);
+    setHasMore(true);
+    loadTenants(1, true);
   };
 
   const handleSearch = () => {
     loadTenants(1);
   };
 
-  const goToPage = (page: number) => {
-    if (page >= 1 && page <= (pagination?.totalPages || 1)) {
-      loadTenants(page);
-    }
+  const loadMoreTenants = () => {
+    if (!hasMore || loading || selectedRoomId !== null) return;
+    
+    const nextPage = currentPage + 1;
+    loadTenants(nextPage, false);
   };
+
+  const handleViewableItemsChanged = React.useCallback(({ viewableItems }: any) => {
+    if (viewableItems && viewableItems.length > 0) {
+      const lastVisibleIndex = viewableItems[viewableItems.length - 1]?.index || 0;
+      setVisibleItemsCount(lastVisibleIndex + 1);
+    }
+  }, []);
+
+  const viewabilityConfig = React.useRef({
+    itemVisiblePercentThreshold: 50,
+    minimumViewTime: 100,
+  }).current;
 
   const handleDeleteTenant = (id: number, name: string) => {
     Alert.alert(
@@ -218,6 +248,9 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
     const showPaymentDetails = expandedPaymentCards.has(item.s_no);
     const hasPendingPayment = item.pending_payment && item.pending_payment.total_pending > 0;
     const isOverdue = item.pending_payment?.payment_status === 'OVERDUE';
+    
+    // Use backend-calculated flag for unpaid months
+    const hasUnpaidMonths = item.has_unpaid_months || false;
 
     return (
       <Card style={{ 
@@ -259,26 +292,48 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
               <Text style={{ fontSize: 18, fontWeight: 'bold', color: Theme.colors.text.primary }}>
                 {item.name}
               </Text>
-              {/* Pending Payment Tag */}
-              {item.pending_payment && item.pending_payment.total_pending > 0 && (
+              {/* Payment Status Tag - Shows pending if unpaid (manual check or backend), otherwise latest payment status */}
+              {(hasUnpaidMonths || (item.pending_payment && item.pending_payment.total_pending > 0)) ? (
                 <View style={{
                   paddingHorizontal: 8,
                   paddingVertical: 3,
                   borderRadius: 10,
                   backgroundColor: 
-                    item.pending_payment.payment_status === 'OVERDUE' ? '#EF4444' : 
-                    item.pending_payment.payment_status === 'PARTIAL' ? '#F59E0B' : '#3B82F6',
+                    item.pending_payment?.payment_status === 'OVERDUE' ? '#EF4444' : 
+                    item.pending_payment?.payment_status === 'PARTIAL' ? '#F59E0B' : '#F59E0B',
                 }}>
                   <Text style={{
                     fontSize: 10,
                     fontWeight: '700',
                     color: '#fff',
                   }}>
-                    {item.pending_payment.payment_status === 'OVERDUE' ? '⚠️ OVERDUE' : 
-                     item.pending_payment.payment_status === 'PARTIAL' ? '⏳ PARTIAL' : '📅 PENDING'}
+                    {item.pending_payment?.payment_status === 'OVERDUE' ? '⚠️ OVERDUE' : 
+                     item.pending_payment?.payment_status === 'PARTIAL' ? '⏳ PARTIAL' : '📅 PENDING'}
                   </Text>
                 </View>
-              )}
+              ) : item.tenant_payments && item.tenant_payments.length > 0 ? (
+                <View style={{
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 10,
+                  backgroundColor: 
+                    item.tenant_payments[0].status === 'PAID' ? '#10B981' : 
+                    item.tenant_payments[0].status === 'PARTIAL' ? '#3B82F6' :
+                    item.tenant_payments[0].status === 'PENDING' ? '#F59E0B' :
+                    item.tenant_payments[0].status === 'FAILED' ? '#EF4444' : '#9CA3AF',
+                }}>
+                  <Text style={{
+                    fontSize: 10,
+                    fontWeight: '700',
+                    color: '#fff',
+                  }}>
+                    {item.tenant_payments[0].status === 'PAID' ? '✅ PAID' : 
+                     item.tenant_payments[0].status === 'PARTIAL' ? '🔵 PARTIAL' :
+                     item.tenant_payments[0].status === 'PENDING' ? '⏳ PENDING' :
+                     item.tenant_payments[0].status === 'FAILED' ? '❌ FAILED' : item.tenant_payments[0].status}
+                  </Text>
+                </View>
+              ) : null}
             </View>
             <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary, marginTop: 2 }}>
               ID: {item.tenant_id}
@@ -455,16 +510,20 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                             borderRadius: 4,
                             backgroundColor: 
                               payment.status === 'PAID' ? '#10B98120' :
+                              payment.status === 'PARTIAL' ? '#3B82F620' :
                               payment.status === 'PENDING' ? '#F59E0B20' :
-                              payment.status === 'OVERDUE' ? '#EF444420' : '#9CA3AF20',
+                              payment.status === 'OVERDUE' ? '#EF444420' :
+                              payment.status === 'FAILED' ? '#EF444420' : '#9CA3AF20',
                           }}>
                             <Text style={{
                               fontSize: 8,
                               fontWeight: '600',
                               color: 
                                 payment.status === 'PAID' ? '#10B981' :
+                                payment.status === 'PARTIAL' ? '#3B82F6' :
                                 payment.status === 'PENDING' ? '#F59E0B' :
-                                payment.status === 'OVERDUE' ? '#EF4444' : '#6B7280',
+                                payment.status === 'OVERDUE' ? '#EF4444' :
+                                payment.status === 'FAILED' ? '#EF4444' : '#6B7280',
                             }}>
                               {payment.status}
                             </Text>
@@ -503,14 +562,18 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                             borderRadius: 4,
                             backgroundColor: 
                               payment.status === 'PAID' ? '#10B98120' :
-                              payment.status === 'PENDING' ? '#F59E0B20' : '#9CA3AF20',
+                              payment.status === 'PARTIAL' ? '#3B82F620' :
+                              payment.status === 'PENDING' ? '#F59E0B20' :
+                              payment.status === 'FAILED' ? '#EF444420' : '#9CA3AF20',
                           }}>
                             <Text style={{
                               fontSize: 8,
                               fontWeight: '600',
                               color: 
                                 payment.status === 'PAID' ? '#10B981' :
-                                payment.status === 'PENDING' ? '#F59E0B' : '#6B7280',
+                                payment.status === 'PARTIAL' ? '#3B82F6' :
+                                payment.status === 'PENDING' ? '#F59E0B' :
+                                payment.status === 'FAILED' ? '#EF4444' : '#6B7280',
                             }}>
                               {payment.status}
                             </Text>
@@ -630,176 +693,6 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
     );
   };
 
-  const renderPagination = () => {
-    // Hide pagination when room filter is active (showing all tenants)
-    if (!pagination || pagination.totalPages <= 1 || selectedRoomId !== null) return null;
-
-    const currentPage = pagination.page;
-    const totalPages = pagination.totalPages;
-    const pages = [];
-    
-    // Smart pagination: show fewer pages at start/end, more in middle
-    let maxPagesToShow = 3; // Default to 3 pages
-    
-    // If we're in the middle (not near start or end), show more pages
-    if (currentPage > 3 && currentPage < totalPages - 2) {
-      maxPagesToShow = 5;
-    }
-    
-    // Calculate start and end pages
-    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
-    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-
-    // Adjust if we're at the end
-    if (endPage - startPage + 1 < maxPagesToShow) {
-      startPage = Math.max(1, endPage - maxPagesToShow + 1);
-    }
-
-    // Build page numbers array
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-
-    return (
-      <View style={{
-        width: '100%',
-        backgroundColor: '#fff',
-        paddingVertical: 12,
-        borderTopWidth: 1,
-        borderTopColor: '#E5E7EB',
-      }}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{
-            flexGrow: 1,
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center',
-            paddingHorizontal: 16,
-            gap: 8,
-          }}
-        >
-          {/* Previous Button */}
-          <TouchableOpacity
-            onPress={() => goToPage(currentPage - 1)}
-            disabled={currentPage === 1 || loading}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              borderRadius: 8,
-              backgroundColor: (currentPage === 1 || loading) ? '#E5E7EB' : Theme.colors.primary,
-              minWidth: 70,
-            }}
-          >
-            <Text style={{ 
-              color: (currentPage === 1 || loading) ? '#9CA3AF' : '#fff', 
-              fontWeight: '600',
-              fontSize: 14,
-            }}>
-              ← Prev
-            </Text>
-          </TouchableOpacity>
-     
-          {/* First Page */}
-          {startPage > 1 && (
-            <>
-              <TouchableOpacity
-                onPress={() => goToPage(1)}
-                disabled={loading}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 8,
-                  backgroundColor: currentPage === 1 ? Theme.colors.primary : '#F3F4F6',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: loading ? 0.5 : 1,
-                }}
-              >
-                <Text style={{ 
-                  color: currentPage === 1 ? '#fff' : Theme.colors.text.primary, 
-                  fontWeight: '600' 
-                }}>1</Text>
-              </TouchableOpacity>
-              {startPage > 2 && <Text style={{ color: Theme.colors.text.tertiary, paddingHorizontal: 4 }}>...</Text>}
-            </>
-          )}
-     
-          {/* Page Numbers */}
-          {pages.map((page) => (
-            <TouchableOpacity
-              key={page}
-              onPress={() => goToPage(page)}
-              disabled={loading}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                backgroundColor: page === currentPage ?   Theme.colors.primary : '#F3F4F6',
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: loading ? 0.5 : 1,
-              }}
-            >
-              <Text style={{ 
-                color: page === currentPage ?   '#fff' : Theme.colors.text.primary, 
-                fontWeight: '600' 
-              }}>
-                {page}
-              </Text>
-            </TouchableOpacity>
-          ))}
-     
-          {/* Last Page */}
-          {endPage < totalPages && (
-            <>
-              {endPage < totalPages - 1 && <Text style={{ color: Theme.colors.text.tertiary, paddingHorizontal: 4 }}>...</Text>}
-              <TouchableOpacity
-                onPress={() => goToPage(totalPages)}
-                disabled={loading}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 8,
-                  backgroundColor: currentPage === totalPages ? Theme.colors.primary : '#F3F4F6',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: loading ? 0.5 : 1,
-                }}
-              >
-                <Text style={{ 
-                  color: currentPage === totalPages ? '#fff' : Theme.colors.text.primary, 
-                  fontWeight: '600' 
-                }}>{totalPages}</Text>
-              </TouchableOpacity>
-            </>
-          )}
-     
-          {/* Next Button */}
-          <TouchableOpacity
-            onPress={() => goToPage(currentPage + 1)}
-            disabled={currentPage === totalPages || loading}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              borderRadius: 8,
-              backgroundColor: (currentPage === totalPages || loading) ? '#E5E7EB' : Theme.colors.primary,
-              minWidth: 70,
-            }}
-          >
-            <Text style={{ 
-              color: (currentPage === totalPages || loading) ? '#9CA3AF' : '#fff', 
-              fontWeight: '600',
-              fontSize: 14,
-            }}>
-              Next →
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
-  );
-};
 
   return (
     <ScreenLayout backgroundColor={Theme.colors.background.blue}>
@@ -1171,6 +1064,43 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
         </View>
       )}
 
+      {/* Scroll Position Indicator */}
+      {visibleItemsCount > 0 && (
+        <View style={{
+          position: 'absolute',
+          bottom: 160,
+          right: 16,
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          borderRadius: 20,
+          zIndex: 1000,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 4,
+          elevation: 5,
+        }}>
+          <Text style={{ 
+            fontSize: 12, 
+            fontWeight: '700', 
+            color: '#fff',
+            textAlign: 'center',
+          }}>
+            {visibleItemsCount} of {pagination?.total || tenants.length}
+          </Text>
+          <Text style={{ 
+            fontSize: 10, 
+            color: '#fff',
+            opacity: 0.8,
+            textAlign: 'center',
+            marginTop: 2,
+          }}>
+            {(pagination?.total || tenants.length) - visibleItemsCount} remaining
+          </Text>
+        </View>
+      )}
+
       {/* Tenants List */}
       {loading && tenants.length === 0 ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -1200,25 +1130,23 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
               </Text>
             </View>
           }
+          ListFooterComponent={
+            loading && currentPage > 1 ? (
+              <View style={{ paddingVertical: 20 }}>
+                <ActivityIndicator size="small" color={Theme.colors.primary} />
+                <Text style={{ textAlign: 'center', marginTop: 8, fontSize: 12, color: Theme.colors.text.secondary }}>
+                  Loading more...
+                </Text>
+              </View>
+            ) : null
+          }
+          onEndReached={loadMoreTenants}
+          onEndReachedThreshold={0.5}
+          onViewableItemsChanged={handleViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
         />
       )}
 
-      {/* Pagination */}
-      {tenants.length > 0 && renderPagination()}
-
-      {/* Pagination Info */}
-      {pagination && tenants.length > 0 && (
-        <View style={{
-          padding: 12,
-          backgroundColor: Theme.colors.background.secondary,
-          borderTopWidth: 1,
-          borderTopColor: Theme.colors.border,
-        }}>
-          <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, textAlign: 'center' }}>
-            Page {currentPage} of {pagination.totalPages} • Total: {pagination.total} tenants
-          </Text>
-        </View>
-      )}
 
       {/* Floating Add Tenant Button */}
       <TouchableOpacity

@@ -18,7 +18,6 @@ import { SignupScreen } from '../screens/auth/SignupScreen';
 
 // Main Screens
 import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
-import { SuperAdminDashboard } from '../screens/dashboard/SuperAdminDashboard';
 import { TenantsScreen } from '../screens/tenants/TenantsScreen';
 import { TenantDetailsScreen } from '../screens/tenants/TenantDetailsScreen';
 import { AddTenantScreen } from '../screens/tenants/AddTenantScreen';
@@ -33,6 +32,13 @@ import { OrganizationsScreen } from '../screens/organizations/OrganizationsScree
 import { BottomNav } from '../components/BottomNav';
 import { ExpenseScreen } from '@/screens/expense/ExpenseScreen';
 import { EmployeeSalaryScreen } from '@/screens/employee-salary/EmployeeSalaryScreen';
+import { EmployeesScreen } from '@/screens/employees/EmployeesScreen';
+import { AddEmployeeScreen } from '@/screens/employees/AddEmployeeScreen';
+import { VisitorsScreen } from '@/screens/visitors/VisitorsScreen';
+import { AddVisitorScreen } from '@/screens/visitors/AddVisitorScreen';
+import { TicketsScreen } from '@/screens/tickets/TicketsScreen';
+import { CreateTicketScreen } from '@/screens/tickets/CreateTicketScreen';
+import { TicketDetailsScreen } from '@/screens/tickets/TicketDetailsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -40,23 +46,18 @@ const Tab = createBottomTabNavigator();
 // Main tabs component that keeps screens mounted
 const MainTabs = () => {
   const navigation = useNavigation();
-  const { can, isSuperAdmin, role } = usePermissions();
+  const { can } = usePermissions();
   const currentRoute = useNavigationState((state: any) => {
     const route = state?.routes[state.index];
     return route?.state?.routes?.[route.state.index]?.name || route?.name || 'Dashboard';
   });
 
-  // Debug logging
-  console.log('📱 MainTabs - isSuperAdmin:', isSuperAdmin);
-  console.log('📱 MainTabs - role:', role);
-  console.log('📱 MainTabs - Dashboard Component:', isSuperAdmin ? 'SuperAdminDashboard' : 'DashboardScreen');
-
   // Define screen configurations with permissions
-  // Use SuperAdminDashboard for SuperAdmin, regular Dashboard for others
+  // Super Admin will use separate web app
   const screens = [
     {
       name: 'Dashboard',
-      component: isSuperAdmin ? SuperAdminDashboard : DashboardScreen,
+      component: DashboardScreen,
       permission: Permission.VIEW_DASHBOARD,
     },
     {
@@ -136,6 +137,13 @@ export const AppNavigator = () => {
             <Stack.Screen name="UserProfile" component={UserProfileScreen} />
             <Stack.Screen name="Expenses" component={ExpenseScreen} />
             <Stack.Screen name="EmployeeSalary" component={EmployeeSalaryScreen} />
+            <Stack.Screen name="Employees" component={EmployeesScreen} />
+            <Stack.Screen name="AddEmployee" component={AddEmployeeScreen} />
+            <Stack.Screen name="Visitors" component={VisitorsScreen} />
+            <Stack.Screen name="AddVisitor" component={AddVisitorScreen} />
+            <Stack.Screen name="Tickets" component={TicketsScreen} />
+            <Stack.Screen name="CreateTicket" component={CreateTicketScreen} />
+            <Stack.Screen name="TicketDetails" component={TicketDetailsScreen} />
           </>
         )}
       </Stack.Navigator>

@@ -34,30 +34,23 @@ export const EmployeeSalaryScreen: React.FC<EmployeeSalaryScreenProps> = ({ navi
   const [editingSalary, setEditingSalary] = useState<EmployeeSalary | null>(null);
 
   const fetchSalaries = useCallback(async () => {
-    console.log('fetchSalaries called with PG ID:', selectedPGLocationId);
     
     if (!selectedPGLocationId) {
       setLoading(false);
       setRefreshing(false);
-      console.log('❌ No PG Location selected');
       return;
     }
 
     try {
       setLoading(true);
       
-      console.log('📡 Fetching salaries for PG ID:', selectedPGLocationId);
       const response = await employeeSalaryService.getSalaries(1, 50);
-      console.log('✅ Salaries response:', response);
       
       if (response.success) {
         setSalaries(response.data);
         setTotalSalaries(response.pagination.total);
-        console.log('📊 Loaded salaries count:', response.data.length);
       }
     } catch (error: any) {
-      console.error('❌ Error fetching salaries:', error);
-      console.error('Error details:', error.response?.data || error.message);
       Alert.alert('Error', error.response?.data?.message || 'Failed to load salaries');
     } finally {
       setLoading(false);
@@ -75,7 +68,6 @@ export const EmployeeSalaryScreen: React.FC<EmployeeSalaryScreenProps> = ({ navi
   };
 
   const handleAddSalary = () => {
-    console.log('➕ Add Salary button clicked');
     setEditingSalary(null);
     setShowAddModal(true);
   };

@@ -61,9 +61,6 @@ export const AddEditExpenseModal: React.FC<AddEditExpenseModalProps> = ({
 
   useEffect(() => {
     if (visible) {
-      console.log('💳 Expense Modal Opened');
-      console.log('Mode:', expense ? 'Edit' : 'Add');
-      
       if (expense) {
         // Edit mode
         const isCustomType = !EXPENSE_TYPES.includes(expense.expense_type);
@@ -111,10 +108,8 @@ export const AddEditExpenseModal: React.FC<AddEditExpenseModalProps> = ({
   };
 
   const handleSave = async () => {
-    console.log('💾 Save button clicked');
     
     if (!validate()) {
-      console.log('❌ Validation failed');
       return;
     }
 
@@ -131,26 +126,20 @@ export const AddEditExpenseModal: React.FC<AddEditExpenseModalProps> = ({
         remarks: remarks.trim() || undefined,
       };
 
-      console.log('📤 Sending expense data:', data);
 
       if (expense) {
         // Update existing expense
-        console.log('Updating expense ID:', expense.s_no);
         await expenseService.updateExpense(expense.s_no, data);
         Alert.alert('Success', 'Expense updated successfully');
       } else {
         // Create new expense
-        console.log('Creating new expense');
         const response = await expenseService.createExpense(data);
-        console.log('✅ Expense created:', response);
         Alert.alert('Success', 'Expense added successfully');
       }
 
       handleClose();
       onSave();
     } catch (error: any) {
-      console.error('❌ Error saving expense:', error);
-      console.error('Error response:', error.response?.data);
       Alert.alert('Error', error.response?.data?.message || 'Failed to save expense');
     } finally {
       setLoading(false);

@@ -34,10 +34,11 @@ export const fetchPayments = createAsyncThunk(
     bed_id?: number;
     month?: string;
     year?: number;
+    append?: boolean; // Flag to append data for infinite scroll
   }, { rejectWithValue }) => {
     try {
       const response = await paymentService.getTenantPayments(params);
-      return response;
+      return { ...response, append: params?.append || false };
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch payments');
     }
@@ -72,7 +73,13 @@ const paymentSlice = createSlice({
       })
       .addCase(fetchPayments.fulfilled, (state, action) => {
         state.loading = false;
-        state.payments = action.payload.data || action.payload;
+        const data = action.payload.data || action.payload;
+        // Append data for infinite scroll or replace for new search
+        if (action.payload.append && action.payload.pagination?.page > 1) {
+          state.payments = [...state.payments, ...data];
+        } else {
+          state.payments = data;
+        }
         state.pagination = action.payload.pagination || null;
       })
       .addCase(fetchPayments.rejected, (state, action) => {

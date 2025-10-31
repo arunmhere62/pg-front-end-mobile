@@ -17,7 +17,8 @@ interface TabConfig {
   permission: Permission;
 }
 
-const allTabs: TabConfig[] = [
+// User tabs (Admin/Employee) - Super Admin will use separate web app
+const userTabs: TabConfig[] = [
   { name: 'Dashboard', label: 'Home', icon: '🏠', permission: Permission.VIEW_DASHBOARD },
   { name: 'Tenants', label: 'Tenants', icon: '👥', permission: Permission.VIEW_TENANTS },
   { name: 'Payments', label: 'Payments', icon: '💰', permission: Permission.VIEW_PAYMENTS },
@@ -29,7 +30,7 @@ export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, cur
   const { can } = usePermissions();
   
   // Filter tabs based on user permissions
-  const accessibleTabs = allTabs.filter(tab => can(tab.permission));
+  const accessibleTabs = userTabs.filter(tab => can(tab.permission));
   
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>

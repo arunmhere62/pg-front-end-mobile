@@ -38,8 +38,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
     );
   };
 
+  // Settings options - conditionally show "Report Issue" for non-Super Admin users
   const settingsOptions = [
     { title: 'Profile', icon: '👤', onPress: () => navigation.navigate('UserProfile') },
+    { title: 'Report Issue', icon: '🐛', onPress: () => navigation.navigate('Tickets'), highlight: true },
     { title: 'Notifications', icon: '🔔', onPress: () => {} },
     { title: 'Privacy', icon: '🔒', onPress: () => {} },
     { title: 'Help & Support', icon: '❓', onPress: () => {} },
@@ -72,9 +74,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
               className={`flex-row items-center py-4 ${
                 index < settingsOptions.length - 1 ? 'border-b border-gray-200' : ''
               }`}
+              style={option.highlight ? { backgroundColor: '#FEF3C7' } : {}}
             >
               <Text className="text-2xl mr-3">{option.icon}</Text>
               <Text className="text-dark font-semibold flex-1">{option.title}</Text>
+              {option.highlight && <Text style={{ fontSize: 10, color: '#EF4444', fontWeight: '700', marginRight: 8 }}>NEW</Text>}
               <Text className="text-gray-400">›</Text>
             </TouchableOpacity>
           ))}
