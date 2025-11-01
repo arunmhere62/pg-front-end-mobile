@@ -27,6 +27,7 @@ interface AddTenantPaymentModalProps {
   joiningDate?: string;
   lastPaymentStartDate?: string;
   lastPaymentEndDate?: string;
+  previousPayments?: any[];
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -56,6 +57,7 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
   joiningDate,
   lastPaymentStartDate,
   lastPaymentEndDate,
+  previousPayments = [],
   onClose,
   onSuccess,
 }) => {
@@ -318,7 +320,7 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                   </View>
                 )}
                 {lastPaymentStartDate && lastPaymentEndDate && (
-                  <View style={{ flexDirection: 'row' }}>
+                  <View style={{ flexDirection: 'row', marginBottom: 4 }}>
                     <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary, width: 100 }}>
                       Last Payment:
                     </Text>
@@ -334,6 +336,41 @@ const AddTenantPaymentModal: React.FC<AddTenantPaymentModalProps> = ({
                         year: 'numeric',
                       })}
                     </Text>
+                  </View>
+                )}
+
+                {/* Previous Payments List */}
+                {previousPayments && previousPayments.length > 0 && (
+                  <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                    <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, marginBottom: 6, fontWeight: '600' }}>
+                      PREVIOUS PAYMENTS
+                    </Text>
+                    {previousPayments.slice(0, 3).map((prevPayment, index) => (
+                      <View key={prevPayment.s_no || index} style={{ flexDirection: 'row', marginBottom: 4 }}>
+                        <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary, width: 100 }}>
+                          {index === 0 ? 'Most Recent:' : `${index + 1} ago:`}
+                        </Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
+                            {prevPayment.start_date && prevPayment.end_date ? (
+                              `${new Date(prevPayment.start_date).toLocaleDateString('en-IN', {
+                                day: '2-digit',
+                                month: 'short',
+                              })} - ${new Date(prevPayment.end_date).toLocaleDateString('en-IN', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              })}`
+                            ) : (
+                              'N/A'
+                            )}
+                          </Text>
+                          <Text style={{ fontSize: 11, color: Theme.colors.text.secondary }}>
+                            ₹{prevPayment.amount_paid?.toLocaleString('en-IN')} • {prevPayment.status}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
                   </View>
                 )}
               </View>

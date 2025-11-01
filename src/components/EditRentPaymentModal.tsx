@@ -22,6 +22,7 @@ interface EditRentPaymentModalProps {
   onClose: () => void;
   onSave: (id: number, data: Partial<Payment>) => Promise<void>;
   onSuccess?: () => void;
+  previousPayments?: Payment[];
 }
 
 const PAYMENT_METHODS = [
@@ -44,6 +45,7 @@ export const EditRentPaymentModal: React.FC<EditRentPaymentModalProps> = ({
   onClose,
   onSave,
   onSuccess,
+  previousPayments = [],
 }) => {
   const [amountPaid, setAmountPaid] = useState('');
   const [actualRentAmount, setActualRentAmount] = useState('');
@@ -256,6 +258,89 @@ export const EditRentPaymentModal: React.FC<EditRentPaymentModalProps> = ({
                 <Ionicons name="close" size={24} color={Theme.colors.text.primary} />
               </TouchableOpacity>
             </View>
+
+            {/* Current Payment Info & Previous Payments */}
+            {payment && payment.start_date && payment.end_date && (
+              <View
+                style={{
+                  backgroundColor: '#F0F9FF',
+                  paddingHorizontal: 20,
+                  paddingVertical: 12,
+                  borderBottomWidth: 1,
+                  borderBottomColor: Theme.colors.border,
+                }}
+              >
+                <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, marginBottom: 6, fontWeight: '600' }}>
+                  CURRENT PAYMENT PERIOD
+                </Text>
+                <View style={{ flexDirection: 'row' }}>
+                  <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary, width: 100 }}>
+                    Payment For:
+                  </Text>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
+                    {new Date(payment.start_date).toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                    })}
+                    {' - '}
+                    {new Date(payment.end_date).toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </Text>
+                </View>
+                {payment.payment_date && (
+                  <View style={{ flexDirection: 'row', marginTop: 4 }}>
+                    <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary, width: 100 }}>
+                      Paid On:
+                    </Text>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
+                      {new Date(payment.payment_date).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Previous Payments */}
+                {previousPayments && previousPayments.length > 0 && (
+                  <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#BFDBFE' }}>
+                    <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, marginBottom: 6, fontWeight: '600' }}>
+                      PREVIOUS PAYMENTS
+                    </Text>
+                    {previousPayments.slice(0, 3).map((prevPayment, index) => (
+                      <View key={prevPayment.s_no} style={{ flexDirection: 'row', marginBottom: 4 }}>
+                        <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary, width: 100 }}>
+                          {index === 0 ? 'Last Payment:' : `${index + 1} ago:`}
+                        </Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
+                            {prevPayment.start_date && prevPayment.end_date ? (
+                              `${new Date(prevPayment.start_date).toLocaleDateString('en-IN', {
+                                day: '2-digit',
+                                month: 'short',
+                              })} - ${new Date(prevPayment.end_date).toLocaleDateString('en-IN', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              })}`
+                            ) : (
+                              'N/A'
+                            )}
+                          </Text>
+                          <Text style={{ fontSize: 11, color: Theme.colors.text.secondary }}>
+                            ₹{prevPayment.amount_paid?.toLocaleString('en-IN')} • {prevPayment.status}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
 
             {/* Form */}
             <ScrollView

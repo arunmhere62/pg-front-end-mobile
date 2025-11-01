@@ -12,7 +12,8 @@ import {
 import { useSelector } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
 import { RootState } from '../../store';
-import { getAllRooms, deleteRoom, Room } from '../../services/roomService';
+import { getAllRooms, deleteRoom, Room, getRoomById } from '../../services/roomService';
+import { awsS3ServiceBackend as awsS3Service, S3Utils } from '../../services/awsS3ServiceBackend';
 import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -125,7 +126,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
   const handleDeleteRoom = (roomId: number, roomNo: string) => {
     Alert.alert(
       'Delete Room',
-      `Are you sure you want to delete Room ${roomNo}?`,
+      `Are you sure you want to delete Room ${roomNo}? This will also delete all associated images from cloud storage.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -133,14 +134,48 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
+              // First, get room data to access images
+              console.log('Fetching room data for deletion...');
+              const roomResponse = await getRoomById(roomId, {
+                pg_id: selectedPGLocationId || undefined,
+                organization_id: user?.organization_id,
+                user_id: user?.s_no,
+              });
+
+              // Delete S3 images if they exist
+              if (roomResponse.data.images && Array.isArray(roomResponse.data.images)) {
+                console.log('Deleting S3 images for room:', roomResponse.data.images);
+                
+                const s3DeletePromises = roomResponse.data.images
+                  .filter(imageUrl => imageUrl && imageUrl.includes('amazonaws.com'))
+                  .map(async (imageUrl) => {
+                    try {
+                      const key = S3Utils.extractKeyFromUrl(imageUrl);
+                      if (key) {
+                        console.log('Deleting S3 image:', key);
+                        await awsS3Service.deleteFile(key);
+                      }
+                    } catch (s3Error) {
+                      console.warn('Failed to delete S3 image:', imageUrl, s3Error);
+                      // Continue with room deletion even if S3 deletion fails
+                    }
+                  });
+
+                await Promise.all(s3DeletePromises);
+                console.log('S3 images deleted successfully');
+              }
+
+              // Delete room from database
               await deleteRoom(roomId, {
                 pg_id: selectedPGLocationId || undefined,
                 organization_id: user?.organization_id,
                 user_id: user?.s_no,
               });
-              Alert.alert('Success', 'Room deleted successfully');
+              
+              Alert.alert('Success', 'Room and all associated images deleted successfully');
               loadRooms();
             } catch (error: any) {
+              console.error('Delete room error:', error);
               Alert.alert('Error', error?.response?.data?.message || error.message || 'Failed to delete room');
             }
           },

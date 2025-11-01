@@ -16,7 +16,9 @@ import { RootState } from '../../store';
 import { getRoomById, updateRoom, createRoom, Room } from '../../services/roomService';
 import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
-import { ImageUpload } from '../../components/ImageUpload';
+import { ImageUploadS3 } from '../../components/ImageUploadS3';
+import { getFolderConfig } from '../../config/aws.config';
+import { awsS3ServiceBackend as awsS3Service, S3Utils } from '../../services/awsS3ServiceBackend';
 
 interface EditRoomModalProps {
   visible: boolean;
@@ -41,6 +43,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
     rent_price: '',
     images: [] as string[],
   });
+  const [originalImages, setOriginalImages] = useState<string[]>([]); // Track original images for cleanup
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -60,11 +63,13 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
         user_id: user?.s_no,
       });
 
+      const roomImages = response.data.images || [];
       setFormData({
         room_no: response.data.room_no,
         rent_price: response.data.rent_price?.toString() || '',
-        images: response.data.images || [],
+        images: roomImages,
       });
+      setOriginalImages([...roomImages]); // Store original images for comparison
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to load room data');
       onClose();
@@ -111,6 +116,81 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  // Auto-save images to database when they change
+  const handleAutoSaveImages = async (images: string[]) => {
+    if (!roomId || !selectedPGLocationId) {
+      throw new Error('Room ID or PG Location ID not available');
+    }
+
+    const roomData = {
+      pg_id: selectedPGLocationId,
+      room_no: formData.room_no.trim(),
+      rent_price: formData.rent_price ? parseFloat(formData.rent_price) : undefined,
+      images: images, // Always send the images array, even if empty
+    };
+
+    await updateRoom(roomId, roomData, {
+      pg_id: selectedPGLocationId,
+      organization_id: user?.organization_id,
+      user_id: user?.s_no,
+    });
+  };
+
+  // Cleanup orphaned S3 images (images that were uploaded but not saved)
+  const cleanupOrphanedImages = async () => {
+    if (!roomId) {
+      // For new rooms, cleanup all uploaded images if not saved
+      const orphanedImages = formData.images.filter(imageUrl => 
+        imageUrl && imageUrl.includes('amazonaws.com')
+      );
+      
+      if (orphanedImages.length > 0) {
+        console.log('Cleaning up orphaned S3 images for new room:', orphanedImages);
+        
+        const cleanupPromises = orphanedImages.map(async (imageUrl) => {
+          try {
+            const key = S3Utils.extractKeyFromUrl(imageUrl);
+            if (key) {
+              console.log('Deleting orphaned S3 image:', key);
+              await awsS3Service.deleteFile(key);
+            }
+          } catch (error) {
+            console.warn('Failed to cleanup orphaned image:', imageUrl, error);
+          }
+        });
+        
+        await Promise.all(cleanupPromises);
+        console.log('Orphaned images cleanup completed');
+      }
+    } else {
+      // For existing rooms, cleanup newly uploaded images that weren't saved
+      const newlyUploadedImages = formData.images.filter(currentUrl => 
+        currentUrl && 
+        currentUrl.includes('amazonaws.com') && 
+        !originalImages.includes(currentUrl)
+      );
+      
+      if (newlyUploadedImages.length > 0) {
+        console.log('Cleaning up newly uploaded S3 images (not saved):', newlyUploadedImages);
+        
+        const cleanupPromises = newlyUploadedImages.map(async (imageUrl) => {
+          try {
+            const key = S3Utils.extractKeyFromUrl(imageUrl);
+            if (key) {
+              console.log('Deleting newly uploaded S3 image:', key);
+              await awsS3Service.deleteFile(key);
+            }
+          } catch (error) {
+            console.warn('Failed to cleanup newly uploaded image:', imageUrl, error);
+          }
+        });
+        
+        await Promise.all(cleanupPromises);
+        console.log('Newly uploaded images cleanup completed');
+      }
+    }
+  };
+
   const handleSubmit = async () => {
     if (!validateForm()) {
       Alert.alert('Validation Error', 'Please fill in all required fields correctly');
@@ -125,11 +205,39 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
     try {
       setLoading(true);
 
+      // First, cleanup removed S3 images before saving
+      if (roomId) {
+        const removedImages = originalImages.filter(originalUrl => 
+          originalUrl && 
+          originalUrl.includes('amazonaws.com') && 
+          !formData.images.includes(originalUrl)
+        );
+        
+        if (removedImages.length > 0) {
+          console.log('Cleaning up removed S3 images before save:', removedImages);
+          
+          const cleanupPromises = removedImages.map(async (imageUrl) => {
+            try {
+              const key = S3Utils.extractKeyFromUrl(imageUrl);
+              if (key) {
+                console.log('Deleting removed S3 image:', key);
+                await awsS3Service.deleteFile(key);
+              }
+            } catch (error) {
+              console.warn('Failed to cleanup removed image:', imageUrl, error);
+            }
+          });
+          
+          await Promise.all(cleanupPromises);
+          console.log('Removed images cleanup completed');
+        }
+      }
+
       const roomData = {
         pg_id: selectedPGLocationId,
         room_no: formData.room_no.trim(),
         rent_price: formData.rent_price ? parseFloat(formData.rent_price) : undefined,
-        images: formData.images.length > 0 ? formData.images : undefined,
+        images: formData.images, // Always send the images array, even if empty
       };
 
       if (roomId) {
@@ -157,12 +265,20 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
     }
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
+    // Cleanup orphaned S3 images if user cancels without saving
+    try {
+      await cleanupOrphanedImages();
+    } catch (error) {
+      console.warn('Failed to cleanup orphaned images on close:', error);
+    }
+    
     setFormData({
       room_no: 'RM',
       rent_price: '',
       images: [],
     });
+    setOriginalImages([]);
     setErrors({});
     onClose();
   };
@@ -230,7 +346,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
                   <Text style={{ fontSize: 20 }}>🏠</Text>
                 </View>
                 <Text style={{ fontSize: 20, fontWeight: 'bold', color: Theme.colors.text.primary }}>
-                  Edit Room
+                  {roomId ? 'Edit Room' : 'Add Room'}
                 </Text>
               </View>
               <TouchableOpacity
@@ -357,12 +473,17 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
 
                 {/* Room Images */}
                 <View style={{ marginBottom: 16 }}>
-                  <ImageUpload
+                  <ImageUploadS3
                     images={formData.images}
-                    onImagesChange={(images) => setFormData((prev) => ({ ...prev, images }))}
+                    onImagesChange={(images: string[]) => setFormData((prev) => ({ ...prev, images }))}
                     maxImages={5}
                     label="Room Images"
                     disabled={loading}
+                    folder={getFolderConfig().rooms.images}
+                    useS3={true}
+                    entityId={roomId?.toString()}
+                    autoSave={false} // Disable auto-save - only update on manual save
+                    onAutoSave={handleAutoSaveImages}
                   />
                 </View>
 
@@ -439,7 +560,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff' }}>
-                      Update Room
+                      {roomId ? 'Update Room' : 'Create Room'}
                     </Text>
                   )}
                 </TouchableOpacity>

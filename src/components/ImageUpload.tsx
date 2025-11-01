@@ -58,7 +58,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     try {
       setUploading(true);
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsMultipleSelection: true,
         quality: 0.2,
         base64: true,

@@ -14,7 +14,9 @@ import {
   Platform,
 } from 'react-native';
 import { Theme } from '../theme';
-import { ImageUpload } from './ImageUpload';
+import { ImageUploadS3 } from './ImageUploadS3';
+import { getFolderConfig } from '../config/aws.config';
+import { awsS3ServiceBackend as awsS3Service, S3Utils } from '../services/awsS3ServiceBackend';
 import { createBed, updateBed, Bed } from '../services/bedService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -48,6 +50,7 @@ export const BedFormModal: React.FC<BedFormModalProps> = ({
     bed_no: 'BED',
     images: [] as string[],
   });
+  const [originalImages, setOriginalImages] = useState<string[]>([]); // Track original images for cleanup
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const isEditMode = !!bed;
@@ -56,10 +59,12 @@ export const BedFormModal: React.FC<BedFormModalProps> = ({
     if (visible) {
       // Load bed data if editing
       if (bed) {
+        const bedImages = bed.images || [];
         setFormData({
           bed_no: bed.bed_no,
-          images: bed.images || [],
+          images: bedImages,
         });
+        setOriginalImages([...bedImages]); // Store original images for comparison
       } else {
         // Reset form for new bed
         setFormData({
@@ -337,12 +342,15 @@ export const BedFormModal: React.FC<BedFormModalProps> = ({
 
                   {/* Bed Images */}
                   <View style={{ marginBottom: 20 }}>
-                    <ImageUpload
+                    <ImageUploadS3
                       images={formData.images}
-                      onImagesChange={(images) => setFormData((prev) => ({ ...prev, images }))}
+                      onImagesChange={(images: string[]) => setFormData((prev) => ({ ...prev, images }))}
                       maxImages={3}
                       label="Bed Images (Optional)"
                       disabled={loading}
+                      folder={getFolderConfig().beds.images}
+                      useS3={true}
+                      entityId={bed?.s_no?.toString()}
                     />
                   </View>
                 </ScrollView>

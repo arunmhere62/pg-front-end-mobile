@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  BASE_URL: process.env.API_BASE_URL || 'http://172.20.10.2:3000/api/v1',
+  BASE_URL: process.env.API_BASE_URL || 'http://172.20.10.2:5000/api/v1',
   TIMEOUT: 30000,
   HEADERS: {
     'Content-Type': 'application/json',
@@ -20,10 +20,14 @@ export const API_ENDPOINTS = {
     DETAILS: (id: number) => `/tenants/${id}`,
   },
   PG_LOCATIONS: {
+    BASE: '/pg-locations',
     LIST: '/pg-locations',
     CREATE: '/pg-locations',
     UPDATE: (id: number) => `/pg-locations/${id}`,
     DELETE: (id: number) => `/pg-locations/${id}`,
+    FINANCIAL_ANALYTICS: (id: number, months?: number) => 
+      `/pg-locations/${id}/financial-analytics${months ? `?months=${months}` : ''}`,
+    TENANT_RENT_STATUS: (id: number) => `/pg-locations/${id}/tenant-rent-status`,
   },
   ROOMS: {
     LIST: '/rooms',

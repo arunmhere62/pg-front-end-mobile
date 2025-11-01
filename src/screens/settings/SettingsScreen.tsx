@@ -8,6 +8,7 @@ import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { CONTENT_COLOR } from '@/constant';
+import notificationService from '../../services/notificationService';
 
 interface SettingsScreenProps {
   navigation: any;
@@ -26,7 +27,16 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
         {
           text: 'Logout',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
+            try {
+              // Unregister FCM token and cleanup notification service
+              await notificationService.unregisterToken();
+              notificationService.cleanup();
+              console.log('✅ Notification service cleaned up');
+            } catch (error) {
+              console.warn('⚠️ Failed to cleanup notifications:', error);
+            }
+            
             dispatch(logout());
             navigation.reset({
               index: 0,
@@ -41,7 +51,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
   // Settings options - conditionally show "Report Issue" for non-Super Admin users
   const settingsOptions = [
     { title: 'Profile', icon: '👤', onPress: () => navigation.navigate('UserProfile') },
-    { title: 'Report Issue', icon: '🐛', onPress: () => navigation.navigate('Tickets'), highlight: true },
+    { title: 'Report Issue', icon: '🐛', onPress: () => navigation.navigate('Tickets'), },
     { title: 'Notifications', icon: '🔔', onPress: () => {} },
     { title: 'Privacy', icon: '🔒', onPress: () => {} },
     { title: 'Help & Support', icon: '❓', onPress: () => {} },
@@ -74,11 +84,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
               className={`flex-row items-center py-4 ${
                 index < settingsOptions.length - 1 ? 'border-b border-gray-200' : ''
               }`}
-              style={option.highlight ? { backgroundColor: '#FEF3C7' } : {}}
+              // style={option.highlight ? { backgroundColor: '#FEF3C7' } : {}}
             >
               <Text className="text-2xl mr-3">{option.icon}</Text>
               <Text className="text-dark font-semibold flex-1">{option.title}</Text>
-              {option.highlight && <Text style={{ fontSize: 10, color: '#EF4444', fontWeight: '700', marginRight: 8 }}>NEW</Text>}
+              {/* {option.highlight && <Text style={{ fontSize: 10, color: '#EF4444', fontWeight: '700', marginRight: 8 }}>NEW</Text>} */}
               <Text className="text-gray-400">›</Text>
             </TouchableOpacity>
           ))}

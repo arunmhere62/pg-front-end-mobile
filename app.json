@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "PG Management",
-    "slug": "pg-mobile-app",
+    "slug": "pgmanagement",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -14,17 +14,40 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pgmanagement.app"
+      "bundleIdentifier": "com.pgmanagement.app",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.pgmanagement.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#3B82F6"
-      }
+      },
+      "permissions": [
+        "NOTIFICATIONS",
+        "INTERNET"
+      ],
+      "useNextNotificationsApi": true
     },
     "web": {
       "bundler": "metro"
     },
-    "scheme": "pgapp"
+    "scheme": "pgapp",
+    "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "0f6ecb0b-7511-427b-be33-74a4bd0207fe"
+      }
+    }
   }
 }

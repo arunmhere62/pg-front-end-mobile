@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "336543622757",
+    "project_id": "indianpgmanagement",
+    "storage_bucket": "indianpgmanagement.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:336543622757:android:9f77785713a79adaaf488c",
+        "android_client_info": {
+          "package_name": "com.pgmanagement.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAzXDrQEqL-4LVzL711IKX1liJe2msA6Qg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -258,7 +258,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
         padding: 12,
         borderLeftWidth: hasPendingPayment ? 4 : 0,
         borderLeftColor: isOverdue ? '#EF4444' : 
-                        item.pending_payment?.payment_status === 'PARTIAL' ? '#F59E0B' : '#3B82F6',
+                        item.pending_payment?.payment_status === 'PARTIAL' ? '#EF4444' : '#F59E0B',
       }}>
         {/* Header with Image */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
@@ -300,7 +300,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                   borderRadius: 10,
                   backgroundColor: 
                     item.pending_payment?.payment_status === 'OVERDUE' ? '#EF4444' : 
-                    item.pending_payment?.payment_status === 'PARTIAL' ? '#F59E0B' : '#F59E0B',
+                    item.pending_payment?.payment_status === 'PARTIAL' ? '#EF4444' : '#F59E0B',
                 }}>
                   <Text style={{
                     fontSize: 10,
@@ -308,7 +308,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                     color: '#fff',
                   }}>
                     {item.pending_payment?.payment_status === 'OVERDUE' ? '⚠️ OVERDUE' : 
-                     item.pending_payment?.payment_status === 'PARTIAL' ? '⏳ PARTIAL' : '📅 PENDING'}
+                     item.pending_payment?.payment_status === 'PARTIAL' ? '⚠️ PARTIAL' : '📅 PENDING'}
                   </Text>
                 </View>
               ) : item.tenant_payments && item.tenant_payments.length > 0 ? (
@@ -318,7 +318,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                   borderRadius: 10,
                   backgroundColor: 
                     item.tenant_payments[0].status === 'PAID' ? '#10B981' : 
-                    item.tenant_payments[0].status === 'PARTIAL' ? '#3B82F6' :
+                    item.tenant_payments[0].status === 'PARTIAL' ? '#EF4444' :
                     item.tenant_payments[0].status === 'PENDING' ? '#F59E0B' :
                     item.tenant_payments[0].status === 'FAILED' ? '#EF4444' : '#9CA3AF',
                 }}>
@@ -328,7 +328,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                     color: '#fff',
                   }}>
                     {item.tenant_payments[0].status === 'PAID' ? '✅ PAID' : 
-                     item.tenant_payments[0].status === 'PARTIAL' ? '🔵 PARTIAL' :
+                     item.tenant_payments[0].status === 'PARTIAL' ? '⚠️ PARTIAL' :
                      item.tenant_payments[0].status === 'PENDING' ? '⏳ PENDING' :
                      item.tenant_payments[0].status === 'FAILED' ? '❌ FAILED' : item.tenant_payments[0].status}
                   </Text>
@@ -415,10 +415,10 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
       {item.pending_payment && item.pending_payment.total_pending > 0 && (
         <View style={{
           backgroundColor: item.pending_payment.payment_status === 'OVERDUE' ? '#FEE2E2' : 
-                         item.pending_payment.payment_status === 'PARTIAL' ? '#FEF3C7' : '#DBEAFE',
+                         item.pending_payment.payment_status === 'PARTIAL' ? '#FEE2E2' : '#FEF3C7',
           borderLeftWidth: 4,
           borderLeftColor: item.pending_payment.payment_status === 'OVERDUE' ? '#EF4444' : 
-                          item.pending_payment.payment_status === 'PARTIAL' ? '#F59E0B' : '#3B82F6',
+                          item.pending_payment.payment_status === 'PARTIAL' ? '#EF4444' : '#F59E0B',
           padding: 10,
           borderRadius: 8,
           marginBottom: 12,
@@ -428,7 +428,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
               fontSize: 12, 
               fontWeight: '700', 
               color: item.pending_payment.payment_status === 'OVERDUE' ? '#DC2626' : 
-                     item.pending_payment.payment_status === 'PARTIAL' ? '#D97706' : '#2563EB'
+                     item.pending_payment.payment_status === 'PARTIAL' ? '#DC2626' : '#D97706'
             }}>
               {item.pending_payment.payment_status === 'OVERDUE' ? '⚠️ OVERDUE' : 
                item.pending_payment.payment_status === 'PARTIAL' ? '⏳ PARTIAL PAYMENT' : '📅 PENDING'}
@@ -438,7 +438,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                 fontSize: 14, 
                 fontWeight: '700', 
                 color: item.pending_payment.payment_status === 'OVERDUE' ? '#DC2626' : 
-                       item.pending_payment.payment_status === 'PARTIAL' ? '#D97706' : '#2563EB'
+                       item.pending_payment.payment_status === 'PARTIAL' ? '#DC2626' : '#D97706'
               }}>
                 ₹{item.pending_payment.total_pending}
               </Text>
@@ -510,7 +510,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                             borderRadius: 4,
                             backgroundColor: 
                               payment.status === 'PAID' ? '#10B98120' :
-                              payment.status === 'PARTIAL' ? '#3B82F620' :
+                              payment.status === 'PARTIAL' ? '#DC262620' :
                               payment.status === 'PENDING' ? '#F59E0B20' :
                               payment.status === 'OVERDUE' ? '#EF444420' :
                               payment.status === 'FAILED' ? '#EF444420' : '#9CA3AF20',
@@ -520,7 +520,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                               fontWeight: '600',
                               color: 
                                 payment.status === 'PAID' ? '#10B981' :
-                                payment.status === 'PARTIAL' ? '#3B82F6' :
+                                payment.status === 'PARTIAL' ? '#DC2626' :
                                 payment.status === 'PENDING' ? '#F59E0B' :
                                 payment.status === 'OVERDUE' ? '#EF4444' :
                                 payment.status === 'FAILED' ? '#EF4444' : '#6B7280',
@@ -562,7 +562,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                             borderRadius: 4,
                             backgroundColor: 
                               payment.status === 'PAID' ? '#10B98120' :
-                              payment.status === 'PARTIAL' ? '#3B82F620' :
+                              payment.status === 'PARTIAL' ? '#DC262620' :
                               payment.status === 'PENDING' ? '#F59E0B20' :
                               payment.status === 'FAILED' ? '#EF444420' : '#9CA3AF20',
                           }}>
@@ -571,7 +571,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                               fontWeight: '600',
                               color: 
                                 payment.status === 'PAID' ? '#10B981' :
-                                payment.status === 'PARTIAL' ? '#3B82F6' :
+                                payment.status === 'PARTIAL' ? '#DC2626' :
                                 payment.status === 'PENDING' ? '#F59E0B' :
                                 payment.status === 'FAILED' ? '#EF4444' : '#6B7280',
                             }}>

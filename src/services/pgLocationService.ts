@@ -25,4 +25,25 @@ export const pgLocationService = {
     const response = await axiosInstance.delete(API_ENDPOINTS.PG_LOCATIONS.DELETE(id));
     return response.data;
   },
+
+  getSummary: async (pgId: number) => {
+    const response = await axiosInstance.get(
+      `${API_ENDPOINTS.PG_LOCATIONS.BASE}/${pgId}/summary?_t=${Date.now()}`
+    );
+    return response.data;
+  },
+
+  getFinancialAnalytics: async (pgId: number, months: number = 6) => {
+    const response = await axiosInstance.get(
+      API_ENDPOINTS.PG_LOCATIONS.FINANCIAL_ANALYTICS(pgId, months)
+    );
+    return response.data;
+  },
+
+  getTenantRentPaymentStatus: async (pgId: number) => {
+    const response = await axiosInstance.get(
+      API_ENDPOINTS.PG_LOCATIONS.TENANT_RENT_STATUS(pgId)
+    );
+    return response.data;
+  },
 };

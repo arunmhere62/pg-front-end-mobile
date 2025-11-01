@@ -9,6 +9,7 @@ import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { OTPInput } from '../../components/OTPInput';
+import notificationService from '../../services/notificationService';
 
 interface OTPVerificationScreenProps {
   navigation: any;
@@ -52,7 +53,19 @@ export const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ na
     }
 
     try {
-      await dispatch(verifyOtp({ phone, otp })).unwrap();
+      const result = await dispatch(verifyOtp({ phone, otp })).unwrap();
+      
+      // Initialize notification service after successful login
+      if (result.user && result.user.s_no) {
+        try {
+          await notificationService.initialize(result.user.s_no);
+          console.log('✅ Notification service initialized');
+        } catch (notifError) {
+          console.warn('⚠️ Failed to initialize notifications:', notifError);
+          // Don't block login if notification setup fails
+        }
+      }
+      
       Alert.alert('Success', 'Login successful!');
       navigation.reset({
         index: 0,

@@ -59,7 +59,7 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
   const [loadingRefund, setLoadingRefund] = useState(false);
   
   // Filter states
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PAID' | 'PENDING' | 'FAILED'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PAID' | 'PARTIAL' | 'PENDING' | 'FAILED'>('ALL');
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [startDate, setStartDate] = useState<string>('');
@@ -618,6 +618,8 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
     switch (status) {
       case 'PAID':
         return Theme.colors.secondary;
+      case 'PARTIAL':
+        return '#EF4444'; // Red color for partial payments
       case 'PENDING':
         return Theme.colors.warning;
       case 'FAILED':
@@ -645,24 +647,34 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
   };
 
   // Render Rent Payment Card
-  const renderRentPaymentItem = ({ item }: { item: Payment }) => (
-    <Card style={{ marginHorizontal: 16, marginBottom: 12, padding: 16, borderLeftWidth: 4, borderLeftColor: Theme.colors.primary }}>
-      {/* Header with Payment Type Badge */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-        <View style={{ flex: 1, marginRight: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-            <View style={{ 
-              backgroundColor: Theme.withOpacity(Theme.colors.primary, 0.1), 
-              paddingHorizontal: 8, 
-              paddingVertical: 4, 
-              borderRadius: 6,
-              marginRight: 8
-            }}>
-              <Text style={{ fontSize: 10, fontWeight: '700', color: Theme.colors.primary }}>
-                RENT PAYMENT
-              </Text>
+  const renderRentPaymentItem = ({ item }: { item: Payment }) => {
+    const isPartial = item.status === 'PARTIAL';
+    
+    return (
+      <Card style={{ 
+        marginHorizontal: 16, 
+        marginBottom: 12, 
+        padding: 16, 
+        borderLeftWidth: 4, 
+        borderLeftColor: isPartial ? '#EF4444' : Theme.colors.primary,
+        backgroundColor: isPartial ? '#FEF2F2' : '#fff',
+      }}>
+        {/* Header with Payment Type Badge */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+          <View style={{ flex: 1, marginRight: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+              <View style={{ 
+                backgroundColor: isPartial ? '#FEE2E2' : Theme.withOpacity(Theme.colors.primary, 0.1), 
+                paddingHorizontal: 8, 
+                paddingVertical: 4, 
+                borderRadius: 6,
+                marginRight: 8
+              }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: isPartial ? '#EF4444' : Theme.colors.primary }}>
+                  {isPartial ? '⚠️ PARTIAL PAYMENT' : 'RENT PAYMENT'}
+                </Text>
+              </View>
             </View>
-          </View>
           <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary, marginBottom: 4 }}>
             {item.tenants?.name || 'Unknown Tenant'}
           </Text>
@@ -862,7 +874,8 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
         </View>
       </View>
     </Card>
-  );
+    );
+  };
 
   // Render Advance Payment Card
   const renderAdvancePaymentItem = ({ item }: { item: Payment }) => (
@@ -1639,7 +1652,7 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
                   Payment Status
                 </Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {['ALL', 'PAID', 'PENDING', 'FAILED'].map((status) => (
+                  {['ALL', 'PAID', 'PARTIAL', 'PENDING', 'FAILED'].map((status) => (
                     <TouchableOpacity
                       key={status}
                       onPress={() => setStatusFilter(status as any)}
