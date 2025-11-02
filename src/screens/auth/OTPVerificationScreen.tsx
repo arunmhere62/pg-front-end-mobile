@@ -10,6 +10,7 @@ import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { OTPInput } from '../../components/OTPInput';
 import notificationService from '../../services/notificationService';
+import { FEATURES } from '../../config/env.config';
 
 interface OTPVerificationScreenProps {
   navigation: any;
@@ -56,7 +57,7 @@ export const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ na
       const result = await dispatch(verifyOtp({ phone, otp })).unwrap();
       
       // Initialize notification service after successful login
-      if (result.user && result.user.s_no) {
+      if (result.user && result.user.s_no && FEATURES.PUSH_NOTIFICATIONS_ENABLED) {
         try {
           await notificationService.initialize(result.user.s_no);
           console.log('✅ Notification service initialized');
@@ -64,6 +65,8 @@ export const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ na
           console.warn('⚠️ Failed to initialize notifications:', notifError);
           // Don't block login if notification setup fails
         }
+      } else if (!FEATURES.PUSH_NOTIFICATIONS_ENABLED) {
+        console.log('ℹ️ Push notifications are disabled in development mode');
       }
       
       Alert.alert('Success', 'Login successful!');

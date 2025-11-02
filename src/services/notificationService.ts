@@ -4,11 +4,12 @@
  * Handles Firebase Cloud Messaging (FCM) for push notifications
  */
 
-import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
-import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { FCM_CONFIG } from '../config/firebase.config';
 import { apiClient } from './apiClient';
+import { FEATURES } from '../config/env.config';
+import Constants from 'expo-constants';
 
 export interface NotificationData {
   type: string;
@@ -18,15 +19,30 @@ export interface NotificationData {
 }
 
 class NotificationService {
-  private fcmToken: string | null = null;
-  private unsubscribeOnMessage: (() => void) | null = null;
-  private unsubscribeOnNotificationOpen: (() => void) | null = null;
+  private expoPushToken: string | null = null;
+  private notificationListener: any = null;
+  private responseListener: any = null;
 
   /**
    * Initialize notification service
    */
   async initialize(userId: number) {
     try {
+      // Check if running on physical device
+      if (!Device.isDevice) {
+        console.log('⚠️ Push notifications only work on physical devices');
+        return false;
+      }
+
+      // Configure notification handler
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+        }),
+      });
+
       // Request permissions
       const hasPermission = await this.requestPermissions();
       if (!hasPermission) {
@@ -39,10 +55,10 @@ class NotificationService {
         await this.setupAndroidChannels();
       }
 
-      // Get FCM token
-      const token = await this.getFCMToken();
+      // Get Expo Push Token
+      const token = await this.getExpoPushToken();
       if (!token) {
-        console.log('❌ Failed to get FCM token');
+        console.log('❌ Failed to get Expo Push token');
         return false;
       }
 
@@ -51,9 +67,6 @@ class NotificationService {
 
       // Setup notification listeners
       this.setupNotificationListeners();
-
-      // Handle background messages
-      this.setupBackgroundMessageHandler();
 
       console.log('✅ Notification service initialized');
       return true;
@@ -68,12 +81,15 @@ class NotificationService {
    */
   async requestPermissions(): Promise<boolean> {
     try {
-      const authStatus = await messaging().requestPermission();
-      const enabled =
-        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-
-      if (!enabled) {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      
+      if (finalStatus !== 'granted') {
         console.log('❌ Notification permission not granted');
         return false;
       }
@@ -90,35 +106,57 @@ class NotificationService {
    * Setup Android notification channels
    */
   private async setupAndroidChannels() {
-    const channels = Object.values(FCM_CONFIG.channels);
-    
-    for (const channel of channels) {
-      await notifee.createChannel({
-        id: channel.id,
-        name: channel.name,
-        importance: channel.importance as AndroidImportance,
-        sound: channel.sound,
-        vibration: true,
-        lights: true,
-        lightColor: '#3B82F6',
-      });
-    }
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#3B82F6',
+      sound: 'default',
+    });
+
+    await Notifications.setNotificationChannelAsync('rent-reminders', {
+      name: 'Rent Reminders',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#3B82F6',
+      sound: 'default',
+    });
+
+    await Notifications.setNotificationChannelAsync('payments', {
+      name: 'Payments',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#10B981',
+      sound: 'default',
+    });
+
+    await Notifications.setNotificationChannelAsync('alerts', {
+      name: 'Alerts',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#EF4444',
+      sound: 'default',
+    });
+
     console.log('✅ Android notification channels created');
   }
 
   /**
-   * Get FCM token
+   * Get Expo Push Token
    */
-  async getFCMToken(): Promise<string | null> {
+  async getExpoPushToken(): Promise<string | null> {
     try {
-      // Get Firebase Cloud Messaging token
-      const token = await messaging().getToken();
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      
+      const token = await Notifications.getExpoPushTokenAsync({
+        projectId: projectId,
+      });
 
-      this.fcmToken = token;
-      console.log('📱 FCM Token:', this.fcmToken);
-      return this.fcmToken;
+      this.expoPushToken = token.data;
+      console.log('📱 Expo Push Token:', this.expoPushToken);
+      return this.expoPushToken;
     } catch (error) {
-      console.error('❌ Error getting FCM token:', error);
+      console.error('❌ Error getting Expo Push token:', error);
       return null;
     }
   }
@@ -148,62 +186,40 @@ class NotificationService {
    * Setup notification listeners
    */
   private setupNotificationListeners() {
-    // Listener for foreground messages
-    this.unsubscribeOnMessage = messaging().onMessage(async (remoteMessage) => {
-      console.log('🔔 Foreground notification received:', remoteMessage);
-      await this.displayNotification(remoteMessage);
+    // Listener for notifications received while app is foregrounded
+    this.notificationListener = Notifications.addNotificationReceivedListener(notification => {
+      console.log('🔔 Notification received:', notification);
     });
 
-    // Listener for notification opened app from background/quit state
-    this.unsubscribeOnNotificationOpen = messaging().onNotificationOpenedApp((remoteMessage) => {
-      console.log('👆 Notification opened app from background:', remoteMessage);
-      this.handleNotificationTapped(remoteMessage);
+    // Listener for when user taps on notification
+    this.responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('👆 Notification tapped:', response);
+      this.handleNotificationTapped(response.notification);
     });
 
-    // Check if app was opened from a notification (quit state)
-    messaging()
-      .getInitialNotification()
-      .then((remoteMessage) => {
-        if (remoteMessage) {
-          console.log('👆 Notification opened app from quit state:', remoteMessage);
-          this.handleNotificationTapped(remoteMessage);
-        }
-      });
-
-    // Notifee foreground event handler
-    notifee.onForegroundEvent(({ type, detail }) => {
-      if (type === EventType.PRESS) {
-        console.log('👆 User pressed notification:', detail.notification);
+    // Check if app was opened from a notification
+    Notifications.getLastNotificationResponseAsync().then(response => {
+      if (response) {
+        console.log('👆 App opened from notification:', response);
+        this.handleNotificationTapped(response.notification);
       }
     });
   }
 
   /**
-   * Display notification in foreground
+   * Display local notification
    */
-  private async displayNotification(remoteMessage: FirebaseMessagingTypes.RemoteMessage) {
-    const { notification, data } = remoteMessage;
-    
-    if (!notification) return;
+  private async displayLocalNotification(title: string, body: string, data?: any) {
+    const channelId = this.getChannelId(data?.type);
 
-    // Determine channel based on notification type
-    const channelId = this.getChannelId(data?.type as string | undefined);
-
-    await notifee.displayNotification({
-      title: notification.title,
-      body: notification.body,
-      data: data,
-      android: {
-        channelId,
-        smallIcon: 'ic_notification',
-        color: '#3B82F6',
-        pressAction: {
-          id: 'default',
-        },
-      },
-      ios: {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data,
         sound: 'default',
       },
+      trigger: null, // Show immediately
     });
 
     // Update badge count
@@ -213,8 +229,8 @@ class NotificationService {
   /**
    * Handle notification tapped
    */
-  private handleNotificationTapped(remoteMessage: FirebaseMessagingTypes.RemoteMessage) {
-    const { data } = remoteMessage;
+  private handleNotificationTapped(notification: Notifications.Notification) {
+    const data = notification.request.content.data;
     
     // Navigate to appropriate screen based on notification type
     if (data?.type) {
@@ -222,35 +238,26 @@ class NotificationService {
     }
   }
 
-  /**
-   * Setup background message handler
-   */
-  private setupBackgroundMessageHandler() {
-    messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-      console.log('🔔 Background notification received:', remoteMessage);
-      // Background notifications are automatically displayed by FCM
-    });
-  }
 
   /**
    * Get channel ID based on notification type
    */
   private getChannelId(type?: string): string {
-    if (!type) return FCM_CONFIG.channels.default.id;
+    if (!type) return 'default';
 
     switch (type) {
-      case FCM_CONFIG.types.RENT_REMINDER:
-      case FCM_CONFIG.types.PAYMENT_DUE_SOON:
-        return FCM_CONFIG.channels.rentReminders.id;
-      case FCM_CONFIG.types.PAYMENT_CONFIRMATION:
-      case FCM_CONFIG.types.PARTIAL_PAYMENT:
-      case FCM_CONFIG.types.FULL_PAYMENT:
-        return FCM_CONFIG.channels.payments.id;
-      case FCM_CONFIG.types.OVERDUE_ALERT:
-      case FCM_CONFIG.types.PAYMENT_OVERDUE:
-        return FCM_CONFIG.channels.alerts.id;
+      case 'RENT_REMINDER':
+      case 'PAYMENT_DUE_SOON':
+        return 'rent-reminders';
+      case 'PAYMENT_CONFIRMATION':
+      case 'PARTIAL_PAYMENT':
+      case 'FULL_PAYMENT':
+        return 'payments';
+      case 'OVERDUE_ALERT':
+      case 'PAYMENT_OVERDUE':
+        return 'alerts';
       default:
-        return FCM_CONFIG.channels.default.id;
+        return 'default';
     }
   }
 
@@ -279,7 +286,7 @@ class NotificationService {
   async updateBadgeCount() {
     try {
       const count = await this.getUnreadNotificationCount();
-      await notifee.setBadgeCount(count);
+      await Notifications.setBadgeCountAsync(count);
     } catch (error) {
       console.error('❌ Failed to update badge count:', error);
     }
@@ -291,7 +298,7 @@ class NotificationService {
   async getUnreadNotificationCount(): Promise<number> {
     try {
       const response = await apiClient.get('/notifications/unread-count');
-      return response.data.count || 0;
+      return (response.data as any)?.count || 0;
     } catch (error) {
       console.error('❌ Failed to get unread count:', error);
       return 0;
@@ -332,7 +339,7 @@ class NotificationService {
   async markAllAsRead() {
     try {
       await apiClient.put('/notifications/read-all');
-      await notifee.setBadgeCount(0);
+      await Notifications.setBadgeCountAsync(0);
     } catch (error) {
       console.error('❌ Failed to mark all as read:', error);
       throw error;
@@ -370,12 +377,12 @@ class NotificationService {
    */
   async unregisterToken() {
     try {
-      if (this.fcmToken) {
+      if (this.expoPushToken) {
         await apiClient.delete('/notifications/unregister-token', {
-          data: { fcm_token: this.fcmToken },
+          data: { fcm_token: this.expoPushToken },
         });
-        this.fcmToken = null;
-        console.log('✅ FCM token unregistered');
+        this.expoPushToken = null;
+        console.log('✅ Expo Push token unregistered');
       }
     } catch (error) {
       console.error('❌ Failed to unregister token:', error);
@@ -386,11 +393,11 @@ class NotificationService {
    * Cleanup listeners
    */
   cleanup() {
-    if (this.unsubscribeOnMessage) {
-      this.unsubscribeOnMessage();
+    if (this.notificationListener) {
+      Notifications.removeNotificationSubscription(this.notificationListener);
     }
-    if (this.unsubscribeOnNotificationOpen) {
-      this.unsubscribeOnNotificationOpen();
+    if (this.responseListener) {
+      Notifications.removeNotificationSubscription(this.responseListener);
     }
   }
 
@@ -398,18 +405,14 @@ class NotificationService {
    * Send local notification (for testing)
    */
   async sendLocalNotification(title: string, body: string, data?: any) {
-    await notifee.displayNotification({
-      title,
-      body,
-      data,
-      android: {
-        channelId: FCM_CONFIG.channels.default.id,
-        smallIcon: 'ic_notification',
-        color: '#3B82F6',
-      },
-      ios: {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data,
         sound: 'default',
       },
+      trigger: null,
     });
   }
 }

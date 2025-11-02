@@ -15,7 +15,6 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pgmanagement.app",
-      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification",
@@ -26,7 +25,6 @@
     },
     "android": {
       "package": "com.pgmanagement.app",
-      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#3B82F6"
       },
@@ -41,8 +39,14 @@
     },
     "scheme": "pgapp",
     "plugins": [
-      "@react-native-firebase/app",
-      "@react-native-firebase/messaging"
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#3B82F6",
+          "sounds": ["./assets/notification-sound.wav"]
+        }
+      ]
     ],
     "extra": {
       "eas": {
