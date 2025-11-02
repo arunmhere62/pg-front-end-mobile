@@ -14,22 +14,19 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { fetchTenantById } from '../../store/slices/tenantSlice';
-import { TenantPayment, AdvancePayment, RefundPayment, PendingPaymentMonth } from '../../services/tenantService';
+import { TenantPayment, AdvancePayment, RefundPayment, PendingPaymentMonth } from '../../services/tenants/tenantService';
 import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { DatePicker } from '../../components/DatePicker';
-import axiosInstance from '../../services/axiosInstance';
+import axiosInstance from '../../services/core/axiosInstance';
 import { CONTENT_COLOR } from '@/constant';
 import AddTenantPaymentModal from '../../components/AddTenantPaymentModal';
 import { AddAdvancePaymentModal } from '../../components/AddAdvancePaymentModal';
 import { AddRefundPaymentModal } from '../../components/AddRefundPaymentModal';
 import { EditRentPaymentModal } from '../../components/EditRentPaymentModal';
 import { EditAdvancePaymentModal } from '../../components/EditAdvancePaymentModal';
-import advancePaymentService from '../../services/advancePaymentService';
-import refundPaymentService from '../../services/refundPaymentService';
-import { paymentService } from '../../services/paymentService';
 import { Ionicons } from '@expo/vector-icons';
 import {
   TenantHeader,
@@ -37,6 +34,9 @@ import {
   AccommodationDetails,
   PersonalInformation,
 } from './components';
+import advancePaymentService from '@/services/payments/advancePaymentService';
+import refundPaymentService from '@/services/payments/refundPaymentService';
+import { paymentService } from '@/services/payments/paymentService';
 
 // Inner component that doesn't directly interact with frozen navigation context
 const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({ tenantId, navigation }) => {

@@ -20,7 +20,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { Ionicons } from '@expo/vector-icons';
 import { CONTENT_COLOR } from '@/constant';
-import expenseService, { Expense, PaymentMethod } from '../../services/expenseService';
+import expenseService, { Expense, PaymentMethod } from '../../services/expenses/expenseService';
 import { AddEditExpenseModal } from '@/components/AddEditExpenseModal';
 import { DatePicker } from '@/components/DatePicker';
 

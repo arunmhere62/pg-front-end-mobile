@@ -13,8 +13,8 @@ import { PGSummary } from '../../components/PGSummary';
 import { FinancialAnalytics } from '../../components/FinancialAnalytics';
 import { TenantRentStatus } from '../../components/TenantRentStatus';
 import { QuickActions } from '../../components/QuickActions';
-import { pgLocationService } from '../../services/pgLocationService';
-import * as tenantService from '../../services/tenantService';
+import { pgLocationService } from '../../services/organization/pgLocationService';
+import * as tenantService from '../../services/tenants/tenantService';
 
 export const DashboardScreen: React.FC = () => {
   // All hooks must be called at the top level
@@ -68,7 +68,7 @@ export const DashboardScreen: React.FC = () => {
           pg_id: selectedPGLocationId || undefined,
         })),
         dispatch(fetchPGLocations()),
-        dispatch(fetchPayments()),
+        dispatch(fetchPayments({})),
       ]);
       
       // Load summary if PG location is selected

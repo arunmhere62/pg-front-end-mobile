@@ -1,6 +1,6 @@
-import axiosInstance from './axiosInstance';
-import { API_ENDPOINTS } from '../config/api.config';
-import { PGLocation } from '../types';
+import axiosInstance from '../core/axiosInstance';
+import { API_ENDPOINTS } from '../../config/api.config';
+import { PGLocation } from '../../types';
 
 export const pgLocationService = {
   getPGLocations: async () => {

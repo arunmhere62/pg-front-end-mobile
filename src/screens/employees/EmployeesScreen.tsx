@@ -16,7 +16,7 @@ import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { Ionicons } from '@expo/vector-icons';
-import employeeService, { Employee } from '../../services/employeeService';
+import employeeService, { Employee } from '../../services/employees/employeeService';
 import { CONTENT_COLOR } from '@/constant';
 
 interface EmployeesScreenProps {

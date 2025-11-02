@@ -11,7 +11,9 @@ export const AWS_CONFIG = {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
     region: process.env.AWS_REGION || 'ap-south-1',
-    bucketName: process.env.AWS_S3_BUCKET_NAME || '',
+    // Fallback to hardcoded bucket name if env var not available
+    // In React Native, env vars need to be set at build time
+    bucketName: process.env.AWS_S3_BUCKET_NAME || 'indianpgmanagement',
   },
   
   // File upload limits

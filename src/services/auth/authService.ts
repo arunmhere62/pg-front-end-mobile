@@ -1,5 +1,5 @@
-import axiosInstance from './axiosInstance';
-import { API_ENDPOINTS } from '../config/api.config';
+import axiosInstance from '../core/axiosInstance';
+import { API_ENDPOINTS } from '../../config/api.config';
 
 export const authService = {
   sendOtp: async (phone: string) => {

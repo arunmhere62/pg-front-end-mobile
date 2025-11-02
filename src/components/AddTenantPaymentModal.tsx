@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../theme';
 import { DatePicker } from './DatePicker';
-import { paymentService } from '../services/paymentService';
+import { paymentService } from '@/services/payments/paymentService';
 
 interface AddTenantPaymentModalProps {
   visible: boolean;

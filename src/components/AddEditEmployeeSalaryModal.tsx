@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../theme';
-import employeeSalaryService, { EmployeeSalary, PaymentMethod } from '../services/employeeSalaryService';
+import employeeSalaryService, { EmployeeSalary, PaymentMethod } from '../services/employees/employeeSalaryService';
 import userService from '../services/userService';
 import { DatePicker } from './DatePicker';
 import { SearchableDropdown } from './SearchableDropdown';

@@ -18,8 +18,8 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { ImageUpload } from '../../components/ImageUpload';
 import { SearchableDropdown } from '../../components/SearchableDropdown';
-import axiosInstance from '../../services/axiosInstance';
-import employeeService, { UserGender } from '../../services/employeeService';
+import axiosInstance from '../../services/core/axiosInstance';
+import employeeService, { UserGender } from '../../services/employees/employeeService';
 import { CONTENT_COLOR } from '@/constant';
 
 interface AddEmployeeScreenProps {

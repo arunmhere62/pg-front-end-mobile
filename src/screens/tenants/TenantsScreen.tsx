@@ -22,7 +22,7 @@ import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { Ionicons } from '@expo/vector-icons';
-import axiosInstance from '../../services/axiosInstance';
+import axiosInstance from '../../services/core/axiosInstance';
 import { DatePicker } from '../../components/DatePicker';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');

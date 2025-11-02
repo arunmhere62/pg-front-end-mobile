@@ -1,8 +1,14 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { API_CONFIG } from '../config/api.config';
-import { store } from '../store';
-import { logout } from '../store/slices/authSlice';
-import { networkLogger } from '../utils/networkLogger';
+import { API_CONFIG } from '../../config/api.config';
+import { store } from '../../store';
+import { logout } from '../../store/slices/authSlice';
+import { networkLogger } from '../../utils/networkLogger';
+
+const needsPgHeader = (url?: string) => {
+  if (!url) return false;
+  const path = (url.split('?')[0] || '').toString();
+  return /^\/(tenants|rooms|beds|advance-payments|refund-payments|payments|pending-payments)(\/|$)/.test(path);
+};
 
 class ApiClient {
   private client: AxiosInstance;
@@ -43,6 +49,13 @@ class ApiClient {
         // Add PG Location ID header
         if (selectedPGLocationId && config.headers) {
           config.headers['X-PG-Location-Id'] = selectedPGLocationId.toString();
+        }
+
+        const hasPgHeader = !!(
+          (config.headers as any)['X-PG-Location-Id'] || (config.headers as any)['x-pg-location-id']
+        );
+        if (needsPgHeader(config.url) && !hasPgHeader) {
+          return Promise.reject(new Error('Missing required headers: X-PG-Location-Id'));
         }
 
         // Log request

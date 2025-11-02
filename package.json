@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "start": "expo start",
+    "prestart": "npm run typecheck",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web"
@@ -13,9 +15,6 @@
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "~1.23.0",
     "@react-native-community/datetimepicker": "^8.4.5",
-    "expo-constants": "~17.0.3",
-    "expo-device": "~7.0.1",
-    "expo-notifications": "~0.30.1",
     "@react-navigation/bottom-tabs": "^6.5.11",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/native-stack": "^6.9.17",
@@ -24,8 +23,11 @@
     "aws-sdk": "^2.1692.0",
     "axios": "^1.6.2",
     "expo": "^54.0.13",
+    "expo-constants": "~17.0.3",
     "expo-dev-client": "~6.0.16",
+    "expo-device": "~7.0.1",
     "expo-image-picker": "~17.0.8",
+    "expo-notifications": "~0.30.1",
     "expo-sensors": "~15.0.7",
     "expo-status-bar": "~3.0.8",
     "lodash": "^4.17.21",
@@ -44,6 +46,7 @@
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@types/react": "^18.2.79",
+    "babel-plugin-module-resolver": "^5.0.2",
     "tailwindcss": "3.3.2",
     "typescript": "^5.1.3"
   },

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Theme } from '../../theme';
-import axiosInstance from '../../services/axiosInstance';
+import axiosInstance from '../../services/core/axiosInstance';
 import { SearchableDropdown } from '../../components/SearchableDropdown';
 import { Button } from '../../components/Button';
 

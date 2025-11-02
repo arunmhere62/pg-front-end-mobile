@@ -1,4 +1,4 @@
-import axiosInstance from './axiosInstance';
+import axiosInstance from "../core/axiosInstance";
 
 export interface AdvancePayment {
   s_no: number;

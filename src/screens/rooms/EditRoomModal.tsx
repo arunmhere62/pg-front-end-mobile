@@ -13,12 +13,12 @@ import {
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
-import { getRoomById, updateRoom, createRoom, Room } from '../../services/roomService';
+import { getRoomById, updateRoom, createRoom, Room } from '../../services/rooms/roomService';
 import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ImageUploadS3 } from '../../components/ImageUploadS3';
 import { getFolderConfig } from '../../config/aws.config';
-import { awsS3ServiceBackend as awsS3Service, S3Utils } from '../../services/awsS3ServiceBackend';
+import { awsS3ServiceBackend as awsS3Service, S3Utils } from '../../services/storage/awsS3ServiceBackend';
 
 interface EditRoomModalProps {
   visible: boolean;

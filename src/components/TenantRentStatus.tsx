@@ -10,7 +10,7 @@ import {
   Alert
 } from 'react-native';
 import { Theme } from '../theme';
-import { pgLocationService } from '../services/pgLocationService';
+import { pgLocationService } from '../services/organization/pgLocationService';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from './Card';

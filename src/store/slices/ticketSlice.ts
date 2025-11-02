@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import ticketService, { CreateTicketData, UpdateTicketData, AddCommentData, TicketFilters } from '../../services/ticketService';
+import ticketService, { CreateTicketData, UpdateTicketData, AddCommentData, TicketFilters } from '../../services/tickets/ticketService';
 
 interface Ticket {
   s_no: number;

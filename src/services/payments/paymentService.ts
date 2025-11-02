@@ -1,6 +1,6 @@
-import axiosInstance from './axiosInstance';
-import { API_ENDPOINTS } from '../config/api.config';
-import { Payment } from '../types';
+import { API_ENDPOINTS } from "@/config";
+import axiosInstance from "../core/axiosInstance";
+import { Payment } from "@/types";
 
 export const paymentService = {
   // Tenant Payments (Rent)

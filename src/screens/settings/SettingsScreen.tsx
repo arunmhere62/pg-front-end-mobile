@@ -8,7 +8,7 @@ import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { CONTENT_COLOR } from '@/constant';
-import notificationService from '../../services/notificationService';
+import notificationService from '../../services/notifications/notificationService';
 
 interface SettingsScreenProps {
   navigation: any;

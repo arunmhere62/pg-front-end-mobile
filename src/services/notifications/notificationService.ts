@@ -7,8 +7,8 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { apiClient } from './apiClient';
-import { FEATURES } from '../config/env.config';
+import { apiClient } from '../core/apiClient';
+import { FEATURES } from '../../config/env.config';
 import Constants from 'expo-constants';
 
 export interface NotificationData {

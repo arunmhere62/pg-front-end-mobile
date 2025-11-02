@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { pgLocationService } from '../../services/pgLocationService';
+import { pgLocationService } from '../../services/organization/pgLocationService';
 import { PGLocation } from '../../types';
 
 interface PGLocationState {

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../theme';
-import expenseService, { Expense, PaymentMethod } from '../services/expenseService';
+import expenseService, { Expense, PaymentMethod } from '../services/expenses/expenseService';
 import { DatePicker } from './DatePicker';
 
 interface AddEditExpenseModalProps {

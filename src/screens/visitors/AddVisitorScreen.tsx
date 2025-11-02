@@ -18,10 +18,10 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { SearchableDropdown } from '../../components/SearchableDropdown';
 import { DatePicker } from '../../components/DatePicker';
-import visitorService from '../../services/visitorService';
-import { getAllRooms } from '../../services/roomService';
-import { getAllBeds } from '../../services/bedService';
-import axiosInstance from '../../services/axiosInstance';
+import visitorService from '../../services/visitors/visitorService';
+import { getAllRooms } from '../../services/rooms/roomService';
+import { getAllBeds } from '../../services/rooms/bedService';
+import axiosInstance from '../../services/core/axiosInstance';
 import { CONTENT_COLOR } from '@/constant';
 
 interface AddVisitorScreenProps {

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import visitorService, { Visitor, GetVisitorsParams } from '../../services/visitorService';
+import visitorService, { Visitor, GetVisitorsParams } from '../../services/visitors/visitorService';
 
 interface VisitorState {
   visitors: Visitor[];

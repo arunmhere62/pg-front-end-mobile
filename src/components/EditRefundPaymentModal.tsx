@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../theme';
-import { RefundPayment } from '../services/refundPaymentService';
 import { DatePicker } from './DatePicker';
+import { RefundPayment } from '@/services/payments/refundPaymentService';
 
 interface EditRefundPaymentModalProps {
   visible: boolean;

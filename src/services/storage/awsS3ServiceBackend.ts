@@ -7,8 +7,8 @@
  * - Direct S3 uploads
  */
 
-import axiosInstance from './axiosInstance';
-import { getS3Config } from '../config/aws.config';
+import axiosInstance from '../core/axiosInstance';
+import { getS3Config } from '../../config/aws.config';
 
 const s3Config = getS3Config();
 

@@ -16,8 +16,8 @@ import {
 import { Theme } from '../theme';
 import { ImageUploadS3 } from './ImageUploadS3';
 import { getFolderConfig } from '../config/aws.config';
-import { awsS3ServiceBackend as awsS3Service, S3Utils } from '../services/awsS3ServiceBackend';
-import { createBed, updateBed, Bed } from '../services/bedService';
+import { awsS3ServiceBackend as awsS3Service, S3Utils } from '../services/storage/awsS3ServiceBackend';
+import { createBed, updateBed, Bed } from '../services/rooms/bedService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 

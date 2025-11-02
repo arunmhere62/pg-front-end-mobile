@@ -5,7 +5,7 @@ import {
   Organization,
   OrganizationStats,
   GetOrganizationsParams,
-} from '../../services/organizationService';
+} from '../../services/organization/organizationService';
 
 interface OrganizationState {
   organizations: Organization[];

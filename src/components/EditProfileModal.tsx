@@ -16,7 +16,7 @@ import { Theme } from '../theme';
 import { User } from '../types';
 import { SearchableDropdown } from './SearchableDropdown';
 import { ImageUpload } from './ImageUpload';
-import axiosInstance from '../services/axiosInstance';
+import axiosInstance from '../services/core/axiosInstance';
 
 interface EditProfileModalProps {
   visible: boolean;

@@ -9,7 +9,7 @@ import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { OTPInput } from '../../components/OTPInput';
-import notificationService from '../../services/notificationService';
+import notificationService from '../../services/notifications/notificationService';
 import { FEATURES } from '../../config/env.config';
 
 interface OTPVerificationScreenProps {

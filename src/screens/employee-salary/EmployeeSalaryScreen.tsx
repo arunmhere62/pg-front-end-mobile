@@ -16,7 +16,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { Ionicons } from '@expo/vector-icons';
 import { CONTENT_COLOR } from '@/constant';
-import employeeSalaryService, { EmployeeSalary, PaymentMethod } from '../../services/employeeSalaryService';
+import employeeSalaryService, { EmployeeSalary, PaymentMethod } from '../../services/employees/employeeSalaryService';
 import { AddEditEmployeeSalaryModal } from '@/components/AddEditEmployeeSalaryModal';
 
 interface EmployeeSalaryScreenProps {

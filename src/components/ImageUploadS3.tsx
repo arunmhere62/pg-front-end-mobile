@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Theme } from '../theme';
-import { awsS3ServiceBackend as awsS3Service, S3Utils } from '../services/awsS3ServiceBackend';
+import { awsS3ServiceBackend as awsS3Service, S3Utils } from '../services/storage/awsS3ServiceBackend';
 import { getFolderConfig } from '../config/aws.config';
 
 interface ImageUploadS3Props {
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: Theme.colors.text,
+    color: Theme.colors.text.primary,
     marginBottom: 8,
   },
   headerRow: {
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 8,
     backgroundColor: Theme.colors.border,
-  },
+  } as const,
   progressOverlay: {
     position: 'absolute',
     top: 12,
@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Theme.colors.background,
+    backgroundColor: Theme.colors.background.primary,
   },
   addIconContainer: {
     marginBottom: 4,
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
   helpContainer: {
     marginTop: 16,
     padding: 16,
-    backgroundColor: Theme.colors.backgroundSecondary,
+    backgroundColor: Theme.colors.background.secondary,
     borderRadius: 8,
     alignItems: 'center',
   },

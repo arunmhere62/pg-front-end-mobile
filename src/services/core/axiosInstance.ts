@@ -1,7 +1,13 @@
 import axios from 'axios';
-import { API_BASE_URL } from '../config';
-import { store } from '../store';
-import { networkLogger } from '../utils/networkLogger';
+import { API_BASE_URL } from '../../config';
+import { store } from '../../store';
+import { networkLogger } from '../../utils/networkLogger';
+
+const needsPgHeader = (url?: string) => {
+  if (!url) return false;
+  const path = (url.split('?')[0] || '').toString();
+  return /^\/(tenants|rooms|beds|advance-payments|refund-payments|payments|pending-payments)(\/|$)/.test(path);
+};
 
 // Create axios instance
 const axiosInstance = axios.create({
@@ -37,6 +43,13 @@ axiosInstance.interceptors.request.use(
     const selectedPGLocationId = state.pgLocations.selectedPGLocationId;
     if (selectedPGLocationId) {
       config.headers['X-PG-Location-Id'] = selectedPGLocationId.toString();
+    }
+
+    const hasPgHeader = Boolean(
+      (config.headers as any)['X-PG-Location-Id'] || (config.headers as any)['x-pg-location-id']
+    );
+    if (needsPgHeader(config.url) && !hasPgHeader) {
+      return Promise.reject(new Error('Missing required headers: X-PG-Location-Id'));
     }
 
     // Store request start time and log ID
@@ -103,3 +116,4 @@ axiosInstance.interceptors.response.use(
 );
 
 export default axiosInstance;
+

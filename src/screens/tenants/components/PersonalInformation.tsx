@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { Card } from '../../../components/Card';
 import { Theme } from '../../../theme';
-import { Tenant } from '../../../services/tenantService';
+import { Tenant } from '../../../services/tenants/tenantService';
 
 interface PersonalInformationProps {
   tenant: Tenant;

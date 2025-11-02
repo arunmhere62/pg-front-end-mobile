@@ -21,7 +21,7 @@ import { ScreenLayout } from '../../components/ScreenLayout';
 import { ImageUpload } from '../../components/ImageUpload';
 import { DatePicker } from '../../components/DatePicker';
 import { SearchableDropdown } from '../../components/SearchableDropdown';
-import axiosInstance from '../../services/axiosInstance';
+import axiosInstance from '../../services/core/axiosInstance';
 import { CONTENT_COLOR } from '@/constant';
 
 interface AddTenantScreenProps {

@@ -12,15 +12,15 @@ import { ScreenLayout } from '../../components/ScreenLayout';
 import { Ionicons } from '@expo/vector-icons';
 import { DatePicker } from '../../components/DatePicker';
 import { Payment } from '../../types';
-import { getAllRooms, Room } from '../../services/roomService';
-import { getAllBeds, Bed } from '../../services/bedService';
-import { paymentService } from '../../services/paymentService';
+import { getAllRooms, Room } from '../../services/rooms/roomService';
+import { getAllBeds, Bed } from '../../services/rooms/bedService';
 import { Alert } from 'react-native';
 import { EditRentPaymentModal } from '../../components/EditRentPaymentModal';
 import { EditAdvancePaymentModal } from '../../components/EditAdvancePaymentModal';
 import { EditRefundPaymentModal } from '../../components/EditRefundPaymentModal';
-import advancePaymentService, { AdvancePayment } from '../../services/advancePaymentService';
-import refundPaymentService, { RefundPayment } from '../../services/refundPaymentService';
+import advancePaymentService, { AdvancePayment } from '../../services/payments/advancePaymentService';
+import refundPaymentService, { RefundPayment } from '../../services/payments/refundPaymentService';
+import { paymentService } from '@/services/payments/paymentService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 

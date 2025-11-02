@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../theme';
-import { AdvancePayment } from '../services/advancePaymentService';
 import { DatePicker } from './DatePicker';
+import { AdvancePayment } from '@/services/payments/advancePaymentService';
 
 interface EditAdvancePaymentModalProps {
   visible: boolean;

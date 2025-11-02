@@ -28,7 +28,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { Card } from '../../components/Card';
 import { SearchableDropdown } from '../../components/SearchableDropdown';
-import axiosInstance from '../../services/axiosInstance';
+import axiosInstance from '../../services/core/axiosInstance';
 
 interface PGLocationsScreenProps {
   navigation: any;

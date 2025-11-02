@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { paymentService } from '../../services/paymentService';
 import { Payment } from '../../types';
+import { paymentService } from '@/services/payments/paymentService';
 
 interface PaymentState {
   payments: Payment[];
@@ -23,7 +23,7 @@ const initialState: PaymentState = {
 
 export const fetchPayments = createAsyncThunk(
   'payments/fetchAll',
-  async (params?: {
+  async (params: {
     tenant_id?: number;
     status?: string;
     page?: number;
@@ -35,7 +35,7 @@ export const fetchPayments = createAsyncThunk(
     month?: string;
     year?: number;
     append?: boolean; // Flag to append data for infinite scroll
-  }, { rejectWithValue }) => {
+  } = {}, { rejectWithValue }) => {
     try {
       const response = await paymentService.getTenantPayments(params);
       return { ...response, append: params?.append || false };

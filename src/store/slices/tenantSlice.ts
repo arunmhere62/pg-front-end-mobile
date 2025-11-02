@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import * as tenantService from '../../services/tenantService';
-import { Tenant, GetTenantsParams, CreateTenantDto } from '../../services/tenantService';
+import * as tenantService from '../../services/tenants/tenantService';
+import { Tenant, GetTenantsParams, CreateTenantDto } from '../../services/tenants/tenantService';
 
 interface TenantState {
   tenants: Tenant[];

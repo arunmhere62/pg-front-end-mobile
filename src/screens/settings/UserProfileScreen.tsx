@@ -21,7 +21,7 @@ import { EditProfileModal } from '../../components/EditProfileModal';
 import { ChangePasswordModal } from '../../components/ChangePasswordModal';
 import userService from '../../services/userService';
 import { updateUser } from '../../store/slices/authSlice';
-import axiosInstance from '../../services/axiosInstance';
+import axiosInstance from '../../services/core/axiosInstance';
 
 interface UserProfileScreenProps {
   navigation: any;

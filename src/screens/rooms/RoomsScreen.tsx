@@ -12,8 +12,8 @@ import {
 import { useSelector } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
 import { RootState } from '../../store';
-import { getAllRooms, deleteRoom, Room, getRoomById } from '../../services/roomService';
-import { awsS3ServiceBackend as awsS3Service, S3Utils } from '../../services/awsS3ServiceBackend';
+import { getAllRooms, deleteRoom, Room, getRoomById } from '../../services/rooms/roomService';
+import { awsS3ServiceBackend as awsS3Service, S3Utils } from '../../services/storage/awsS3ServiceBackend';
 import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';

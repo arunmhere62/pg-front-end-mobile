@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
-import { getRoomById, deleteRoom, Room } from '../../services/roomService';
-import { getBedsByRoomId, deleteBed, Bed } from '../../services/bedService';
+import { getRoomById, deleteRoom, Room } from '../../services/rooms/roomService';
+import { getBedsByRoomId, deleteBed, Bed } from '../../services/rooms/bedService';
 import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';

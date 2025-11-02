@@ -1,47 +1,43 @@
-import axiosInstance from './axiosInstance';
+import axiosInstance from '../core/axiosInstance';
 
-export interface Bed {
+export interface Room {
   s_no: number;
-  bed_no: string;
-  room_id: number;
-  pg_id?: number;
-  is_occupied: boolean;
+  room_id?: string;
+  pg_id: number;
+  room_no: string;
+  rent_price?: number;
   images?: any;
   created_at?: string;
   updated_at?: string;
-  rooms?: {
+  is_deleted?: boolean;
+  pg_locations?: {
     s_no: number;
-    room_no: string;
-    pg_locations?: {
-      s_no: number;
-      location_name: string;
-    };
+    location_name: string;
   };
-  tenants?: Array<{
+  beds?: Array<{
     s_no: number;
-    name: string;
-    phone_no: string;
-    status: string;
+    bed_no: string;
   }>;
+  total_beds?: number;
 }
 
-export interface CreateBedDto {
-  room_id: number;
-  bed_no: string;
-  pg_id?: number;
+export interface CreateRoomDto {
+  pg_id: number;
+  room_no: string;
+  rent_price?: number;
   images?: any;
 }
 
-export interface GetBedsParams {
+export interface GetRoomsParams {
   page?: number;
   limit?: number;
-  room_id?: number;
+  pg_id?: number;
   search?: string;
 }
 
-export interface GetBedsResponse {
+export interface GetRoomsResponse {
   success: boolean;
-  data: Bed[];
+  data: Room[];
   pagination: {
     page: number;
     limit: number;
@@ -51,26 +47,26 @@ export interface GetBedsResponse {
   };
 }
 
-export interface BedResponse {
+export interface RoomResponse {
   success: boolean;
-  data: Bed;
+  message?: string;
+  data: Room;
 }
 
 /**
- * Get all beds with filters
+ * Get all rooms with filters
  */
-export const getAllBeds = async (
-  params: GetBedsParams = {},
+export const getAllRooms = async (
+  params: GetRoomsParams = {},
   headers?: { pg_id?: number; organization_id?: number; user_id?: number }
-): Promise<GetBedsResponse> => {
-  const { page = 1, limit = 100, room_id, search } = params;
-
+): Promise<GetRoomsResponse> => {
+  const { page = 1, limit = 100, pg_id, search } = params;
+  
   const queryParams = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
   });
 
-  if (room_id) queryParams.append('room_id', room_id.toString());
   if (search) queryParams.append('search', search);
 
   const requestHeaders: any = {};
@@ -78,7 +74,7 @@ export const getAllBeds = async (
   if (headers?.organization_id) requestHeaders['X-Organization-Id'] = headers.organization_id.toString();
   if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
 
-  const response = await axiosInstance.get<GetBedsResponse>(`/beds?${queryParams.toString()}`, {
+  const response = await axiosInstance.get<GetRoomsResponse>(`/rooms?${queryParams.toString()}`, {
     headers: requestHeaders,
   });
 
@@ -86,37 +82,18 @@ export const getAllBeds = async (
 };
 
 /**
- * Get beds by room ID
+ * Get room by ID
  */
-export const getBedsByRoomId = async (
-  roomId: number,
-  headers?: { pg_id?: number; organization_id?: number; user_id?: number }
-): Promise<GetBedsResponse> => {
-  const requestHeaders: any = {};
-  if (headers?.pg_id) requestHeaders['X-PG-Location-Id'] = headers.pg_id.toString();
-  if (headers?.organization_id) requestHeaders['X-Organization-Id'] = headers.organization_id.toString();
-  if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
-
-  const response = await axiosInstance.get<GetBedsResponse>(`/beds/room/${roomId}`, {
-    headers: requestHeaders,
-  });
-
-  return response.data;
-};
-
-/**
- * Get bed by ID
- */
-export const getBedById = async (
+export const getRoomById = async (
   id: number,
   headers?: { pg_id?: number; organization_id?: number; user_id?: number }
-): Promise<BedResponse> => {
+): Promise<RoomResponse> => {
   const requestHeaders: any = {};
   if (headers?.pg_id) requestHeaders['X-PG-Location-Id'] = headers.pg_id.toString();
   if (headers?.organization_id) requestHeaders['X-Organization-Id'] = headers.organization_id.toString();
   if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
 
-  const response = await axiosInstance.get<BedResponse>(`/beds/${id}`, {
+  const response = await axiosInstance.get<RoomResponse>(`/rooms/${id}`, {
     headers: requestHeaders,
   });
 
@@ -124,18 +101,18 @@ export const getBedById = async (
 };
 
 /**
- * Create a new bed
+ * Create a new room
  */
-export const createBed = async (
-  data: CreateBedDto,
+export const createRoom = async (
+  data: CreateRoomDto,
   headers?: { pg_id?: number; organization_id?: number; user_id?: number }
-): Promise<BedResponse> => {
+): Promise<RoomResponse> => {
   const requestHeaders: any = {};
   if (headers?.pg_id) requestHeaders['X-PG-Location-Id'] = headers.pg_id.toString();
   if (headers?.organization_id) requestHeaders['X-Organization-Id'] = headers.organization_id.toString();
   if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
 
-  const response = await axiosInstance.post<BedResponse>('/beds', data, {
+  const response = await axiosInstance.post<RoomResponse>('/rooms', data, {
     headers: requestHeaders,
   });
 
@@ -143,19 +120,19 @@ export const createBed = async (
 };
 
 /**
- * Update a bed
+ * Update a room
  */
-export const updateBed = async (
+export const updateRoom = async (
   id: number,
-  data: Partial<CreateBedDto>,
+  data: Partial<CreateRoomDto>,
   headers?: { pg_id?: number; organization_id?: number; user_id?: number }
-): Promise<BedResponse> => {
+): Promise<RoomResponse> => {
   const requestHeaders: any = {};
   if (headers?.pg_id) requestHeaders['X-PG-Location-Id'] = headers.pg_id.toString();
   if (headers?.organization_id) requestHeaders['X-Organization-Id'] = headers.organization_id.toString();
   if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
 
-  const response = await axiosInstance.patch<BedResponse>(`/beds/${id}`, data, {
+  const response = await axiosInstance.patch<RoomResponse>(`/rooms/${id}`, data, {
     headers: requestHeaders,
   });
 
@@ -163,9 +140,9 @@ export const updateBed = async (
 };
 
 /**
- * Delete a bed
+ * Delete a room
  */
-export const deleteBed = async (
+export const deleteRoom = async (
   id: number,
   headers?: { pg_id?: number; organization_id?: number; user_id?: number }
 ): Promise<{ success: boolean; message: string }> => {
@@ -174,7 +151,7 @@ export const deleteBed = async (
   if (headers?.organization_id) requestHeaders['X-Organization-Id'] = headers.organization_id.toString();
   if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
 
-  const response = await axiosInstance.delete<{ success: boolean; message: string }>(`/beds/${id}`, {
+  const response = await axiosInstance.delete<{ success: boolean; message: string }>(`/rooms/${id}`, {
     headers: requestHeaders,
   });
 
