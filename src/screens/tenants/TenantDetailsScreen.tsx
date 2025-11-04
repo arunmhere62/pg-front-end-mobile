@@ -28,6 +28,8 @@ import { AddRefundPaymentModal } from '../../components/AddRefundPaymentModal';
 import { EditRentPaymentModal } from '../../components/EditRentPaymentModal';
 import { EditAdvancePaymentModal } from '../../components/EditAdvancePaymentModal';
 import { Ionicons } from '@expo/vector-icons';
+import { ReceiptPdfGenerator } from '@/services/receipt/receiptPdfGenerator';
+import { CompactReceiptGenerator } from '@/services/receipt/compactReceiptGenerator';
 import {
   TenantHeader,
   PendingPaymentAlert,
@@ -81,6 +83,11 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
   // Edit advance payment modal state
   const [editAdvancePaymentModalVisible, setEditAdvancePaymentModalVisible] = useState(false);
   const [editingAdvancePayment, setEditingAdvancePayment] = useState<any>(null);
+
+  // Receipt modal state
+  const [receiptModalVisible, setReceiptModalVisible] = useState(false);
+  const [receiptData, setReceiptData] = useState<any>(null);
+  const receiptRef = React.useRef<View>(null);
 
   useEffect(() => {
     loadTenantDetails();
@@ -207,6 +214,69 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
         },
       ]
     );
+  };
+
+  // Receipt handlers
+  const prepareReceiptData = (payment: any) => {
+    return {
+      receiptNumber: `RCP-${payment.s_no}-${new Date(payment.payment_date).getFullYear()}`,
+      paymentDate: payment.payment_date,
+      tenantName: currentTenant?.name || '',
+      tenantPhone: currentTenant?.phone_no || '',
+      pgName: currentTenant?.pg_locations?.location_name || 'PG',
+      roomNumber: payment.rooms?.room_no || currentTenant?.rooms?.room_no || '',
+      bedNumber: payment.beds?.bed_no || currentTenant?.beds?.bed_no || '',
+      rentPeriod: {
+        startDate: payment.start_date,
+        endDate: payment.end_date,
+      },
+      actualRent: Number(payment.actual_rent_amount || 0),
+      amountPaid: Number(payment.amount_paid || 0),
+      paymentMethod: payment.payment_method || 'CASH',
+      remarks: payment.remarks,
+    };
+  };
+
+  const handleViewReceipt = (payment: any) => {
+    const data = prepareReceiptData(payment);
+    setReceiptData(data);
+    setReceiptModalVisible(true);
+  };
+
+  const handleWhatsAppReceipt = async (payment: any) => {
+    try {
+      const data = prepareReceiptData(payment);
+      setReceiptData(data);
+      
+      // Wait for component to render
+      setTimeout(async () => {
+        await CompactReceiptGenerator.shareViaWhatsApp(
+          receiptRef,
+          data,
+          currentTenant?.phone_no || ''
+        );
+        setReceiptData(null);
+      }, 100);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send via WhatsApp');
+      setReceiptData(null);
+    }
+  };
+
+  const handleShareReceipt = async (payment: any) => {
+    try {
+      const data = prepareReceiptData(payment);
+      setReceiptData(data);
+      
+      // Wait for component to render
+      setTimeout(async () => {
+        await CompactReceiptGenerator.shareImage(receiptRef);
+        setReceiptData(null);
+      }, 100);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to share receipt');
+      setReceiptData(null);
+    }
   };
 
   const handleEditAdvancePayment = (payment: any) => {
@@ -619,6 +689,68 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                         </View>
                       )}
                     </View>
+
+                    {/* Receipt Buttons */}
+                    {payment.status === 'PAID' && (
+                      <View style={{ flexDirection: 'row', gap: 6, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                        <TouchableOpacity
+                          onPress={() => handleViewReceipt(payment)}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: 10,
+                            backgroundColor: '#FEF3C7',
+                            borderRadius: 8,
+                            gap: 6,
+                          }}
+                        >
+                          <Ionicons name="eye-outline" size={18} color="#F59E0B" />
+                          <Text style={{ color: '#F59E0B', fontSize: 12, fontWeight: '600' }}>
+                            View
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={() => handleWhatsAppReceipt(payment)}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: 10,
+                            backgroundColor: '#F0FDF4',
+                            borderRadius: 8,
+                            gap: 6,
+                          }}
+                        >
+                          <Ionicons name="logo-whatsapp" size={18} color="#10B981" />
+                          <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '600' }}>
+                            WhatsApp
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={() => handleShareReceipt(payment)}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: 10,
+                            backgroundColor: '#EFF6FF',
+                            borderRadius: 8,
+                            gap: 6,
+                          }}
+                        >
+                          <Ionicons name="share-social-outline" size={18} color="#3B82F6" />
+                          <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '600' }}>
+                            Share
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
                 ))
               ) : (
@@ -1336,6 +1468,67 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
         }}
         onSave={handleUpdateAdvancePayment}
       />
+
+      {/* Receipt View Modal */}
+      <Modal
+        visible={receiptModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReceiptModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#FFF', borderRadius: 12, padding: 20, maxWidth: '90%' }}>
+            {receiptData && (
+              <CompactReceiptGenerator.ReceiptComponent data={receiptData} />
+            )}
+            
+            {/* Action Buttons */}
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
+              <TouchableOpacity
+                onPress={() => setReceiptModalVisible(false)}
+                style={{
+                  flex: 1,
+                  padding: 12,
+                  backgroundColor: '#F3F4F6',
+                  borderRadius: 8,
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ color: '#6B7280', fontWeight: '600' }}>Close</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    await CompactReceiptGenerator.shareImage(receiptRef);
+                    setReceiptModalVisible(false);
+                  } catch (error) {
+                    Alert.alert('Error', 'Failed to share');
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: 12,
+                  backgroundColor: '#3B82F6',
+                  borderRadius: 8,
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ color: '#FFF', fontWeight: '600' }}>Share</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Hidden receipt for capture (off-screen) */}
+      {receiptData && !receiptModalVisible && (
+        <View style={{ position: 'absolute', left: -9999 }}>
+          <View ref={receiptRef} collapsable={false}>
+            <CompactReceiptGenerator.ReceiptComponent data={receiptData} />
+          </View>
+        </View>
+      )}
       </View>
     </ScreenLayout>
   );
