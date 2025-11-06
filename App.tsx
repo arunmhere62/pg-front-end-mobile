@@ -6,14 +6,21 @@ import { store, persistor } from './src/store';
 import { ActivityIndicator, View, StatusBar } from 'react-native';
 import { NetworkLoggerModal } from './src/components/NetworkLoggerModal';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { NetworkStatusProvider } from './src/providers/NetworkStatusProvider';
 import { Theme } from './src/theme';
 import { AppNavigator } from '@/navigation/AppNavigator';
 import { setupGlobalErrorHandlers } from './src/utils/errorHandler';
+import { initializeGlobalErrorHandling } from './src/config/globalErrorHandler';
 
 export default function App() {
   useEffect(() => {
     // Initialize global error handlers
     setupGlobalErrorHandlers();
+    
+    // Initialize global axios error interceptors
+    initializeGlobalErrorHandling();
+    
+    console.log('✅ App initialized with global error handling');
   }, []);
 
   return (
@@ -28,9 +35,11 @@ export default function App() {
             }
             persistor={persistor}
           >
-            <StatusBar translucent backgroundColor="transparent" />
-            <AppNavigator />
-            <NetworkLoggerModal />
+            <NetworkStatusProvider>
+              <StatusBar translucent backgroundColor="transparent" />
+              <AppNavigator />
+              <NetworkLoggerModal />
+            </NetworkStatusProvider>
           </PersistGate>
         </Provider>
       </SafeAreaProvider>

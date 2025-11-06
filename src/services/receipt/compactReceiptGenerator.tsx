@@ -20,6 +20,7 @@ interface ReceiptData {
   amountPaid: number;
   paymentMethod: string;
   remarks?: string;
+  receiptType?: 'RENT' | 'ADVANCE'; // Add receipt type
 }
 
 export class CompactReceiptGenerator {
@@ -41,7 +42,9 @@ export class CompactReceiptGenerator {
         <View style={styles.header}>
           <Text style={styles.logo}>🏠</Text>
           <Text style={styles.companyName}>PG Management</Text>
-          <Text style={styles.receiptTitle}>RENT RECEIPT</Text>
+          <Text style={styles.receiptTitle}>
+            {data.receiptType === 'ADVANCE' ? 'ADVANCE RECEIPT' : 'RENT RECEIPT'}
+          </Text>
         </View>
 
         {/* Receipt Number & Date */}

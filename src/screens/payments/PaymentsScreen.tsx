@@ -1513,17 +1513,24 @@ export const PaymentsScreen: React.FC<PaymentsScreenProps> = ({ navigation }) =>
             </View>
           }
           ListEmptyComponent={
-            !(activeTab === 'RENT' ? loading : loadingAdvance) ? (
+            !(activeTab === 'RENT' ? loading : activeTab === 'ADVANCE' ? loadingAdvance : loadingRefund) ? (
               <View style={{ paddingVertical: 60, alignItems: 'center' }}>
                 <Ionicons name="receipt-outline" size={64} color={Theme.colors.text.tertiary} />
                 <Text style={{ fontSize: 18, fontWeight: '600', color: Theme.colors.text.primary, marginTop: 16 }}>
-                  No {activeTab === 'RENT' ? 'Rent' : 'Advance'} Payments Found
+                  No {activeTab === 'RENT' ? 'Rent' : activeTab === 'ADVANCE' ? 'Advance' : 'Refund'} Payments Found
                 </Text>
                 <Text style={{ fontSize: 14, color: Theme.colors.text.secondary, marginTop: 8 }}>
                   {getFilterCount() > 0 ? 'Try adjusting your filters' : 'No payment records available'}
                 </Text>
               </View>
-            ) : null
+            ) : (
+              <View style={{ paddingVertical: 60, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color={Theme.colors.primary} />
+                <Text style={{ fontSize: 14, color: Theme.colors.text.secondary, marginTop: 16 }}>
+                  Loading {activeTab === 'RENT' ? 'rent' : activeTab === 'ADVANCE' ? 'advance' : 'refund'} payments...
+                </Text>
+              </View>
+            )
           }
           ListFooterComponent={
             (activeTab === 'RENT' ? loading : activeTab === 'ADVANCE' ? loadingAdvance : loadingRefund) && currentPage > 1 ? (

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Theme } from '../../theme';
 import { useDispatch, useSelector } from 'react-redux';
@@ -15,6 +15,7 @@ import { TenantRentStatus } from '../../components/TenantRentStatus';
 import { QuickActions } from '../../components/QuickActions';
 import { pgLocationService } from '../../services/organization/pgLocationService';
 import * as tenantService from '../../services/tenants/tenantService';
+import { retryWithBackoff, categorizeError, ErrorInfo } from '../../utils/errorHandler';
 
 export const DashboardScreen: React.FC = () => {
   // All hooks must be called at the top level
@@ -36,59 +37,102 @@ export const DashboardScreen: React.FC = () => {
   const [noAdvanceTenants, setNoAdvanceTenants] = useState<tenantService.Tenant[]>([]);
   const [loadingNoAdvance, setLoadingNoAdvance] = useState(false);
   const [activeSection, setActiveSection] = useState<'summary' | 'rentStatus' | 'advance'>('summary');
+  
+  // Error tracking
+  const [errors, setErrors] = useState<{
+    summary?: ErrorInfo;
+    financial?: ErrorInfo;
+    rentStatus?: ErrorInfo;
+    noAdvance?: ErrorInfo;
+  }>({});
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     setIsMounted(true);
-    loadData();
+    // Step 1: Fetch PG locations first
+    initializeDashboard();
   }, []);
 
-  // Auto-select first PG location when locations are loaded
+  // Step 2: Auto-select first PG location when locations are loaded
   useEffect(() => {
     if (locations.length > 0 && !selectedPGLocationId) {
+      console.log('✅ Auto-selecting first PG location:', locations[0].location_name);
       dispatch(setSelectedPGLocation(locations[0].s_no));
     }
   }, [locations, selectedPGLocationId, dispatch]);
 
-  // Load summary when PG location changes
+  // Step 3: Load all PG-dependent data ONLY after PG location is selected
   useEffect(() => {
     if (selectedPGLocationId) {
-      loadSummary(selectedPGLocationId);
-      loadFinancialAnalytics(selectedPGLocationId, selectedMonths);
-      loadTenantRentStatus(selectedPGLocationId);
-      loadTenantsWithoutAdvance(selectedPGLocationId);
+      console.log('🚀 PG Location selected, loading dashboard data...');
+      loadAllDashboardData();
     }
   }, [selectedPGLocationId, selectedMonths]);
 
-  const loadData = async () => {
+  // Step 1: Initialize dashboard - fetch PG locations FIRST
+  const initializeDashboard = async () => {
     try {
+      console.log('📍 Step 1: Fetching PG locations...');
+      await dispatch(fetchPGLocations()).unwrap();
+      console.log('✅ PG locations fetched successfully');
+    } catch (error) {
+      console.error('❌ Error fetching PG locations:', error);
+    }
+  };
+
+  // Step 3: Load all dashboard data after PG location is selected
+  const loadAllDashboardData = async () => {
+    if (!selectedPGLocationId) {
+      console.warn('⚠️ Cannot load dashboard data: No PG location selected');
+      return;
+    }
+
+    try {
+      console.log('📊 Loading dashboard data for PG:', selectedPGLocationId);
+      
+      // Load all PG-dependent data in parallel
       await Promise.all([
+        loadSummary(selectedPGLocationId),
+        loadFinancialAnalytics(selectedPGLocationId, selectedMonths),
+        loadTenantRentStatus(selectedPGLocationId),
+        loadTenantsWithoutAdvance(selectedPGLocationId),
         dispatch(fetchTenants({
           page: 1,
           limit: 10,
-          pg_id: selectedPGLocationId || undefined,
+          pg_id: selectedPGLocationId,
         })),
-        dispatch(fetchPGLocations()),
         dispatch(fetchPayments({})),
       ]);
       
-      // Load summary if PG location is selected
-      if (selectedPGLocationId) {
-        loadSummary(selectedPGLocationId);
-      }
+      console.log('✅ Dashboard data loaded successfully');
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      console.error('❌ Error loading dashboard data:', error);
     }
   };
 
   const loadSummary = async (pgId: number) => {
     try {
       setLoadingSummary(true);
-      const response = await pgLocationService.getSummary(pgId);
+      setErrors(prev => ({ ...prev, summary: undefined }));
+      
+      const response = await retryWithBackoff(
+        () => pgLocationService.getSummary(pgId),
+        {
+          maxRetries: 2,
+          initialDelay: 1000,
+          onRetry: (attempt) => {
+            console.log(`🔄 Retrying summary API (attempt ${attempt})...`);
+          },
+        }
+      );
+      
       if (response.success) {
         setSummary(response.data);
       }
     } catch (error) {
-      console.error('Error loading summary:', error);
+      const errorInfo = categorizeError(error);
+      console.error(`❌ [${errorInfo.type.toUpperCase()}] Error loading summary:`, errorInfo.message);
+      setErrors(prev => ({ ...prev, summary: errorInfo }));
     } finally {
       setLoadingSummary(false);
     }
@@ -97,12 +141,26 @@ export const DashboardScreen: React.FC = () => {
   const loadFinancialAnalytics = async (pgId: number, months: number) => {
     try {
       setLoadingFinancial(true);
-      const response = await pgLocationService.getFinancialAnalytics(pgId, months);
+      setErrors(prev => ({ ...prev, financial: undefined }));
+      
+      const response = await retryWithBackoff(
+        () => pgLocationService.getFinancialAnalytics(pgId, months),
+        {
+          maxRetries: 2,
+          initialDelay: 1000,
+          onRetry: (attempt) => {
+            console.log(`🔄 Retrying financial analytics API (attempt ${attempt})...`);
+          },
+        }
+      );
+      
       if (response.success) {
         setFinancialData(response.data);
       }
     } catch (error) {
-      console.error('Error loading financial analytics:', error);
+      const errorInfo = categorizeError(error);
+      console.error(`❌ [${errorInfo.type.toUpperCase()}] Error loading financial analytics:`, errorInfo.message);
+      setErrors(prev => ({ ...prev, financial: errorInfo }));
     } finally {
       setLoadingFinancial(false);
     }
@@ -111,12 +169,26 @@ export const DashboardScreen: React.FC = () => {
   const loadTenantRentStatus = async (pgId: number) => {
     try {
       setLoadingRentStatus(true);
-      const response = await pgLocationService.getTenantRentPaymentStatus(pgId);
+      setErrors(prev => ({ ...prev, rentStatus: undefined }));
+      
+      const response = await retryWithBackoff(
+        () => pgLocationService.getTenantRentPaymentStatus(pgId),
+        {
+          maxRetries: 2,
+          initialDelay: 1000,
+          onRetry: (attempt) => {
+            console.log(`🔄 Retrying rent status API (attempt ${attempt})...`);
+          },
+        }
+      );
+      
       if (response.success) {
         setTenantsWithIssues(response.data);
       }
     } catch (error) {
-      console.error('Error loading tenant rent status:', error);
+      const errorInfo = categorizeError(error);
+      console.error(`❌ [${errorInfo.type.toUpperCase()}] Error loading rent status:`, errorInfo.message);
+      setErrors(prev => ({ ...prev, rentStatus: errorInfo }));
     } finally {
       setLoadingRentStatus(false);
     }
@@ -131,25 +203,95 @@ export const DashboardScreen: React.FC = () => {
     navigation.navigate(screen);
   }, [navigation]);
 
+  // Retry specific failed API
+  const handleRetry = useCallback((section: 'summary' | 'financial' | 'rentStatus' | 'noAdvance') => {
+    if (!selectedPGLocationId) return;
+    
+    setRetryCount(prev => prev + 1);
+    
+    switch (section) {
+      case 'summary':
+        loadSummary(selectedPGLocationId);
+        break;
+      case 'financial':
+        loadFinancialAnalytics(selectedPGLocationId, selectedMonths);
+        break;
+      case 'rentStatus':
+        loadTenantRentStatus(selectedPGLocationId);
+        break;
+      case 'noAdvance':
+        loadTenantsWithoutAdvance(selectedPGLocationId);
+        break;
+    }
+  }, [selectedPGLocationId, selectedMonths]);
+
+  // Show error banner if there are critical errors
+  const showErrorBanner = useCallback(() => {
+    const criticalErrors = Object.values(errors).filter(e => e && (e.type === 'network' || e.type === 'timeout'));
+    
+    if (criticalErrors.length > 0) {
+      const errorTypes = [...new Set(criticalErrors.map(e => e!.type))];
+      const message = errorTypes.includes('network') 
+        ? 'Network connection issue. Some data may not be available.'
+        : 'Server is slow to respond. Some data may be delayed.';
+      
+      Alert.alert(
+        'Connection Issue',
+        message,
+        [
+          { text: 'Retry All', onPress: () => selectedPGLocationId && loadAllDashboardData() },
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
+    }
+  }, [errors, selectedPGLocationId]);
+
+  // Show error banner when errors change
+  useEffect(() => {
+    const hasNewErrors = Object.values(errors).some(e => e !== undefined);
+    if (hasNewErrors && retryCount === 0) {
+      // Only show banner on first error, not on retries
+      showErrorBanner();
+    }
+  }, [errors]);
+
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadData();
+    
     if (selectedPGLocationId) {
-      await loadTenantRentStatus(selectedPGLocationId);
-      await loadTenantsWithoutAdvance(selectedPGLocationId);
+      console.log('🔄 Refreshing dashboard data...');
+      await loadAllDashboardData();
+    } else {
+      console.log('🔄 Refreshing PG locations...');
+      await initializeDashboard();
     }
+    
     setRefreshing(false);
   };
 
   const loadTenantsWithoutAdvance = async (pgId: number) => {
     try {
       setLoadingNoAdvance(true);
-      const res = await tenantService.getAllTenants({ pg_id: pgId, pending_advance: true, limit: 10, page: 1 });
+      setErrors(prev => ({ ...prev, noAdvance: undefined }));
+      
+      const res = await retryWithBackoff(
+        () => tenantService.getAllTenants({ pg_id: pgId, pending_advance: true, limit: 10, page: 1 }),
+        {
+          maxRetries: 2,
+          initialDelay: 1000,
+          onRetry: (attempt) => {
+            console.log(`🔄 Retrying no advance tenants API (attempt ${attempt})...`);
+          },
+        }
+      );
+      
       if (res.success) {
         setNoAdvanceTenants(res.data || []);
       }
-    } catch (e) {
-      console.error('Error loading tenants without advance:', e);
+    } catch (error) {
+      const errorInfo = categorizeError(error);
+      console.error(`❌ [${errorInfo.type.toUpperCase()}] Error loading no advance tenants:`, errorInfo.message);
+      setErrors(prev => ({ ...prev, noAdvance: errorInfo }));
     } finally {
       setLoadingNoAdvance(false);
     }
@@ -311,17 +453,59 @@ export const DashboardScreen: React.FC = () => {
 
             {/* PG Summary Section */}
             {selectedPGLocationId && (
-              <PGSummary summary={summary} loading={loadingSummary} />
+              <>
+                {errors.summary ? (
+                  <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+                    <View style={{ backgroundColor: '#FEF2F2', borderRadius: 12, padding: 16, borderLeftWidth: 4, borderLeftColor: '#EF4444' }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#DC2626', marginBottom: 8 }}>
+                        Failed to load summary
+                      </Text>
+                      <Text style={{ fontSize: 12, color: '#7F1D1D', marginBottom: 12 }}>
+                        {errors.summary.message}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => handleRetry('summary')}
+                        style={{ backgroundColor: '#EF4444', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, alignSelf: 'flex-start' }}
+                      >
+                        <Text style={{ color: 'white', fontWeight: '600', fontSize: 12 }}>Retry</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <PGSummary summary={summary} loading={loadingSummary} />
+                )}
+              </>
             )}
 
             {/* Financial Analytics Section */}
             {selectedPGLocationId && (
-              <FinancialAnalytics 
-                data={financialData} 
-                loading={loadingFinancial} 
-                selectedMonths={selectedMonths}
-                onMonthsChange={handleMonthsChange}
-              />
+              <>
+                {errors.financial ? (
+                  <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+                    <View style={{ backgroundColor: '#FEF2F2', borderRadius: 12, padding: 16, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#D97706', marginBottom: 8 }}>
+                        Failed to load financial analytics
+                      </Text>
+                      <Text style={{ fontSize: 12, color: '#92400E', marginBottom: 12 }}>
+                        {errors.financial.message}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => handleRetry('financial')}
+                        style={{ backgroundColor: '#F59E0B', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, alignSelf: 'flex-start' }}
+                      >
+                        <Text style={{ color: 'white', fontWeight: '600', fontSize: 12 }}>Retry</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <FinancialAnalytics 
+                    data={financialData} 
+                    loading={loadingFinancial} 
+                    selectedMonths={selectedMonths}
+                    onMonthsChange={handleMonthsChange}
+                  />
+                )}
+              </>
             )}
 
             {/* Summary content ends here */}
@@ -333,11 +517,32 @@ export const DashboardScreen: React.FC = () => {
           // Rent Status tab content
           <View style={{ flex: 1 }}>
             {selectedPGLocationId && (
-              <TenantRentStatus 
-                pgId={selectedPGLocationId} 
-                preloadedData={tenantsWithIssues} 
-                isLoading={loadingRentStatus} 
-              />
+              <>
+                {errors.rentStatus ? (
+                  <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+                    <View style={{ backgroundColor: '#FEF2F2', borderRadius: 12, padding: 16, borderLeftWidth: 4, borderLeftColor: '#EF4444' }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#DC2626', marginBottom: 8 }}>
+                        Failed to load rent status
+                      </Text>
+                      <Text style={{ fontSize: 12, color: '#7F1D1D', marginBottom: 12 }}>
+                        {errors.rentStatus.message}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => handleRetry('rentStatus')}
+                        style={{ backgroundColor: '#EF4444', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, alignSelf: 'flex-start' }}
+                      >
+                        <Text style={{ color: 'white', fontWeight: '600', fontSize: 12 }}>Retry</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <TenantRentStatus 
+                    pgId={selectedPGLocationId} 
+                    preloadedData={tenantsWithIssues} 
+                    isLoading={loadingRentStatus} 
+                  />
+                )}
+              </>
             )}
           </View>
         ) : (

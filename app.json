@@ -51,7 +51,8 @@
     "extra": {
       "eas": {
         "projectId": "0f6ecb0b-7511-427b-be33-74a4bd0207fe"
-      }
+      },
+      "apiBaseUrl": "https://pg-api-mobile.onrender.com/api/v1"
     }
   }
 }

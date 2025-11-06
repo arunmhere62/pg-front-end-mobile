@@ -1,10 +1,130 @@
 import { openNetworkLogger } from '../components/NetworkLoggerModal';
+import { AxiosError } from 'axios';
+
+export type ErrorType = 'network' | 'timeout' | 'server' | 'client' | 'unknown';
+
+export interface ErrorInfo {
+  type: ErrorType;
+  message: string;
+  isRetryable: boolean;
+  statusCode?: number;
+  originalError: any;
+}
+
+/**
+ * Categorize error type
+ */
+export const categorizeError = (error: any): ErrorInfo => {
+  const axiosError = error as AxiosError;
+  
+  // Network errors (no response from server)
+  if (axiosError.code === 'ERR_NETWORK' || axiosError.message === 'Network Error') {
+    return {
+      type: 'network',
+      message: 'No internet connection. Please check your network.',
+      isRetryable: true,
+      originalError: error,
+    };
+  }
+  
+  // Timeout errors
+  if (axiosError.code === 'ECONNABORTED' || axiosError.message?.includes('timeout')) {
+    return {
+      type: 'timeout',
+      message: 'Request timed out. Server is taking too long to respond.',
+      isRetryable: true,
+      originalError: error,
+    };
+  }
+  
+  // Server errors (5xx)
+  if (axiosError.response?.status && axiosError.response.status >= 500) {
+    return {
+      type: 'server',
+      message: 'Server error. Please try again later.',
+      isRetryable: true,
+      statusCode: axiosError.response.status,
+      originalError: error,
+    };
+  }
+  
+  // Client errors (4xx)
+  if (axiosError.response?.status && axiosError.response.status >= 400) {
+    return {
+      type: 'client',
+      message: (axiosError.response.data as any)?.message || 'Request failed. Please check your input.',
+      isRetryable: false,
+      statusCode: axiosError.response.status,
+      originalError: error,
+    };
+  }
+  
+  // Unknown errors
+  return {
+    type: 'unknown',
+    message: error?.message || 'An unexpected error occurred.',
+    isRetryable: false,
+    originalError: error,
+  };
+};
+
+/**
+ * Retry function with exponential backoff
+ */
+export const retryWithBackoff = async <T>(
+  fn: () => Promise<T>,
+  options: {
+    maxRetries?: number;
+    initialDelay?: number;
+    maxDelay?: number;
+    onRetry?: (attempt: number, error: any) => void;
+  } = {}
+): Promise<T> => {
+  const {
+    maxRetries = 3,
+    initialDelay = 1000,
+    maxDelay = 10000,
+    onRetry,
+  } = options;
+  
+  let lastError: any;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      const errorInfo = categorizeError(error);
+      
+      // Don't retry if error is not retryable or this is the last attempt
+      if (!errorInfo.isRetryable || attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Calculate delay with exponential backoff
+      const delay = Math.min(initialDelay * Math.pow(2, attempt), maxDelay);
+      
+      console.log(`🔄 Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+      
+      if (onRetry) {
+        onRetry(attempt + 1, error);
+      }
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+};
 
 /**
  * Global error handler that logs errors and optionally opens network logger
  */
 export const handleGlobalError = (error: any, context?: string) => {
-  console.error(`[Error${context ? ` - ${context}` : ''}]:`, error);
+  const errorInfo = categorizeError(error);
+  
+  console.error(`[${errorInfo.type.toUpperCase()} Error${context ? ` - ${context}` : ''}]:`, errorInfo.message);
   
   // Log error details
   if (error?.response) {
@@ -23,6 +143,8 @@ export const handleGlobalError = (error: any, context?: string) => {
   if (__DEV__ && error?.stack) {
     console.error('Stack Trace:', error.stack);
   }
+  
+  return errorInfo;
 };
 
 /**

@@ -237,6 +237,27 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
     };
   };
 
+  const prepareAdvanceReceiptData = (payment: any) => {
+    return {
+      receiptNumber: `ADV-${payment.s_no}-${new Date(payment.payment_date).getFullYear()}`,
+      paymentDate: payment.payment_date,
+      tenantName: currentTenant?.name || '',
+      tenantPhone: currentTenant?.phone_no || '',
+      pgName: currentTenant?.pg_locations?.location_name || 'PG',
+      roomNumber: payment.rooms?.room_no || currentTenant?.rooms?.room_no || '',
+      bedNumber: payment.beds?.bed_no || currentTenant?.beds?.bed_no || '',
+      rentPeriod: {
+        startDate: payment.payment_date,
+        endDate: payment.payment_date,
+      },
+      actualRent: Number(payment.amount_paid || 0),
+      amountPaid: Number(payment.amount_paid || 0),
+      paymentMethod: payment.payment_method || 'CASH',
+      remarks: payment.remarks,
+      receiptType: 'ADVANCE' as const,
+    };
+  };
+
   const handleViewReceipt = (payment: any) => {
     const data = prepareReceiptData(payment);
     setReceiptData(data);
@@ -266,6 +287,49 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
   const handleShareReceipt = async (payment: any) => {
     try {
       const data = prepareReceiptData(payment);
+      setReceiptData(data);
+      
+      // Wait for component to render
+      setTimeout(async () => {
+        await CompactReceiptGenerator.shareImage(receiptRef);
+        setReceiptData(null);
+      }, 100);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to share receipt');
+      setReceiptData(null);
+    }
+  };
+
+  // Advance payment receipt handlers
+  const handleViewAdvanceReceipt = (payment: any) => {
+    const data = prepareAdvanceReceiptData(payment);
+    setReceiptData(data);
+    setReceiptModalVisible(true);
+  };
+
+  const handleWhatsAppAdvanceReceipt = async (payment: any) => {
+    try {
+      const data = prepareAdvanceReceiptData(payment);
+      setReceiptData(data);
+      
+      // Wait for component to render
+      setTimeout(async () => {
+        await CompactReceiptGenerator.shareViaWhatsApp(
+          receiptRef,
+          data,
+          currentTenant?.phone_no || ''
+        );
+        setReceiptData(null);
+      }, 100);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send via WhatsApp');
+      setReceiptData(null);
+    }
+  };
+
+  const handleShareAdvanceReceipt = async (payment: any) => {
+    try {
+      const data = prepareAdvanceReceiptData(payment);
       setReceiptData(data);
       
       // Wait for component to render
@@ -942,6 +1006,74 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                         </View>
                       )}
                     </View>
+
+                    {/* Receipt Buttons - Only show for PAID status */}
+                    {payment.status === 'PAID' && (
+                      <View style={{ flexDirection: 'row', gap: 6, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#D1FAE5' }}>
+                        <TouchableOpacity
+                          onPress={() => handleViewAdvanceReceipt(payment)}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            paddingVertical: 8,
+                            paddingHorizontal: 12,
+                            backgroundColor: '#ECFDF5',
+                            borderRadius: 6,
+                            borderWidth: 1,
+                            borderColor: '#10B981',
+                          }}
+                        >
+                          <Ionicons name="receipt-outline" size={14} color="#10B981" />
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#10B981', marginLeft: 4 }}>
+                            View
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={() => handleWhatsAppAdvanceReceipt(payment)}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            paddingVertical: 8,
+                            paddingHorizontal: 12,
+                            backgroundColor: '#ECFDF5',
+                            borderRadius: 6,
+                            borderWidth: 1,
+                            borderColor: '#10B981',
+                          }}
+                        >
+                          <Ionicons name="logo-whatsapp" size={14} color="#10B981" />
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#10B981', marginLeft: 4 }}>
+                            WhatsApp
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={() => handleShareAdvanceReceipt(payment)}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            paddingVertical: 8,
+                            paddingHorizontal: 12,
+                            backgroundColor: '#ECFDF5',
+                            borderRadius: 6,
+                            borderWidth: 1,
+                            borderColor: '#10B981',
+                          }}
+                        >
+                          <Ionicons name="share-outline" size={14} color="#10B981" />
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#10B981', marginLeft: 4 }}>
+                            Share
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
                 ))
               ) : (

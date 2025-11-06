@@ -37,11 +37,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
               console.warn('⚠️ Failed to cleanup notifications:', error);
             }
             
+            // Dispatch logout action - this will update Redux state
+            // The AppNavigator will automatically switch to auth screens
             dispatch(logout());
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
+            
+            console.log('✅ User logged out successfully');
           },
         },
       ]

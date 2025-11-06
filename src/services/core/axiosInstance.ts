@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
-import { store } from '../../store';
+import { store, RootState } from '../../store';
 import { networkLogger } from '../../utils/networkLogger';
 
 const needsPgHeader = (url?: string) => {
@@ -21,7 +21,7 @@ const axiosInstance = axios.create({
 // Request interceptor - Add auth headers and log requests
 axiosInstance.interceptors.request.use(
   (config) => {
-    const state = store.getState();
+    const state = store.getState() as RootState;
     const { user, accessToken } = state.auth;
 
     // Add Authorization header
@@ -43,13 +43,15 @@ axiosInstance.interceptors.request.use(
     const selectedPGLocationId = state.pgLocations.selectedPGLocationId;
     if (selectedPGLocationId) {
       config.headers['X-PG-Location-Id'] = selectedPGLocationId.toString();
+      console.log(`📍 PG Location header added: ${selectedPGLocationId} for ${config.url}`);
     }
 
     const hasPgHeader = Boolean(
       (config.headers as any)['X-PG-Location-Id'] || (config.headers as any)['x-pg-location-id']
     );
     if (needsPgHeader(config.url) && !hasPgHeader) {
-      return Promise.reject(new Error('Missing required headers: X-PG-Location-Id'));
+      console.error('❌ API call blocked - No PG Location selected:', config.url);
+      return Promise.reject(new Error('⚠️ Please select a PG location first'));
     }
 
     // Store request start time and log ID

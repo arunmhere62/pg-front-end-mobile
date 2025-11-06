@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, Alert, KeyboardAvoidingView, Platform, ScrollView, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { sendOtp } from '../../store/slices/authSlice';
 import { AppDispatch, RootState } from '../../store';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { KeyboardAvoidingWrapper } from '../../components/KeyboardAvoidingWrapper';
 import { Theme } from '../../theme';
 
 interface LoginScreenProps {
@@ -48,63 +48,74 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: Theme.colors.background.primary }}>
-      <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: Theme.spacing.lg }}>
-          <View style={{ marginBottom: Theme.spacing.xl }}>
-            <Text style={{ fontSize: Theme.typography.fontSize['4xl'], fontWeight: Theme.typography.fontWeight.bold, color: Theme.colors.primary, textAlign: 'center', marginBottom: Theme.spacing.sm }}>
-              PG Management
-            </Text>
-            <Text style={{ fontSize: Theme.typography.fontSize.base, color: Theme.colors.text.secondary, textAlign: 'center' }}>
-              Login to manage your PG operations
-            </Text>
-          </View>
+    <KeyboardAvoidingWrapper
+      style={{ backgroundColor: Theme.colors.background.primary }}
+      contentContainerStyle={{ 
+        justifyContent: 'center', 
+        padding: Theme.spacing.lg 
+      }}
+    >
+      <View style={{ marginBottom: Theme.spacing.xl }}>
+        <Text style={{ 
+          fontSize: Theme.typography.fontSize['4xl'], 
+          fontWeight: Theme.typography.fontWeight.bold, 
+          color: Theme.colors.primary, 
+          textAlign: 'center', 
+          marginBottom: Theme.spacing.sm 
+        }}>
+          PG Management
+        </Text>
+        <Text style={{ 
+          fontSize: Theme.typography.fontSize.base, 
+          color: Theme.colors.text.secondary, 
+          textAlign: 'center' 
+        }}>
+          Login to manage your PG operations
+        </Text>
+      </View>
 
-          <Card  className="mb-6 shadow-none">
-            <Text className="text-2xl font-semibold text-dark mb-6">Login</Text>
-            
-            <Input
-              label="Phone Number"
-              placeholder="Enter your 10-digit phone number"
-              value={phone}
-              onChangeText={(text) => {
-                setPhone(text);
-                setPhoneError('');
-              }}
-              keyboardType="phone-pad"
-              maxLength={10}
-              error={phoneError}
-            />
+      <Card className="mb-6 shadow-none">
+        <Text className="text-2xl font-semibold text-dark mb-6">Login</Text>
+        
+        <Input
+          label="Phone Number"
+          placeholder="Enter your 10-digit phone number"
+          value={phone}
+          onChangeText={(text) => {
+            setPhone(text);
+            setPhoneError('');
+          }}
+          keyboardType="phone-pad"
+          maxLength={10}
+          error={phoneError}
+        />
 
-            <Button
-              title="Send OTP"
-              onPress={handleSendOtp}
-              loading={loading}
-              variant="primary"
-              size="md"
-            />
-             <Text className='mt-6' style={{ fontSize: Theme.typography.fontSize.sm, color: Theme.colors.text.secondary, textAlign: 'center', marginBottom: Theme.spacing.md }}>
-            You will receive a 6-digit OTP on your registered phone number
-          </Text>
+        <Button
+          title="Send OTP"
+          onPress={handleSendOtp}
+          loading={loading}
+          variant="primary"
+          size="md"
+        />
+        
+        <Text className='mt-6' style={{ 
+          fontSize: Theme.typography.fontSize.sm, 
+          color: Theme.colors.text.secondary, 
+          textAlign: 'center', 
+          marginBottom: Theme.spacing.md 
+        }}>
+          You will receive a 6-digit OTP on your registered phone number
+        </Text>
 
-          <View style={{ marginTop: Theme.spacing.lg }}>
-            <Button
-              title="Create New Account"
-              onPress={() => navigation.navigate('Signup')}
-              variant="outline"
-              size='md'
-            />
-          </View>
-          </Card>
-         
-          </ScrollView>
-
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </View>
+        <View style={{ marginTop: Theme.spacing.lg }}>
+          <Button
+            title="Create New Account"
+            onPress={() => navigation.navigate('Signup')}
+            variant="outline"
+            size='md'
+          />
+        </View>
+      </Card>
+    </KeyboardAvoidingWrapper>
   );
 };
