@@ -82,12 +82,20 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
           )}
           
           {/* Title and Subtitle */}
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-            <Text style={{ color: textColor, fontSize: 20, fontWeight: 'bold' }}>
+          <View style={{ flex: 1 }}>
+            <Text 
+              style={{ color: textColor, fontSize: 20, fontWeight: 'bold' }}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
               {title}
             </Text>
             {subtitle && (
-              <Text style={{ color: Theme.withOpacity(textColor, 0.8), fontSize: 13 }}>
+              <Text 
+                style={{ color: Theme.withOpacity(textColor, 0.8), fontSize: 13, marginTop: 2 }}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
                 {subtitle}
               </Text>
             )}

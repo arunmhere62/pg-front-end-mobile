@@ -1,8 +1,10 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { Ionicons } from '@expo/vector-icons';
 import { AppDispatch, RootState } from '../../store';
 import { logout } from '../../store/slices/authSlice';
+import { fetchSubscriptionStatus } from '../../store/slices/subscriptionSlice';
 import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -17,6 +19,11 @@ interface SettingsScreenProps {
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
+  const { subscriptionStatus, loading: subscriptionLoading } = useSelector((state: RootState) => state.subscription);
+
+  useEffect(() => {
+    dispatch(fetchSubscriptionStatus());
+  }, [dispatch]);
 
   const handleLogout = () => {
     Alert.alert(
@@ -72,6 +79,112 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
             </View>
             <Text className="text-xl font-bold text-dark">{user?.name || 'User'}</Text>
             <Text className="text-gray-600">{user?.phone || user?.email}</Text>
+          </View>
+        </Card>
+
+        {/* Subscription Card */}
+        <Card style={{ marginBottom: 16, padding: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: Theme.withOpacity(Theme.colors.primary, 0.1),
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: 12,
+            }}>
+              <Ionicons name="diamond" size={20} color={Theme.colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary }}>
+                Subscription
+              </Text>
+              {subscriptionLoading ? (
+                <ActivityIndicator size="small" color={Theme.colors.primary} style={{ alignSelf: 'flex-start', marginTop: 4 }} />
+              ) : subscriptionStatus?.has_active_subscription ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                  <Ionicons name="checkmark-circle" size={14} color={Theme.colors.secondary} style={{ marginRight: 4 }} />
+                  <Text style={{ fontSize: 13, color: Theme.colors.secondary, fontWeight: '600' }}>
+                    Active - {subscriptionStatus.subscription?.plan.name}
+                  </Text>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                  <Ionicons name="alert-circle" size={14} color={Theme.colors.warning} style={{ marginRight: 4 }} />
+                  <Text style={{ fontSize: 13, color: Theme.colors.warning, fontWeight: '600' }}>
+                    No Active Subscription
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Theme.colors.text.tertiary} />
+          </View>
+
+          {subscriptionStatus?.has_active_subscription && subscriptionStatus.days_remaining !== undefined && (
+            <View style={{
+              backgroundColor: Theme.colors.background.secondary,
+              padding: 10,
+              borderRadius: 8,
+              marginBottom: 12,
+            }}>
+              <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, marginBottom: 6 }}>
+                {subscriptionStatus.days_remaining} days remaining
+              </Text>
+              <View style={{
+                height: 4,
+                backgroundColor: Theme.colors.border,
+                borderRadius: 2,
+                overflow: 'hidden',
+              }}>
+                <View style={{
+                  height: '100%',
+                  width: `${(subscriptionStatus.days_remaining / (subscriptionStatus.subscription?.plan.duration || 30)) * 100}%`,
+                  backgroundColor: Theme.colors.primary,
+                }} />
+              </View>
+            </View>
+          )}
+
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('SubscriptionPlans')}
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                backgroundColor: Theme.colors.primary,
+                borderRadius: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="pricetags" size={16} color="#fff" style={{ marginRight: 6 }} />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: '#fff' }}>
+                View Plans
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('SubscriptionHistory')}
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                backgroundColor: Theme.colors.background.blueLight,
+                borderRadius: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1,
+                borderColor: Theme.colors.primary,
+              }}
+            >
+              <Ionicons name="time" size={16} color={Theme.colors.primary} style={{ marginRight: 6 }} />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.primary }}>
+                History
+              </Text>
+            </TouchableOpacity>
           </View>
         </Card>
 

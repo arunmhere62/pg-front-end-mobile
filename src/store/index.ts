@@ -8,6 +8,7 @@ import pgLocationReducer from './slices/pgLocationSlice';
 import paymentReducer from './slices/paymentSlice';
 import organizationReducer from './slices/organizationSlice';
 import ticketReducer from './slices/ticketSlice';
+import subscriptionReducer from './slices/subscriptionSlice';
 
 const persistConfig = {
   key: 'root',
@@ -23,6 +24,7 @@ const rootReducer = combineReducers({
   payments: paymentReducer,
   organizations: organizationReducer,
   tickets: ticketReducer,
+  subscription: subscriptionReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

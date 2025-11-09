@@ -39,6 +39,10 @@ import { AddVisitorScreen } from '@/screens/visitors/AddVisitorScreen';
 import { TicketsScreen } from '@/screens/tickets/TicketsScreen';
 import { CreateTicketScreen } from '@/screens/tickets/CreateTicketScreen';
 import { TicketDetailsScreen } from '@/screens/tickets/TicketDetailsScreen';
+import { SubscriptionPlansScreen } from '@/screens/subscription/SubscriptionPlansScreen';
+import { SubscriptionHistoryScreen } from '@/screens/subscription/SubscriptionHistoryScreen';
+import { PaymentOptionsScreen } from '@/screens/subscription/PaymentOptionsScreen';
+import { PaymentWebViewScreen } from '@/screens/subscription/PaymentWebViewScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -144,6 +148,10 @@ export const AppNavigator = () => {
             <Stack.Screen name="Tickets" component={TicketsScreen} />
             <Stack.Screen name="CreateTicket" component={CreateTicketScreen} />
             <Stack.Screen name="TicketDetails" component={TicketDetailsScreen} />
+            <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
+            <Stack.Screen name="SubscriptionHistory" component={SubscriptionHistoryScreen} />
+            <Stack.Screen name="PaymentOptions" component={PaymentOptionsScreen} />
+            <Stack.Screen name="PaymentWebView" component={PaymentWebViewScreen} />
           </>
         )}
       </Stack.Navigator>

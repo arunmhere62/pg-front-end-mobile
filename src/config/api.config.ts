@@ -1,5 +1,8 @@
+import Constants from 'expo-constants';
+
 export const API_CONFIG = {
-  BASE_URL: process.env.API_BASE_URL || 'http://172.20.10.2:5000/api/v1',
+  // Uses value from app.config.js which reads from .env
+  BASE_URL: Constants.expoConfig?.extra?.apiBaseUrl || 'http://172.20.10.2:3000/api/v1',
   TIMEOUT: 30000,
   HEADERS: {
     'Content-Type': 'application/json',
