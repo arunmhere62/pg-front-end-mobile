@@ -25,6 +25,30 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
     dispatch(fetchSubscriptionStatus());
   }, [dispatch]);
 
+  // Refresh subscription when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('🔄 Settings screen focused, refreshing subscription...');
+      dispatch(fetchSubscriptionStatus());
+    });
+    return unsubscribe;
+  }, [navigation, dispatch]);
+
+  // Debug log subscription status
+  useEffect(() => {
+    console.log('📊 Subscription Status:', {
+      hasActive: subscriptionStatus?.has_active_subscription,
+      subscription: subscriptionStatus?.subscription,
+      status: subscriptionStatus?.subscription?.status,
+      loading: subscriptionLoading,
+    });
+  }, [subscriptionStatus, subscriptionLoading]);
+
+  const handleRefreshSubscription = async () => {
+    console.log('🔄 Manual refresh triggered');
+    await dispatch(fetchSubscriptionStatus());
+  };
+
   const handleLogout = () => {
     Alert.alert(
       'Logout',
@@ -106,7 +130,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                   <Ionicons name="checkmark-circle" size={14} color={Theme.colors.secondary} style={{ marginRight: 4 }} />
                   <Text style={{ fontSize: 13, color: Theme.colors.secondary, fontWeight: '600' }}>
-                    Active - {subscriptionStatus.subscription?.plan.name}
+                    Active - {subscriptionStatus.subscription?.plan?.name || 'Unknown Plan'}
                   </Text>
                 </View>
               ) : (
@@ -139,7 +163,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
               }}>
                 <View style={{
                   height: '100%',
-                  width: `${(subscriptionStatus.days_remaining / (subscriptionStatus.subscription?.plan.duration || 30)) * 100}%`,
+                  width: `${(subscriptionStatus.days_remaining / (subscriptionStatus.subscription?.plan?.duration || 30)) * 100}%`,
                   backgroundColor: Theme.colors.primary,
                 }} />
               </View>
@@ -147,6 +171,23 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
           )}
 
           <View style={{ flexDirection: 'row', gap: 8 }}>
+            {/* Refresh Button */}
+            <TouchableOpacity
+              onPress={handleRefreshSubscription}
+              style={{
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                backgroundColor: Theme.colors.background.secondary,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: Theme.colors.border,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="refresh" size={18} color={Theme.colors.primary} />
+            </TouchableOpacity>
+
             <TouchableOpacity
               onPress={() => navigation.navigate('SubscriptionPlans')}
               style={{

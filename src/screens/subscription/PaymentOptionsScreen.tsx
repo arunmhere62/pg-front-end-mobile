@@ -90,6 +90,24 @@ export const PaymentOptionsScreen: React.FC<PaymentOptionsScreenProps> = ({ navi
             <Text style={styles.summaryLabel}>Duration</Text>
             <Text style={styles.summaryValue}>{plan.duration} days</Text>
           </View>
+
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Order ID</Text>
+            <Text style={[styles.summaryValue, { fontSize: 12 }]}>{orderId}</Text>
+          </View>
+          
+          {/* Plan Features */}
+          {plan.features && plan.features.length > 0 && (
+            <View style={styles.featuresContainer}>
+              <Text style={styles.featuresTitle}>What's Included:</Text>
+              {plan.features.slice(0, 3).map((feature: string, index: number) => (
+                <View key={index} style={styles.featureRow}>
+                  <Ionicons name="checkmark-circle" size={16} color={Theme.colors.secondary} />
+                  <Text style={styles.featureText}>{feature}</Text>
+                </View>
+              ))}
+            </View>
+          )}
           
           <View style={styles.divider} />
           
@@ -161,6 +179,25 @@ export const PaymentOptionsScreen: React.FC<PaymentOptionsScreenProps> = ({ navi
           <Text style={styles.securityText}>
             Your payment is secured with 256-bit SSL encryption
           </Text>
+        </View>
+
+        {/* UPI Payment Note */}
+        {selectedMethod === 'upi' && (
+          <View style={styles.upiNote}>
+            <Ionicons name="information-circle" size={18} color={Theme.colors.info} />
+            <Text style={styles.upiNoteText}>
+              If Google Pay is not detected, please select another UPI app (PhonePe, Paytm, etc.) or use Card/Net Banking option.
+            </Text>
+          </View>
+        )}
+
+        {/* Terms & Conditions */}
+        <View style={styles.termsContainer}>
+          <Text style={styles.termsTitle}>Important Information:</Text>
+          <Text style={styles.termsText}>• Payment will be processed securely via CCAvenue</Text>
+          <Text style={styles.termsText}>• Subscription activates immediately after successful payment</Text>
+          <Text style={styles.termsText}>• Refunds are subject to our refund policy</Text>
+          <Text style={styles.termsText}>• For support, contact us at support@example.com</Text>
         </View>
 
         {/* Spacer for button */}
@@ -398,5 +435,59 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
     marginRight: 8,
+  },
+  featuresContainer: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  featuresTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Theme.colors.text.primary,
+    marginBottom: 8,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  featureText: {
+    fontSize: 12,
+    color: Theme.colors.text.secondary,
+    marginLeft: 8,
+    flex: 1,
+  },
+  termsContainer: {
+    backgroundColor: Theme.colors.background.blueLight,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  termsTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Theme.colors.text.primary,
+    marginBottom: 8,
+  },
+  termsText: {
+    fontSize: 11,
+    color: Theme.colors.text.secondary,
+    marginBottom: 4,
+    lineHeight: 16,
+  },
+  upiNote: {
+    backgroundColor: Theme.withOpacity(Theme.colors.info, 0.1),
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  upiNoteText: {
+    fontSize: 12,
+    color: Theme.colors.info,
+    marginLeft: 8,
+    flex: 1,
+    lineHeight: 18,
   },
 });

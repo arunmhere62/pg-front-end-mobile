@@ -400,7 +400,7 @@ export const SubscriptionPlansScreen: React.FC<SubscriptionPlansScreenProps> = (
                 <Text style={{ fontSize: 18, fontWeight: '700', color: Theme.colors.text.primary, marginBottom: 4 }}>
                   {subscriptionStatus.has_active_subscription ? 'Active Subscription' : 'No Active Subscription'}
                 </Text>
-                {subscriptionStatus.subscription && (
+                {subscriptionStatus.subscription?.plan && (
                   <Text style={{ fontSize: 14, color: Theme.colors.text.secondary }}>
                     {subscriptionStatus.subscription.plan.name}
                   </Text>
@@ -427,7 +427,7 @@ export const SubscriptionPlansScreen: React.FC<SubscriptionPlansScreenProps> = (
                 }}>
                   <View style={{
                     height: '100%',
-                    width: `${(subscriptionStatus.days_remaining / (subscriptionStatus.subscription?.plan.duration || 30)) * 100}%`,
+                    width: `${(subscriptionStatus.days_remaining / (subscriptionStatus.subscription?.plan?.duration || 30)) * 100}%`,
                     backgroundColor: Theme.colors.primary,
                   }} />
                 </View>
@@ -471,7 +471,30 @@ export const SubscriptionPlansScreen: React.FC<SubscriptionPlansScreenProps> = (
             </Text>
           </View>
         ) : (
-          plans.map((plan, index) => renderPlanCard(plan, index))
+          <>
+            {/* Showing X of Y indicator */}
+            <View style={{
+              alignItems: 'center',
+              marginBottom: 16,
+            }}>
+              <View style={{
+                backgroundColor: Theme.colors.text.primary,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+              }}>
+                <Text style={{
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: '600',
+                }}>
+                  {plans.length} {plans.length === 1 ? 'Plan' : 'Plans'} Available
+                </Text>
+              </View>
+            </View>
+
+            {plans.map((plan, index) => renderPlanCard(plan, index))}
+          </>
         )}
 
         {/* View History Button */}

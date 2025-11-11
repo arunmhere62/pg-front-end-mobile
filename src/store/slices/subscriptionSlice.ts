@@ -62,8 +62,12 @@ export const fetchSubscriptionStatus = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await subscriptionService.getSubscriptionStatus();
-      return response.data;
+      console.log('🔍 Thunk received response:', response);
+      // Service now returns SubscriptionStatus directly
+      return response;
     } catch (error: any) {
+      console.error('❌ Subscription status error:', error);
+      console.error('❌ Error response:', error.response?.data);
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch status');
     }
   }
@@ -146,7 +150,13 @@ const subscriptionSlice = createSlice({
       })
       .addCase(fetchSubscriptionStatus.fulfilled, (state, action) => {
         state.loading = false;
-        state.subscriptionStatus = (action.payload as any)?.data || action.payload;
+        const payload = action.payload as any;
+        console.log('✅ Subscription status fulfilled:', payload);
+        
+        // Payload is now SubscriptionStatus directly
+        state.subscriptionStatus = payload;
+        
+        console.log('📊 Redux state updated:', state.subscriptionStatus);
       })
       .addCase(fetchSubscriptionStatus.rejected, (state, action) => {
         state.loading = false;

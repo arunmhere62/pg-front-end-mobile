@@ -407,12 +407,21 @@ const TenantRentStatusComponent: React.FC<TenantRentStatusProps> = ({ pgId, prel
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Tenant Rent Status</Text>
-        {tenants.length > 0 && (
-          <View style={styles.countBadge}>
-            <Text style={styles.countText}>{tenants.length}</Text>
-          </View>
-        )}
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>Tenant Rent Status</Text>
+          {tenants.length > 0 && (
+            <View style={styles.countBadge}>
+              <Text style={styles.countText}>{tenants.length}</Text>
+            </View>
+          )}
+        </View>
+        <TouchableOpacity 
+          style={styles.viewAllButton}
+          onPress={() => navigation.navigate('TenantStatusDashboard')}
+        >
+          <Text style={styles.viewAllText}>View All</Text>
+          <Ionicons name="chevron-forward" size={16} color={Theme.colors.primary} />
+        </TouchableOpacity>
       </View>
 
       {tenants.length === 0 ? (
@@ -446,6 +455,22 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Theme.colors.primary,
+    marginRight: 4,
   },
   title: {
     fontSize: 18,

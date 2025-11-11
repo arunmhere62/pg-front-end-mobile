@@ -26,18 +26,33 @@ export const SubscriptionHistoryScreen: React.FC<SubscriptionHistoryScreenProps>
   const dispatch = useDispatch<AppDispatch>();
   const { history, historyPagination, loading } = useSelector((state: RootState) => state.subscription);
   const [refreshing, setRefreshing] = React.useState(false);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [hasMore, setHasMore] = React.useState(true);
+  const flatListRef = React.useRef<any>(null);
 
   useEffect(() => {
-    const loadHistory = async () => {
-      try {
-        const result = await dispatch(fetchSubscriptionHistory({ page: 1, limit: 20 })).unwrap();
-        console.log('📜 History fetched:', result);
-      } catch (error) {
-        console.error('❌ Error loading history:', error);
-      }
-    };
-    loadHistory();
+    loadHistory(1, true);
   }, [dispatch]);
+
+  const loadHistory = async (page: number, reset: boolean = false) => {
+    try {
+      if (!hasMore && !reset) return;
+      
+      setCurrentPage(page);
+      
+      const result = await dispatch(fetchSubscriptionHistory({ page, limit: 10 })).unwrap();
+      console.log('📜 History fetched:', result);
+      
+      setHasMore(result.pagination ? page < result.pagination.totalPages : false);
+      
+      // Scroll to top when resetting
+      if (flatListRef.current && reset) {
+        flatListRef.current.scrollToOffset({ offset: 0, animated: false });
+      }
+    } catch (error) {
+      console.error('❌ Error loading history:', error);
+    }
+  };
 
   // Debug log
   useEffect(() => {
@@ -46,8 +61,21 @@ export const SubscriptionHistoryScreen: React.FC<SubscriptionHistoryScreenProps>
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await dispatch(fetchSubscriptionHistory({ page: 1, limit: 20 }));
+    setCurrentPage(1);
+    setHasMore(true);
+    await loadHistory(1, true);
     setRefreshing(false);
+  };
+
+  const goToPage = (page: number) => {
+    if (page < 1 || (historyPagination && page > historyPagination.totalPages)) return;
+    loadHistory(page, true);
+  };
+
+  const loadMoreHistory = () => {
+    if (!hasMore || loading) return;
+    const nextPage = currentPage + 1;
+    loadHistory(nextPage, false);
   };
 
   const formatDate = (dateString: string) => {
@@ -85,6 +113,173 @@ export const SubscriptionHistoryScreen: React.FC<SubscriptionHistoryScreenProps>
       default:
         return Theme.colors.text.secondary;
     }
+  };
+
+  const renderPageNumbers = () => {
+    if (!historyPagination || historyPagination.totalPages <= 1) return null;
+
+    const pages = [];
+    const totalPages = historyPagination.totalPages;
+    const current = currentPage;
+
+    // Show max 5 page numbers
+    let startPage = Math.max(1, current - 2);
+    let endPage = Math.min(totalPages, current + 2);
+
+    // Adjust if at the beginning or end
+    if (current <= 3) {
+      endPage = Math.min(5, totalPages);
+    }
+    if (current >= totalPages - 2) {
+      startPage = Math.max(1, totalPages - 4);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    // Calculate showing range
+    const startItem = (current - 1) * historyPagination.limit + 1;
+    const endItem = Math.min(current * historyPagination.limit, historyPagination.total);
+
+    return (
+      <View style={{ backgroundColor: CONTENT_COLOR }}>
+        {/* Showing X of Y indicator */}
+        <View style={{
+          alignItems: 'center',
+          paddingTop: 12,
+          paddingBottom: 8,
+        }}>
+          <View style={{
+            backgroundColor: Theme.colors.text.primary,
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 20,
+          }}>
+            <Text style={{
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: '600',
+            }}>
+              {startItem}-{endItem} of {historyPagination.total}
+            </Text>
+          </View>
+        </View>
+
+        {/* Page numbers */}
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingBottom: 16,
+          gap: 8,
+        }}>
+        {/* Previous Button */}
+        <TouchableOpacity
+          onPress={() => goToPage(current - 1)}
+          disabled={current === 1}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 8,
+            backgroundColor: current === 1 ? '#E5E7EB' : Theme.colors.primary,
+          }}
+        >
+          <Text style={{ 
+            color: current === 1 ? '#9CA3AF' : '#fff', 
+            fontWeight: '600',
+            fontSize: 14,
+          }}>
+            ← Prev
+          </Text>
+        </TouchableOpacity>
+
+        {/* First Page */}
+        {startPage > 1 && (
+          <>
+            <TouchableOpacity
+              onPress={() => goToPage(1)}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                backgroundColor: '#F3F4F6',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text style={{ color: Theme.colors.text.primary, fontWeight: '600' }}>1</Text>
+            </TouchableOpacity>
+            {startPage > 2 && <Text style={{ color: Theme.colors.text.tertiary }}>...</Text>}
+          </>
+        )}
+
+        {/* Page Numbers */}
+        {pages.map((page) => (
+          <TouchableOpacity
+            key={page}
+            onPress={() => goToPage(page)}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              backgroundColor: page === current ? Theme.colors.primary : '#F3F4F6',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ 
+              color: page === current ? '#fff' : Theme.colors.text.primary, 
+              fontWeight: '600' 
+            }}>
+              {page}
+            </Text>
+          </TouchableOpacity>
+        ))}
+
+        {/* Last Page */}
+        {endPage < totalPages && (
+          <>
+            {endPage < totalPages - 1 && <Text style={{ color: Theme.colors.text.tertiary }}>...</Text>}
+            <TouchableOpacity
+              onPress={() => goToPage(totalPages)}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                backgroundColor: '#F3F4F6',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text style={{ color: Theme.colors.text.primary, fontWeight: '600' }}>{totalPages}</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* Next Button */}
+        <TouchableOpacity
+          onPress={() => goToPage(current + 1)}
+          disabled={current === totalPages}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 8,
+            backgroundColor: current === totalPages ? '#E5E7EB' : Theme.colors.primary,
+          }}
+        >
+          <Text style={{ 
+            color: current === totalPages ? '#9CA3AF' : '#fff', 
+            fontWeight: '600',
+            fontSize: 14,
+          }}>
+            Next →
+          </Text>
+        </TouchableOpacity>
+        </View>
+      </View>
+    );
   };
 
   const renderHistoryItem = ({ item }: { item: UserSubscription }) => {
@@ -140,7 +335,13 @@ export const SubscriptionHistoryScreen: React.FC<SubscriptionHistoryScreenProps>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <Text style={{ fontSize: 13, color: Theme.colors.text.tertiary }}>Amount Paid</Text>
           <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.primary }}>
-            ₹{(item.amount_paid || 0).toLocaleString('en-IN')}
+            ₹{(item.amount_paid || plan?.price || 0).toLocaleString('en-IN')}
+          </Text>
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+          <Text style={{ fontSize: 13, color: Theme.colors.text.tertiary }}>Duration</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary }}>
+            {plan?.duration || 0} days
           </Text>
         </View>
       </View>
@@ -194,17 +395,25 @@ export const SubscriptionHistoryScreen: React.FC<SubscriptionHistoryScreenProps>
       />
 
       <FlatList
+        ref={flatListRef}
         data={history}
         renderItem={renderHistoryItem}
         keyExtractor={(item) => item.s_no?.toString() || item.id?.toString() || Math.random().toString()}
         style={{ backgroundColor: CONTENT_COLOR }}
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 20 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={[Theme.colors.primary]}
           />
+        }
+        ListFooterComponent={
+          loading && currentPage > 1 ? (
+            <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+              <ActivityIndicator size="small" color={Theme.colors.primary} />
+            </View>
+          ) : null
         }
         ListEmptyComponent={
           loading ? (
@@ -241,6 +450,9 @@ export const SubscriptionHistoryScreen: React.FC<SubscriptionHistoryScreenProps>
           )
         }
       />
+      
+      {/* Pagination Numbers */}
+      {renderPageNumbers()}
     </ScreenLayout>
   );
 };

@@ -108,6 +108,14 @@ export interface Tenant {
   advance_payments?: AdvancePayment[];
   refund_payments?: RefundPayment[];
   pending_payment?: PendingPayment | null;
+  // Status fields calculated by TenantStatusService on API side
+  is_rent_paid?: boolean;
+  is_rent_partial?: boolean;
+  rent_due_amount?: number;
+  partial_due_amount?: number;
+  pending_due_amount?: number;
+  is_advance_paid?: boolean;
+  pending_months?: number;
 }
 
 export interface CreateTenantDto {
@@ -140,6 +148,7 @@ export interface GetTenantsParams {
   user_id?: number;
   pending_rent?: boolean;
   pending_advance?: boolean;
+  partial_rent?: boolean;
 }
 
 export interface GetTenantsResponse {
@@ -166,7 +175,7 @@ export interface TenantResponse {
 export const getAllTenants = async (
   params: GetTenantsParams = {}
 ): Promise<GetTenantsResponse> => {
-  const { page = 1, limit = 10, status, search, pg_id, room_id, organization_id, user_id, pending_rent, pending_advance } = params;
+  const { page = 1, limit = 10, status, search, pg_id, room_id, organization_id, user_id, pending_rent, pending_advance, partial_rent } = params;
   
   const queryParams = new URLSearchParams({
     page: page.toString(),
@@ -178,6 +187,7 @@ export const getAllTenants = async (
   if (room_id) queryParams.append('room_id', room_id.toString());
   if (pending_rent) queryParams.append('pending_rent', 'true');
   if (pending_advance) queryParams.append('pending_advance', 'true');
+  if (partial_rent) queryParams.append('partial_rent', 'true');
 
   // Set common headers
   const headers: any = {};
@@ -269,5 +279,83 @@ export const checkoutTenant = async (
   if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
 
   const response = await axiosInstance.post(`/tenants/${id}/checkout`, {}, { headers: requestHeaders });
+  return response.data;
+};
+
+/**
+ * Get tenants with pending rent
+ */
+export const getTenantsWithPendingRent = async (
+  params: { page?: number; limit?: number } = {},
+  headers?: { pg_id?: number; organization_id?: number; user_id?: number }
+): Promise<GetTenantsResponse> => {
+  const { page = 1, limit = 10 } = params;
+  
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+
+  // Set common headers
+  const requestHeaders: any = {};
+  if (headers?.pg_id) requestHeaders['X-PG-Location-Id'] = headers.pg_id.toString();
+  if (headers?.organization_id) requestHeaders['X-Organization-Id'] = headers.organization_id.toString();
+  if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
+
+  const url = `/tenants/pending-rent?${queryParams.toString()}`;
+  const response = await axiosInstance.get(url, { headers: requestHeaders });
+  
+  return response.data;
+};
+
+/**
+ * Get tenants with partial rent
+ */
+export const getTenantsWithPartialRent = async (
+  params: { page?: number; limit?: number } = {},
+  headers?: { pg_id?: number; organization_id?: number; user_id?: number }
+): Promise<GetTenantsResponse> => {
+  const { page = 1, limit = 10 } = params;
+  
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+
+  // Set common headers
+  const requestHeaders: any = {};
+  if (headers?.pg_id) requestHeaders['X-PG-Location-Id'] = headers.pg_id.toString();
+  if (headers?.organization_id) requestHeaders['X-Organization-Id'] = headers.organization_id.toString();
+  if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
+
+  const url = `/tenants/partial-rent?${queryParams.toString()}`;
+  const response = await axiosInstance.get(url, { headers: requestHeaders });
+  
+  return response.data;
+};
+
+/**
+ * Get tenants without advance payment
+ */
+export const getTenantsWithoutAdvance = async (
+  params: { page?: number; limit?: number } = {},
+  headers?: { pg_id?: number; organization_id?: number; user_id?: number }
+): Promise<GetTenantsResponse> => {
+  const { page = 1, limit = 10 } = params;
+  
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+
+  // Set common headers
+  const requestHeaders: any = {};
+  if (headers?.pg_id) requestHeaders['X-PG-Location-Id'] = headers.pg_id.toString();
+  if (headers?.organization_id) requestHeaders['X-Organization-Id'] = headers.organization_id.toString();
+  if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
+
+  const url = `/tenants/pending-advance?${queryParams.toString()}`;
+  const response = await axiosInstance.get(url, { headers: requestHeaders });
+  
   return response.data;
 };

@@ -46,8 +46,10 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [pendingRentFilter, setPendingRentFilter] = useState(false);
   const [pendingAdvanceFilter, setPendingAdvanceFilter] = useState(false);
+  const [partialRentFilter, setPartialRentFilter] = useState(false);
   const [expandedPaymentCards, setExpandedPaymentCards] = useState<Set<number>>(new Set());
   const flatListRef = React.useRef<any>(null);
+  const scrollPositionRef = React.useRef(0);
   
   // Checkout modal state
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
@@ -83,16 +85,33 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
     setCurrentPage(1);
     setHasMore(true);
     loadTenants(1, true);
-  }, [selectedPGLocationId, statusFilter, selectedRoomId, pendingRentFilter, pendingAdvanceFilter]);
+    setShouldReloadOnFocus(true); // Mark that we need to reload on next focus
+  }, [selectedPGLocationId]); // Only reload when PG location changes, not on filter changes
 
-  // Reload tenants when screen comes into focus
+  // Track if we need to reload data (only when filters change, not on navigation return)
+  const [shouldReloadOnFocus, setShouldReloadOnFocus] = useState(false);
+
+  // Reload tenants when screen comes into focus (only if needed)
   useFocusEffect(
     React.useCallback(() => {
-      // Always reload from page 1 when screen comes into focus
-      setCurrentPage(1);
-      setHasMore(true);
-      loadTenants(1, true);
-    }, [selectedPGLocationId, statusFilter, selectedRoomId, pendingRentFilter, pendingAdvanceFilter])
+      // Only reload if filters changed or it's the first load
+      if (shouldReloadOnFocus || tenants.length === 0) {
+        setCurrentPage(1);
+        setHasMore(true);
+        loadTenants(1, true);
+        setShouldReloadOnFocus(false);
+      } else {
+        // Restore scroll position when returning from navigation
+        setTimeout(() => {
+          if (flatListRef.current && scrollPositionRef.current > 0) {
+            flatListRef.current.scrollToOffset({ 
+              offset: scrollPositionRef.current, 
+              animated: false 
+            });
+          }
+        }, 100); // Small delay to ensure list is rendered
+      }
+    }, [shouldReloadOnFocus, tenants.length])
   );
 
   const loadTenants = async (page: number, reset: boolean = false) => {
@@ -113,11 +132,27 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
         search: searchQuery || undefined,
         status: statusFilter === 'ALL' ? undefined : statusFilter,
         room_id: selectedRoomId !== null ? selectedRoomId : undefined,
-        pending_rent: pendingRentFilter || undefined,
-        pending_advance: pendingAdvanceFilter || undefined,
+        pending_rent: pendingRentFilter ? true : undefined,
+        pending_advance: pendingAdvanceFilter ? true : undefined,
+        partial_rent: partialRentFilter ? true : undefined,
       };
       
+      console.log('Loading tenants with params:', params);
       const result = await dispatch(fetchTenants({ ...params, append: !reset && page > 1 })).unwrap();
+      
+      // Debug: Log tenant statuses when using pending filter
+      if (pendingRentFilter && result.data) {
+        console.log('Pending filter active - tenant statuses:', result.data.map(t => ({
+          name: t.name,
+          is_rent_paid: t.is_rent_paid,
+          is_rent_partial: t.is_rent_partial,
+          pending_months: t.pending_months,
+          rent_due_amount: t.rent_due_amount,
+          partial_due_amount: t.partial_due_amount,
+          pending_due_amount: t.pending_due_amount,
+          tenant_payments: t.tenant_payments?.map(p => ({ status: p.status, amount: p.amount_paid }))
+        })));
+      }
       
       setHasMore(result.pagination ? page < result.pagination.totalPages : false);
       
@@ -139,6 +174,13 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
   };
 
   const applyFilters = () => {
+    console.log('Applying filters:', {
+      statusFilter,
+      selectedRoomId,
+      pendingRentFilter,
+      pendingAdvanceFilter,
+      partialRentFilter
+    });
     setCurrentPage(1);
     setHasMore(true);
     loadTenants(1, true);
@@ -228,6 +270,11 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
     setSelectedRoomId(null);
     setPendingRentFilter(false);
     setPendingAdvanceFilter(false);
+    setPartialRentFilter(false);
+    // Apply the cleared filters
+    setTimeout(() => {
+      applyFilters();
+    }, 100);
   };
 
   const getFilterCount = () => {
@@ -236,6 +283,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
     if (selectedRoomId !== null) count++;
     if (pendingRentFilter) count++;
     if (pendingAdvanceFilter) count++;
+    if (partialRentFilter) count++;
     return count;
   };
 
@@ -246,19 +294,26 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
       : null;
 
     const showPaymentDetails = expandedPaymentCards.has(item.s_no);
-    const hasPendingPayment = item.pending_payment && item.pending_payment.total_pending > 0;
-    const isOverdue = item.pending_payment?.payment_status === 'OVERDUE';
     
-    // Use backend-calculated flag for unpaid months
-    const hasUnpaidMonths = item.has_unpaid_months || false;
+    // Use new API enriched status fields
+    const isRentPaid = item.is_rent_paid || false;
+    const isRentPartial = item.is_rent_partial || false;
+    const rentDueAmount = item.rent_due_amount || 0;
+    const partialDueAmount = item.partial_due_amount || 0;
+    const pendingDueAmount = item.pending_due_amount || 0;
+    const isAdvancePaid = item.is_advance_paid || false;
+    const pendingMonths = item.pending_months || 0;
+    
+    // Determine payment status for display
+    const hasOutstandingAmount = rentDueAmount > 0;
+    const hasBothPartialAndPending = partialDueAmount > 0 && pendingDueAmount > 0;
 
     return (
       <Card style={{ 
         marginBottom: 12, 
         padding: 12,
-        borderLeftWidth: hasPendingPayment ? 4 : 0,
-        borderLeftColor: isOverdue ? '#EF4444' : 
-                        item.pending_payment?.payment_status === 'PARTIAL' ? '#EF4444' : '#F59E0B',
+        borderLeftWidth: hasOutstandingAmount ? 4 : 0,
+        borderLeftColor: isRentPartial ? '#F97316' : '#F59E0B',
       }}>
         {/* Header with Image */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
@@ -288,67 +343,59 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
 
           {/* Name and ID */}
           <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', color: Theme.colors.text.primary }}>
-                {item.name}
-              </Text>
-              {/* Payment Status Tag - Shows pending if unpaid (manual check or backend), otherwise latest payment status */}
-              {(hasUnpaidMonths || (item.pending_payment && item.pending_payment.total_pending > 0)) ? (
-                <View style={{
-                  paddingHorizontal: 8,
-                  paddingVertical: 3,
-                  borderRadius: 10,
-                  backgroundColor: 
-                    item.pending_payment?.payment_status === 'OVERDUE' ? '#EF4444' : 
-                    item.pending_payment?.payment_status === 'PARTIAL' ? '#EF4444' : '#F59E0B',
-                }}>
-                  <Text style={{
-                    fontSize: 10,
-                    fontWeight: '700',
-                    color: '#fff',
-                  }}>
-                    {item.pending_payment?.payment_status === 'OVERDUE' ? '⚠️ OVERDUE' : 
-                     item.pending_payment?.payment_status === 'PARTIAL' ? '⚠️ PARTIAL' : '📅 PENDING'}
-                  </Text>
-                </View>
-              ) : item.tenant_payments && item.tenant_payments.length > 0 ? (
-                <View style={{
-                  paddingHorizontal: 8,
-                  paddingVertical: 3,
-                  borderRadius: 10,
-                  backgroundColor: 
-                    item.tenant_payments[0].status === 'PAID' ? '#10B981' : 
-                    item.tenant_payments[0].status === 'PARTIAL' ? '#EF4444' :
-                    item.tenant_payments[0].status === 'PENDING' ? '#F59E0B' :
-                    item.tenant_payments[0].status === 'FAILED' ? '#EF4444' : '#9CA3AF',
-                }}>
-                  <Text style={{
-                    fontSize: 10,
-                    fontWeight: '700',
-                    color: '#fff',
-                  }}>
-                    {item.tenant_payments[0].status === 'PAID' ? '✅ PAID' : 
-                     item.tenant_payments[0].status === 'PARTIAL' ? '⚠️ PARTIAL' :
-                     item.tenant_payments[0].status === 'PENDING' ? '⏳ PENDING' :
-                     item.tenant_payments[0].status === 'FAILED' ? '❌ FAILED' : item.tenant_payments[0].status}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-            <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary, marginTop: 2 }}>
-              ID: {item.tenant_id}
+            {/* Name Row */}
+            <Text 
+              style={{ 
+                fontSize: 18, 
+                fontWeight: 'bold', 
+                color: Theme.colors.text.primary,
+                marginBottom: 4
+              }}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {item.name}
             </Text>
+            
+            {/* Room & Bed Info Row */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              {item.rooms && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary }}>🏠</Text>
+                  <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, fontWeight: '500' }}>
+                    {item.rooms.room_no}
+                  </Text>
+                </View>
+              )}
+              {item.beds && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary }}>🛏️</Text>
+                  <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, fontWeight: '500' }}>
+                    {item.beds.bed_no}
+                  </Text>
+                </View>
+              )}
+              {item.rooms?.rent_price && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary }}>💰</Text>
+                  <Text style={{ fontSize: 12, color: Theme.colors.primary, fontWeight: '600' }}>
+                    ₹{item.rooms.rent_price}/mo
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
 
-          {/* Status Badge */}
+          {/* Tenant Status Badge (ACTIVE/INACTIVE) */}
           <View style={{
-            paddingHorizontal: 10,
-            paddingVertical: 4,
-            borderRadius: 12,
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            borderRadius: 10,
             backgroundColor: item.status === 'ACTIVE' ? '#10B98120' : '#EF444420',
+            alignSelf: 'flex-start',
           }}>
             <Text style={{
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: '600',
               color: item.status === 'ACTIVE' ? '#10B981' : '#EF4444',
             }}>
@@ -359,11 +406,6 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
 
       {/* Contact Info */}
       <View style={{ marginBottom: 12 }}>
-        {item.phone_no && (
-          <Text style={{ fontSize: 13, color: Theme.colors.text.secondary, marginBottom: 4 }}>
-            📞 {item.phone_no}
-          </Text>
-        )}
         {item.email && (
           <Text style={{ fontSize: 13, color: Theme.colors.text.secondary, marginBottom: 4 }}>
             ✉️ {item.email}
@@ -376,49 +418,170 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
         )}
       </View>
 
-      {/* Room & Bed Info */}
-      {(item.rooms || item.beds) && (
-        <View style={{
-          flexDirection: 'row',
-          gap: 12,
-          marginBottom: 12,
-          paddingVertical: 8,
-          borderTopWidth: 1,
-          borderBottomWidth: 1,
-          borderColor: Theme.colors.border,
-        }}>
-          {item.rooms && (
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary }}>Room</Text>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
-                {item.rooms.room_no}
-              </Text>
-              {item.rooms.rent_price && (
-                <Text style={{ fontSize: 11, color: Theme.colors.primary, marginTop: 2 }}>
-                  ₹{item.rooms.rent_price}/month
+      {/* Payment Status Section - Big Badges */}
+      <View style={{ marginBottom: 12 }}>
+        <Text style={{ fontSize: 11, fontWeight: '600', color: Theme.colors.text.secondary, marginBottom: 6 }}>
+          Payment Status
+        </Text>
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          {hasBothPartialAndPending ? (
+            <>
+              <View style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 12,
+                backgroundColor: '#F97316',
+                shadowColor: '#F97316',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+                elevation: 3,
+              }}>
+                <Text style={{
+                  fontSize: 12,
+                  fontWeight: '700',
+                  color: '#fff',
+                }}>
+                  ⏳ PARTIAL
                 </Text>
-              )}
+              </View>
+              <View style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 12,
+                backgroundColor: '#F59E0B',
+                shadowColor: '#F59E0B',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+                elevation: 3,
+              }}>
+                <Text style={{
+                  fontSize: 12,
+                  fontWeight: '700',
+                  color: '#fff',
+                }}>
+                  📅 PENDING
+                </Text>
+              </View>
+            </>
+          ) : hasOutstandingAmount ? (
+            <View style={{
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 14,
+              backgroundColor: isRentPartial ? '#F97316' : '#F59E0B',
+              shadowColor: isRentPartial ? '#F97316' : '#F59E0B',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              elevation: 3,
+            }}>
+              <Text style={{
+                fontSize: 13,
+                fontWeight: '700',
+                color: '#fff',
+              }}>
+                {isRentPartial ? '⏳ PARTIAL PAYMENT' : '📅 PENDING PAYMENT'}
+              </Text>
+            </View>
+          ) : isRentPaid ? (
+            <View style={{
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 14,
+              backgroundColor: '#10B981',
+              shadowColor: '#10B981',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              elevation: 3,
+            }}>
+              <Text style={{
+                fontSize: 13,
+                fontWeight: '700',
+                color: '#fff',
+              }}>
+                ✅ FULLY PAID
+              </Text>
+            </View>
+          ) : (
+            <View style={{
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 14,
+              backgroundColor: '#9CA3AF',
+              shadowColor: '#9CA3AF',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              elevation: 3,
+            }}>
+              <Text style={{
+                fontSize: 13,
+                fontWeight: '700',
+                color: '#fff',
+              }}>
+                📋 NO STATUS
+              </Text>
             </View>
           )}
-          {item.beds && (
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary }}>Bed</Text>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
-                {item.beds.bed_no}
+          
+          {/* Due Amount Badge */}
+          {hasOutstandingAmount && (
+            <View style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 12,
+              backgroundColor: '#EF4444',
+              shadowColor: '#EF4444',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              elevation: 3,
+            }}>
+              <Text style={{
+                fontSize: 11,
+                fontWeight: '700',
+                color: '#fff',
+              }}>
+                ₹{rentDueAmount} DUE
+              </Text>
+            </View>
+          )}
+          
+          {/* No Advance Badge */}
+          {!isAdvancePaid && (
+            <View style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 12,
+              backgroundColor: '#F59E0B',
+              shadowColor: '#F59E0B',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              elevation: 3,
+            }}>
+              <Text style={{
+                fontSize: 11,
+                fontWeight: '700',
+                color: '#fff',
+              }}>
+                💰 NO ADVANCE
               </Text>
             </View>
           )}
         </View>
-      )}
+      </View>
 
-      {/* Pending Payment Alert */}
-      {item.pending_payment && item.pending_payment.total_pending > 0 && (
+
+      {/* Pending Payment Alert - Using enriched API fields */}
+      {hasOutstandingAmount && (
         <View style={{
-          backgroundColor: item.pending_payment.payment_status === 'OVERDUE' ? '#FEE2E2' : 
-                         item.pending_payment.payment_status === 'PARTIAL' ? '#FEE2E2' : '#FEF3C7',
+          backgroundColor: isRentPartial ? '#FFF7ED' : '#FEF3C7',
           borderLeftWidth: 4,
-          borderLeftColor: item.pending_payment.payment_status === 'OVERDUE' ? '#EF4444' : 
-                          item.pending_payment.payment_status === 'PARTIAL' ? '#EF4444' : '#F59E0B',
+          borderLeftColor: isRentPartial ? '#F97316' : '#F59E0B',
           padding: 10,
           borderRadius: 8,
           marginBottom: 12,
@@ -427,36 +590,44 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
             <Text style={{ 
               fontSize: 12, 
               fontWeight: '700', 
-              color: item.pending_payment.payment_status === 'OVERDUE' ? '#DC2626' : 
-                     item.pending_payment.payment_status === 'PARTIAL' ? '#DC2626' : '#D97706'
+              color: isRentPartial ? '#EA580C' : '#D97706'
             }}>
-              {item.pending_payment.payment_status === 'OVERDUE' ? '⚠️ OVERDUE' : 
-               item.pending_payment.payment_status === 'PARTIAL' ? '⏳ PARTIAL PAYMENT' : '📅 PENDING'}
+              {hasBothPartialAndPending ? '⏳ PARTIAL + PENDING' :
+               isRentPartial ? '⏳ PARTIAL PAYMENT' : '📅 PENDING PAYMENT'}
             </Text>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={{ 
                 fontSize: 14, 
                 fontWeight: '700', 
-                color: item.pending_payment.payment_status === 'OVERDUE' ? '#DC2626' : 
-                       item.pending_payment.payment_status === 'PARTIAL' ? '#DC2626' : '#D97706'
+                color: isRentPartial ? '#EA580C' : '#D97706'
               }}>
-                ₹{item.pending_payment.total_pending}
+                ₹{rentDueAmount}
               </Text>
               <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary }}>
-                Balance
+                Due Amount
               </Text>
             </View>
           </View>
           
-          {item.pending_payment.overdue_months > 0 && (
-            <Text style={{ fontSize: 11, color: '#DC2626', marginBottom: 2 }}>
-              {item.pending_payment.overdue_months} month(s) overdue
+          {/* Show breakdown if both partial and pending amounts exist */}
+          {partialDueAmount > 0 && pendingDueAmount > 0 && (
+            <View style={{ marginBottom: 4 }}>
+              <Text style={{ fontSize: 10, color: Theme.colors.text.secondary }}>
+                Partial: ₹{partialDueAmount} • Pending: ₹{pendingDueAmount}
+              </Text>
+            </View>
+          )}
+          
+          {/* Show pending months info if available */}
+          {pendingMonths > 0 && (
+            <Text style={{ fontSize: 11, color: '#D97706', marginBottom: 2 }}>
+              {pendingMonths} month(s) with pending payments
             </Text>
           )}
           
-          {item.pending_payment.next_due_date && (
-            <Text style={{ fontSize: 11, color: Theme.colors.text.secondary }}>
-              Next due: {new Date(item.pending_payment.next_due_date).toLocaleDateString()}
+          {!isAdvancePaid && (
+            <Text style={{ fontSize: 11, color: '#F59E0B' }}>
+              💰 No advance payment
             </Text>
           )}
         </View>
@@ -498,41 +669,63 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                     Rent Payments ({item.tenant_payments.length})
                   </Text>
                   {item.tenant_payments.slice(0, 3).map((payment: any, index: number) => (
-                    <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
-                        <Text style={{ fontSize: 10, color: Theme.colors.text.secondary }}>
-                          {new Date(payment.payment_date).toLocaleDateString()}
-                        </Text>
-                        {payment.status && (
-                          <View style={{
-                            paddingHorizontal: 4,
-                            paddingVertical: 1,
-                            borderRadius: 4,
-                            backgroundColor: 
-                              payment.status === 'PAID' ? '#10B98120' :
-                              payment.status === 'PARTIAL' ? '#DC262620' :
-                              payment.status === 'PENDING' ? '#F59E0B20' :
-                              payment.status === 'OVERDUE' ? '#EF444420' :
-                              payment.status === 'FAILED' ? '#EF444420' : '#9CA3AF20',
-                          }}>
-                            <Text style={{
-                              fontSize: 8,
-                              fontWeight: '600',
-                              color: 
-                                payment.status === 'PAID' ? '#10B981' :
-                                payment.status === 'PARTIAL' ? '#DC2626' :
-                                payment.status === 'PENDING' ? '#F59E0B' :
-                                payment.status === 'OVERDUE' ? '#EF4444' :
-                                payment.status === 'FAILED' ? '#EF4444' : '#6B7280',
+                    <View key={index} style={{ 
+                      backgroundColor: '#fff',
+                      borderRadius: 6,
+                      padding: 8,
+                      marginBottom: 6,
+                      borderWidth: 1,
+                      borderColor: '#F1F5F9'
+                    }}>
+                      {/* Payment Header Row */}
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ fontSize: 10, color: Theme.colors.text.secondary, fontWeight: '500' }}>
+                            {new Date(payment.payment_date).toLocaleDateString()}
+                          </Text>
+                          {payment.status && (
+                            <View style={{
+                              paddingHorizontal: 5,
+                              paddingVertical: 2,
+                              borderRadius: 4,
+                              backgroundColor: 
+                                payment.status === 'PAID' ? '#10B98120' :
+                                payment.status === 'PARTIAL' ? '#DC262620' :
+                                payment.status === 'PENDING' ? '#F59E0B20' :
+                                payment.status === 'FAILED' ? '#EF444420' : '#9CA3AF20',
                             }}>
-                              {payment.status}
-                            </Text>
-                          </View>
-                        )}
+                              <Text style={{
+                                fontSize: 8,
+                                fontWeight: '700',
+                                color: 
+                                  payment.status === 'PAID' ? '#10B981' :
+                                  payment.status === 'PARTIAL' ? '#DC2626' :
+                                  payment.status === 'PENDING' ? '#F59E0B' :
+                                  payment.status === 'FAILED' ? '#EF4444' : '#6B7280',
+                              }}>
+                                {payment.status}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={{ fontSize: 11, color: Theme.colors.text.primary, fontWeight: '700' }}>
+                          ₹{payment.amount_paid}
+                        </Text>
                       </View>
-                      <Text style={{ fontSize: 10, color: Theme.colors.text.primary, fontWeight: '600' }}>
-                        ₹{payment.amount_paid}
-                      </Text>
+                      
+                      {/* Rent Period Row */}
+                      {payment.start_date && payment.end_date && (
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={{ fontSize: 9, color: Theme.colors.text.tertiary }}>
+                            Period: {new Date(payment.start_date).toLocaleDateString()} - {new Date(payment.end_date).toLocaleDateString()}
+                          </Text>
+                          {payment.actual_rent_amount && (
+                            <Text style={{ fontSize: 9, color: Theme.colors.text.tertiary }}>
+                              Rent: ₹{payment.actual_rent_amount}
+                            </Text>
+                          )}
+                        </View>
+                      )}
                     </View>
                   ))}
                   {item.tenant_payments.length > 3 && (
@@ -550,39 +743,61 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                     Advance Payments ({item.advance_payments.length})
                   </Text>
                   {item.advance_payments.map((payment: any, index: number) => (
-                    <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
-                        <Text style={{ fontSize: 10, color: Theme.colors.text.secondary }}>
-                          {new Date(payment.payment_date).toLocaleDateString()}
-                        </Text>
-                        {payment.status && (
-                          <View style={{
-                            paddingHorizontal: 4,
-                            paddingVertical: 1,
-                            borderRadius: 4,
-                            backgroundColor: 
-                              payment.status === 'PAID' ? '#10B98120' :
-                              payment.status === 'PARTIAL' ? '#DC262620' :
-                              payment.status === 'PENDING' ? '#F59E0B20' :
-                              payment.status === 'FAILED' ? '#EF444420' : '#9CA3AF20',
-                          }}>
-                            <Text style={{
-                              fontSize: 8,
-                              fontWeight: '600',
-                              color: 
-                                payment.status === 'PAID' ? '#10B981' :
-                                payment.status === 'PARTIAL' ? '#DC2626' :
-                                payment.status === 'PENDING' ? '#F59E0B' :
-                                payment.status === 'FAILED' ? '#EF4444' : '#6B7280',
+                    <View key={index} style={{ 
+                      backgroundColor: '#F0FDF4',
+                      borderRadius: 6,
+                      padding: 8,
+                      marginBottom: 6,
+                      borderWidth: 1,
+                      borderColor: '#BBF7D0'
+                    }}>
+                      {/* Payment Header Row */}
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ fontSize: 10, color: '#15803D', fontWeight: '500' }}>
+                            {new Date(payment.payment_date).toLocaleDateString()}
+                          </Text>
+                          {payment.status && (
+                            <View style={{
+                              paddingHorizontal: 5,
+                              paddingVertical: 2,
+                              borderRadius: 4,
+                              backgroundColor: 
+                                payment.status === 'PAID' ? '#10B98130' :
+                                payment.status === 'PARTIAL' ? '#DC262630' :
+                                payment.status === 'PENDING' ? '#F59E0B30' :
+                                payment.status === 'FAILED' ? '#EF444430' : '#9CA3AF30',
                             }}>
-                              {payment.status}
-                            </Text>
-                          </View>
+                              <Text style={{
+                                fontSize: 8,
+                                fontWeight: '700',
+                                color: 
+                                  payment.status === 'PAID' ? '#10B981' :
+                                  payment.status === 'PARTIAL' ? '#DC2626' :
+                                  payment.status === 'PENDING' ? '#F59E0B' :
+                                  payment.status === 'FAILED' ? '#EF4444' : '#6B7280',
+                              }}>
+                                {payment.status}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={{ fontSize: 11, color: '#10B981', fontWeight: '700' }}>
+                          ₹{payment.amount_paid}
+                        </Text>
+                      </View>
+                      
+                      {/* Advance Details Row */}
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 9, color: '#15803D', opacity: 0.8 }}>
+                          💰 Advance Payment
+                        </Text>
+                        {payment.actual_rent_amount && (
+                          <Text style={{ fontSize: 9, color: '#15803D', opacity: 0.8 }}>
+                            Monthly Rent: ₹{payment.actual_rent_amount}
+                          </Text>
                         )}
                       </View>
-                      <Text style={{ fontSize: 10, color: '#10B981', fontWeight: '600' }}>
-                        ₹{payment.amount_paid}
-                      </Text>
                     </View>
                   ))}
                   <Text style={{ fontSize: 10, color: '#10B981', fontWeight: '600', marginTop: 2 }}>
@@ -598,35 +813,57 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                     Refunds ({item.refund_payments.length})
                   </Text>
                   {item.refund_payments.map((payment: any, index: number) => (
-                    <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
-                        <Text style={{ fontSize: 10, color: Theme.colors.text.secondary }}>
-                          {new Date(payment.payment_date).toLocaleDateString()}
-                        </Text>
-                        {payment.status && (
-                          <View style={{
-                            paddingHorizontal: 4,
-                            paddingVertical: 1,
-                            borderRadius: 4,
-                            backgroundColor: 
-                              payment.status === 'PAID' ? '#10B98120' :
-                              payment.status === 'PENDING' ? '#F59E0B20' : '#9CA3AF20',
-                          }}>
-                            <Text style={{
-                              fontSize: 8,
-                              fontWeight: '600',
-                              color: 
-                                payment.status === 'PAID' ? '#10B981' :
-                                payment.status === 'PENDING' ? '#F59E0B' : '#6B7280',
+                    <View key={index} style={{ 
+                      backgroundColor: '#FFFBEB',
+                      borderRadius: 6,
+                      padding: 8,
+                      marginBottom: 6,
+                      borderWidth: 1,
+                      borderColor: '#FED7AA'
+                    }}>
+                      {/* Payment Header Row */}
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ fontSize: 10, color: '#D97706', fontWeight: '500' }}>
+                            {new Date(payment.payment_date).toLocaleDateString()}
+                          </Text>
+                          {payment.status && (
+                            <View style={{
+                              paddingHorizontal: 5,
+                              paddingVertical: 2,
+                              borderRadius: 4,
+                              backgroundColor: 
+                                payment.status === 'PAID' ? '#10B98130' :
+                                payment.status === 'PENDING' ? '#F59E0B30' : '#9CA3AF30',
                             }}>
-                              {payment.status}
-                            </Text>
-                          </View>
+                              <Text style={{
+                                fontSize: 8,
+                                fontWeight: '700',
+                                color: 
+                                  payment.status === 'PAID' ? '#10B981' :
+                                  payment.status === 'PENDING' ? '#F59E0B' : '#6B7280',
+                              }}>
+                                {payment.status}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={{ fontSize: 11, color: '#F59E0B', fontWeight: '700' }}>
+                          ₹{payment.amount_paid}
+                        </Text>
+                      </View>
+                      
+                      {/* Refund Details Row */}
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 9, color: '#D97706', opacity: 0.8 }}>
+                          🔄 Refund Payment
+                        </Text>
+                        {payment.actual_rent_amount && (
+                          <Text style={{ fontSize: 9, color: '#D97706', opacity: 0.8 }}>
+                            Original Rent: ₹{payment.actual_rent_amount}
+                          </Text>
                         )}
                       </View>
-                      <Text style={{ fontSize: 10, color: '#F59E0B', fontWeight: '600' }}>
-                        ₹{payment.amount_paid}
-                      </Text>
                     </View>
                   ))}
                   <Text style={{ fontSize: 10, color: '#F59E0B', fontWeight: '600', marginTop: 2 }}>
@@ -929,12 +1166,25 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
 
                 {/* Payment Filters */}
                 <View style={{ marginBottom: 24 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 12 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 8 }}>
                     Payment Filters
+                  </Text>
+                  <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, marginBottom: 12 }}>
+                    Select one payment filter (mutually exclusive)
                   </Text>
                   <View style={{ gap: 8 }}>
                     <TouchableOpacity
-                      onPress={() => setPendingRentFilter(!pendingRentFilter)}
+                      onPress={() => {
+                        if (pendingRentFilter) {
+                          // If already selected, deselect it
+                          setPendingRentFilter(false);
+                        } else {
+                          // Select this one and deselect others
+                          setPendingRentFilter(true);
+                          setPendingAdvanceFilter(false);
+                          setPartialRentFilter(false);
+                        }
+                      }}
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
@@ -948,7 +1198,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                       }}
                     >
                       <Ionicons 
-                        name={pendingRentFilter ? "checkbox" : "square-outline"} 
+                        name={pendingRentFilter ? "radio-button-on" : "radio-button-off"} 
                         size={20} 
                         color={pendingRentFilter ? '#fff' : Theme.colors.text.secondary} 
                       />
@@ -964,7 +1214,17 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      onPress={() => setPendingAdvanceFilter(!pendingAdvanceFilter)}
+                      onPress={() => {
+                        if (pendingAdvanceFilter) {
+                          // If already selected, deselect it
+                          setPendingAdvanceFilter(false);
+                        } else {
+                          // Select this one and deselect others
+                          setPendingAdvanceFilter(true);
+                          setPendingRentFilter(false);
+                          setPartialRentFilter(false);
+                        }
+                      }}
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
@@ -978,7 +1238,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                       }}
                     >
                       <Ionicons 
-                        name={pendingAdvanceFilter ? "checkbox" : "square-outline"} 
+                        name={pendingAdvanceFilter ? "radio-button-on" : "radio-button-off"} 
                         size={20} 
                         color={pendingAdvanceFilter ? '#fff' : Theme.colors.text.secondary} 
                       />
@@ -990,6 +1250,46 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                         }}
                       >
                         💰 No Advance
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (partialRentFilter) {
+                          // If already selected, deselect it
+                          setPartialRentFilter(false);
+                        } else {
+                          // Select this one and deselect others
+                          setPartialRentFilter(true);
+                          setPendingRentFilter(false);
+                          setPendingAdvanceFilter(false);
+                        }
+                      }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 12,
+                        paddingHorizontal: 16,
+                        borderRadius: 8,
+                        backgroundColor: partialRentFilter ? '#F97316' : '#fff',
+                        borderWidth: 1,
+                        borderColor: partialRentFilter ? '#F97316' : Theme.colors.border,
+                        gap: 8,
+                      }}
+                    >
+                      <Ionicons 
+                        name={partialRentFilter ? "radio-button-on" : "radio-button-off"} 
+                        size={20} 
+                        color={partialRentFilter ? '#fff' : Theme.colors.text.secondary} 
+                      />
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: '600',
+                          color: partialRentFilter ? '#fff' : Theme.colors.text.secondary,
+                        }}
+                      >
+                        ⏳ Partial Rent
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -1024,7 +1324,10 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
-                  onPress={() => setShowFilters(false)}
+                  onPress={() => {
+                    applyFilters();
+                    setShowFilters(false);
+                  }}
                   style={{
                     flex: 1,
                     paddingVertical: 14,
@@ -1144,6 +1447,10 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
           onEndReachedThreshold={0.5}
           onViewableItemsChanged={handleViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
+          onScroll={(event) => {
+            scrollPositionRef.current = event.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
         />
       )}
 

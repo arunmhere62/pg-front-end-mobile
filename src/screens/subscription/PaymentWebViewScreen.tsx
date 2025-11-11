@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, ActivityIndicator, Alert, StyleSheet, BackHandler } from 'react-native';
+import { View, ActivityIndicator, Alert, StyleSheet, BackHandler, Linking } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -11,9 +11,53 @@ interface PaymentWebViewScreenProps {
 }
 
 export const PaymentWebViewScreen: React.FC<PaymentWebViewScreenProps> = ({ navigation, route }) => {
-  const { paymentUrl, orderId, subscriptionId } = route.params;
+  const { paymentUrl, orderId, subscriptionId, paymentMethod } = route.params;
   const [loading, setLoading] = useState(true);
   const webViewRef = useRef<WebView>(null);
+
+  // JavaScript to inject for auto-selecting UPI apps
+  const injectedJavaScript = `
+    (function() {
+      // Wait for page to load
+      setTimeout(function() {
+        try {
+          // Try to find and click Google Pay button
+          const gpayButton = document.querySelector('[data-app="gpay"], [alt*="Google Pay"], [title*="Google Pay"]');
+          if (gpayButton) {
+            console.log('Found Google Pay button, clicking...');
+            gpayButton.click();
+            return;
+          }
+
+          // Try to find and click PhonePe button
+          const phonepeButton = document.querySelector('[data-app="phonepe"], [alt*="PhonePe"], [title*="PhonePe"]');
+          if (phonepeButton) {
+            console.log('Found PhonePe button, clicking...');
+            phonepeButton.click();
+            return;
+          }
+
+          // Try to find and click Paytm button
+          const paytmButton = document.querySelector('[data-app="paytm"], [alt*="Paytm"], [title*="Paytm"]');
+          if (paytmButton) {
+            console.log('Found Paytm button, clicking...');
+            paytmButton.click();
+            return;
+          }
+
+          // Look for any UPI app icons by image source
+          const upiImages = document.querySelectorAll('img[src*="gpay"], img[src*="phonepe"], img[src*="paytm"]');
+          if (upiImages.length > 0) {
+            console.log('Found UPI app image, clicking...');
+            upiImages[0].click();
+          }
+        } catch (e) {
+          console.log('Auto-click error:', e);
+        }
+      }, 2000); // Wait 2 seconds for page to fully load
+    })();
+    true;
+  `;
 
   const handleNavigationStateChange = (navState: any) => {
     console.log('📍 Navigation URL:', navState.url);
@@ -98,6 +142,44 @@ export const PaymentWebViewScreen: React.FC<PaymentWebViewScreenProps> = ({ navi
           startInLoadingState={true}
           scalesPageToFit={true}
           style={styles.webview}
+          // Inject JavaScript to auto-click UPI apps
+          injectedJavaScript={paymentMethod === 'upi' ? injectedJavaScript : undefined}
+          // Enhanced settings for payment gateway
+          thirdPartyCookiesEnabled={true}
+          sharedCookiesEnabled={true}
+          cacheEnabled={true}
+          mixedContentMode="always"
+          allowsInlineMediaPlayback={true}
+          mediaPlaybackRequiresUserAction={false}
+          // User agent to help with UPI detection
+          userAgent="Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36"
+          // Handle external links (UPI apps)
+          onShouldStartLoadWithRequest={(request) => {
+            // Allow UPI intent URLs to open in external apps
+            if (request.url.startsWith('upi://') || 
+                request.url.startsWith('tez://') || 
+                request.url.startsWith('phonepe://') ||
+                request.url.startsWith('paytm://') ||
+                request.url.startsWith('gpay://') ||
+                request.url.includes('intent://')) {
+              // Try to open in external app
+              Linking.canOpenURL(request.url)
+                .then((supported) => {
+                  if (supported) {
+                    Linking.openURL(request.url);
+                  } else {
+                    Alert.alert(
+                      'App Not Found',
+                      'Please install the required payment app or try another payment method.',
+                      [{ text: 'OK' }]
+                    );
+                  }
+                })
+                .catch((err) => console.error('Error opening UPI app:', err));
+              return false;
+            }
+            return true;
+          }}
           onError={(syntheticEvent) => {
             const { nativeEvent } = syntheticEvent;
             console.error('❌ WebView error:', nativeEvent);

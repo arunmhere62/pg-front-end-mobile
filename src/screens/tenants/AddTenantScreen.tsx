@@ -18,7 +18,7 @@ import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
-import { ImageUpload } from '../../components/ImageUpload';
+import { AWSImageUpload } from '../../components/AWSImageUpload';
 import { DatePicker } from '../../components/DatePicker';
 import { SearchableDropdown } from '../../components/SearchableDropdown';
 import axiosInstance from '../../services/core/axiosInstance';
@@ -679,11 +679,14 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
             >
               📷 Tenant Images
             </Text>
-            <ImageUpload
+            <AWSImageUpload
               images={tenantImages}
               onImagesChange={setTenantImages}
               maxImages={5}
               label="Tenant Photos"
+              folder="tenants/images"
+              category="image"
+              filePrefix="tenant"
             />
           </Card>
 
@@ -699,14 +702,17 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
             >
               📄 Proof Documents
             </Text>
-            <ImageUpload
+            <AWSImageUpload
               images={proofDocuments}
               onImagesChange={setProofDocuments}
               maxImages={5}
               label="ID Proof / Documents"
+              folder="tenants/documents"
+              category="image-document"
+              filePrefix="proof"
             />
             <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, marginTop: 8 }}>
-              Upload Aadhaar, PAN, Driving License, or other ID proofs
+              Upload Aadhaar, PAN, Driving License, or other ID proofs (Images or PDF files)
             </Text>
           </Card>
 
@@ -725,7 +731,9 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Create Tenant</Text>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
+                {isEditMode ? 'Update Tenant' : 'Create Tenant'}
+              </Text>
             )}
           </TouchableOpacity>
         </View>

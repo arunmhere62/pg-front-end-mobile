@@ -13,8 +13,8 @@ import { PGSummary } from '../../components/PGSummary';
 import { FinancialAnalytics } from '../../components/FinancialAnalytics';
 import { TenantRentStatus } from '../../components/TenantRentStatus';
 import { QuickActions } from '../../components/QuickActions';
+import { TenantStatusContent } from '../../components/TenantStatusContent';
 import { pgLocationService } from '../../services/organization/pgLocationService';
-import * as tenantService from '../../services/tenants/tenantService';
 import { retryWithBackoff, categorizeError, ErrorInfo } from '../../utils/errorHandler';
 
 export const DashboardScreen: React.FC = () => {
@@ -34,16 +34,13 @@ export const DashboardScreen: React.FC = () => {
   const [tenantsWithIssues, setTenantsWithIssues] = useState<any[]>([]);
   const [loadingRentStatus, setLoadingRentStatus] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [noAdvanceTenants, setNoAdvanceTenants] = useState<tenantService.Tenant[]>([]);
-  const [loadingNoAdvance, setLoadingNoAdvance] = useState(false);
-  const [activeSection, setActiveSection] = useState<'summary' | 'rentStatus' | 'advance'>('summary');
+  const [activeSection, setActiveSection] = useState<'summary' | 'rentStatus'>('summary');
   
   // Error tracking
   const [errors, setErrors] = useState<{
     summary?: ErrorInfo;
     financial?: ErrorInfo;
     rentStatus?: ErrorInfo;
-    noAdvance?: ErrorInfo;
   }>({});
   const [retryCount, setRetryCount] = useState(0);
 
@@ -95,7 +92,6 @@ export const DashboardScreen: React.FC = () => {
         loadSummary(selectedPGLocationId),
         loadFinancialAnalytics(selectedPGLocationId, selectedMonths),
         loadTenantRentStatus(selectedPGLocationId),
-        loadTenantsWithoutAdvance(selectedPGLocationId),
         dispatch(fetchTenants({
           page: 1,
           limit: 10,
@@ -204,7 +200,7 @@ export const DashboardScreen: React.FC = () => {
   }, [navigation]);
 
   // Retry specific failed API
-  const handleRetry = useCallback((section: 'summary' | 'financial' | 'rentStatus' | 'noAdvance') => {
+  const handleRetry = useCallback((section: 'summary' | 'financial' | 'rentStatus') => {
     if (!selectedPGLocationId) return;
     
     setRetryCount(prev => prev + 1);
@@ -218,9 +214,6 @@ export const DashboardScreen: React.FC = () => {
         break;
       case 'rentStatus':
         loadTenantRentStatus(selectedPGLocationId);
-        break;
-      case 'noAdvance':
-        loadTenantsWithoutAdvance(selectedPGLocationId);
         break;
     }
   }, [selectedPGLocationId, selectedMonths]);
@@ -269,33 +262,6 @@ export const DashboardScreen: React.FC = () => {
     setRefreshing(false);
   };
 
-  const loadTenantsWithoutAdvance = async (pgId: number) => {
-    try {
-      setLoadingNoAdvance(true);
-      setErrors(prev => ({ ...prev, noAdvance: undefined }));
-      
-      const res = await retryWithBackoff(
-        () => tenantService.getAllTenants({ pg_id: pgId, pending_advance: true, limit: 10, page: 1 }),
-        {
-          maxRetries: 2,
-          initialDelay: 1000,
-          onRetry: (attempt) => {
-            console.log(`🔄 Retrying no advance tenants API (attempt ${attempt})...`);
-          },
-        }
-      );
-      
-      if (res.success) {
-        setNoAdvanceTenants(res.data || []);
-      }
-    } catch (error) {
-      const errorInfo = categorizeError(error);
-      console.error(`❌ [${errorInfo.type.toUpperCase()}] Error loading no advance tenants:`, errorInfo.message);
-      setErrors(prev => ({ ...prev, noAdvance: errorInfo }));
-    } finally {
-      setLoadingNoAdvance(false);
-    }
-  };
 
   const activeTenants = tenants.filter(t => t.status === 'ACTIVE').length;
   const totalRevenue = payments
@@ -366,38 +332,12 @@ export const DashboardScreen: React.FC = () => {
                   paddingHorizontal: 12,
                   borderRadius: 9999,
                   backgroundColor: activeSection === 'rentStatus' ? Theme.colors.primary + '20' : '#F3F4F6',
-                  flexDirection: 'row',
-                  alignItems: 'center',
                 }}
                 onPress={() => setActiveSection('rentStatus')}
               >
                 <Text style={{ fontWeight: '700', fontSize: 12, color: activeSection === 'rentStatus' ? Theme.colors.primary : Theme.colors.text.secondary }}>Rent Status</Text>
-                {tenantsWithIssues.length > 0 && (
-                  <View style={{ backgroundColor: '#EF4444', borderRadius: 9999, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', marginLeft: 6, paddingHorizontal: 4 }}>
-                    <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>{tenantsWithIssues.length}</Text>
-                  </View>
-                )}
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={{
-                  marginRight: 8,
-                  paddingVertical: 6,
-                  paddingHorizontal: 12,
-                  borderRadius: 9999,
-                  backgroundColor: activeSection === 'advance' ? Theme.colors.primary + '20' : '#F3F4F6',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                }}
-                onPress={() => setActiveSection('advance')}
-              >
-                <Text style={{ fontWeight: '700', fontSize: 12, color: activeSection === 'advance' ? Theme.colors.primary : Theme.colors.text.secondary }}>Advance</Text>
-                {noAdvanceTenants.length > 0 && (
-                  <View style={{ backgroundColor: '#F59E0B', borderRadius: 9999, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', marginLeft: 6, paddingHorizontal: 4 }}>
-                    <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>{noAdvanceTenants.length}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
             </View>
           </ScrollView>
         </View>
@@ -513,8 +453,8 @@ export const DashboardScreen: React.FC = () => {
             {/* Quick Actions */}
             <QuickActions menuItems={menuItems} onNavigate={handleNavigate} />
           </ScrollView>
-        ) : activeSection === 'rentStatus' ? (
-          // Rent Status tab content
+        ) : (
+          // Rent Status tab content - using TenantStatusContent
           <View style={{ flex: 1 }}>
             {selectedPGLocationId && (
               <>
@@ -536,86 +476,15 @@ export const DashboardScreen: React.FC = () => {
                     </View>
                   </View>
                 ) : (
-                  <TenantRentStatus 
-                    pgId={selectedPGLocationId} 
-                    preloadedData={tenantsWithIssues} 
-                    isLoading={loadingRentStatus} 
+                  <TenantStatusContent 
+                    navigation={navigation}
+                    onRefresh={onRefresh}
+                    refreshing={refreshing}
                   />
                 )}
               </>
             )}
           </View>
-        ) : (
-          // Advance tab content (Tenants Without Advance)
-          <ScrollView
-            contentContainerStyle={{ paddingBottom: 80 }}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-          >
-            {selectedPGLocationId && (
-              <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-                <View style={{ backgroundColor: 'white', borderRadius: 12, overflow: 'hidden' }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary }}>Tenants Without Advance</Text>
-                      <View style={{ marginLeft: 8, backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 9999 }}>
-                        <Text style={{ color: '#DC2626', fontWeight: '700', fontSize: 12 }}>{noAdvanceTenants.length}</Text>
-                      </View>
-                    </View>
-                    <TouchableOpacity onPress={() => handleNavigate('Tenants')}>
-                      <Text style={{ color: Theme.colors.primary, fontWeight: '700' }}>View All</Text>
-                    </TouchableOpacity>
-                  </View>
-                  {loadingNoAdvance ? (
-                    <View style={{ padding: 16, alignItems: 'center' }}>
-                      <ActivityIndicator size="small" color={Theme.colors.primary} />
-                      <Text style={{ marginTop: 8, color: Theme.colors.text.secondary }}>Loading...</Text>
-                    </View>
-                  ) : noAdvanceTenants.length === 0 ? (
-                    <View style={{ padding: 16 }}>
-                      <Text style={{ color: Theme.colors.text.secondary }}>All tenants have paid advance. Great!</Text>
-                    </View>
-                  ) : (
-                    <View>
-                      <View style={{ flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#F9FAFB', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                        <Text style={{ flex: 1.6, fontWeight: '700', color: Theme.colors.text.secondary, fontSize: 12 }}>Tenant</Text>
-                        <Text style={{ flex: 1, fontWeight: '700', color: Theme.colors.text.secondary, fontSize: 12 }}>Room</Text>
-                        <Text style={{ flex: 1.2, fontWeight: '700', color: Theme.colors.text.secondary, fontSize: 12 }}>Check-in</Text>
-                        <Text style={{ width: 90, textAlign: 'right', fontWeight: '700', color: Theme.colors.text.secondary, fontSize: 12 }}>Action</Text>
-                      </View>
-                      {noAdvanceTenants.slice(0, 20).map((t, idx) => (
-                        <View
-                          key={t.s_no}
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            paddingHorizontal: 12,
-                            paddingVertical: 12,
-                            borderBottomWidth: 1,
-                            borderBottomColor: '#F3F4F6',
-                            backgroundColor: idx % 2 === 0 ? '#FFFFFF' : '#FAFAFA',
-                          }}
-                        >
-                          <View style={{ flex: 1.6 }}>
-                            <Text numberOfLines={1} style={{ color: Theme.colors.text.primary, fontWeight: '700' }}>{t.name}</Text>
-                            <Text style={{ marginTop: 2, color: Theme.colors.text.secondary, fontSize: 12 }}>{t.phone_no || t.whatsapp_number || '—'}</Text>
-                          </View>
-                          <Text style={{ flex: 1, color: Theme.colors.text.primary, textAlign: 'center' }}>{t.rooms?.room_no || '—'}</Text>
-                          <Text style={{ flex: 1.2, color: Theme.colors.text.primary, textAlign: 'center' }}>{new Date(t.check_in_date).toLocaleDateString()}</Text>
-                          <View style={{ width: 90, alignItems: 'flex-end' }}>
-                            <TouchableOpacity onPress={() => navigation.navigate('TenantDetails', { tenantId: t.s_no })} style={{ backgroundColor: Theme.colors.primary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
-                              <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>Details</Text>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              </View>
-            )}
-          </ScrollView>
         )}
       </View>
     </ScreenLayout>

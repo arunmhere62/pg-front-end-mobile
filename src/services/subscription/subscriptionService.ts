@@ -69,8 +69,10 @@ class SubscriptionService {
   /**
    * Check if user has active subscription
    */
-  async getSubscriptionStatus(): Promise<{ success: boolean; data: SubscriptionStatus }> {
+  async getSubscriptionStatus(): Promise<SubscriptionStatus> {
     const response = await axiosInstance.get('/subscription/status');
+    console.log('🔍 Service received response:', response.data);
+    // API returns data directly, not wrapped in { data: ... }
     return response.data;
   }
 
