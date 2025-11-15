@@ -32,11 +32,17 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    console.error('🔴 ErrorBoundary caught an error:', error, errorInfo);
+    console.error('🔴 Component Stack:', errorInfo.componentStack);
+    console.error('🔴 Error Stack:', error.stack);
+    
     this.setState({
       error,
       errorInfo,
     });
+    
+    // Log to any crash reporting service here if needed
+    // Example: Crashlytics.recordError(error);
   }
 
   handleReset = () => {

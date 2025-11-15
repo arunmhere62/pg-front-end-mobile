@@ -14,6 +14,30 @@
     },
     "production": {
       "autoIncrement": true
+    },
+    "apk": {
+      "android": {
+        "buildType": "apk"
+      },
+      "distribution": "internal"
+    },
+    "standalone-apk": {
+      "android": {
+        "buildType": "apk"
+      },
+      "distribution": "internal",
+      "developmentClient": false
+    },
+    "minimal-apk": {
+      "android": {
+        "buildType": "apk"
+      },
+      "distribution": "internal",
+      "developmentClient": false,
+      "node": "20.19.4",
+      "env": {
+        "NODE_ENV": "production"
+      }
     }
   },
   "submit": {

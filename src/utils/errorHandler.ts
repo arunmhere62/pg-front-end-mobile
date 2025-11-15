@@ -151,22 +151,34 @@ export const handleGlobalError = (error: any, context?: string) => {
  * Setup global error handlers
  */
 export const setupGlobalErrorHandlers = () => {
-  // Log all promise rejections
-  const globalAny = global as any;
-  
-  if (typeof globalAny.ErrorUtils !== 'undefined') {
-    const originalErrorHandler = globalAny.ErrorUtils.getGlobalHandler();
+  try {
+    // Log all promise rejections
+    const globalAny = global as any;
     
-    globalAny.ErrorUtils.setGlobalHandler((error: any, isFatal: boolean) => {
-      console.error('🔴 Global Error Caught:', error, 'Fatal:', isFatal);
-      handleGlobalError(error, 'Global Handler');
+    if (typeof globalAny.ErrorUtils !== 'undefined') {
+      const originalErrorHandler = globalAny.ErrorUtils.getGlobalHandler();
       
-      // Call original handler
-      if (originalErrorHandler) {
-        originalErrorHandler(error, isFatal);
-      }
-    });
+      globalAny.ErrorUtils.setGlobalHandler((error: any, isFatal: boolean) => {
+        console.error('🔴 Global Error Caught:', error, 'Fatal:', isFatal);
+        handleGlobalError(error, 'Global Handler');
+        
+        // Call original handler
+        if (originalErrorHandler) {
+          originalErrorHandler(error, isFatal);
+        }
+      });
+    }
+    
+    // Handle unhandled promise rejections
+    if (typeof globalAny.addEventListener === 'function') {
+      globalAny.addEventListener('unhandledrejection', (event: any) => {
+        console.error('🔴 Unhandled Promise Rejection:', event.reason);
+        handleGlobalError(event.reason, 'Promise Rejection');
+      });
+    }
+    
+    console.log('✅ Global error handlers initialized');
+  } catch (error) {
+    console.error('❌ Failed to setup global error handlers:', error);
   }
-  
-  console.log('✅ Global error handlers initialized');
 };

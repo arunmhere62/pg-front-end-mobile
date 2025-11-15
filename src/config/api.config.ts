@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 
 export const API_CONFIG = {
   // Uses value from app.config.js which reads from .env
-  BASE_URL: Constants.expoConfig?.extra?.apiBaseUrl || 'http://172.20.10.2:3000/api/v1',
+  BASE_URL: Constants.expoConfig?.extra?.apiBaseUrl || 'https://pg-api-mobile.onrender.com/api/v1',
   TIMEOUT: 30000,
   HEADERS: {
     'Content-Type': 'application/json',
