@@ -55,6 +55,10 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
   // Check if we're in edit mode
   const tenantId = route?.params?.tenantId;
   const isEditMode = !!tenantId;
+  
+  // Check if we're coming from bed screen with pre-selected bed and room
+  const preSelectedBedId = route?.params?.bed_id;
+  const preSelectedRoomId = route?.params?.room_id;
 
   // Dropdown data
   const [roomList, setRoomList] = useState<OptionType[]>([]);
@@ -72,7 +76,7 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
     tenant_address: '',
     room_id: null as number | null,
     bed_id: null as number | null,
-    check_in_date: new Date().toISOString().split('T')[0],
+    check_in_date: '',
     check_out_date: '',
     city_id: null as number | null,
     state_id: null as number | null,
@@ -95,6 +99,17 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
     }
   }, [tenantId]);
 
+  // Pre-fill room and bed if coming from bed screen
+  useEffect(() => {
+    if (preSelectedRoomId && preSelectedBedId) {
+      setFormData(prev => ({
+        ...prev,
+        room_id: preSelectedRoomId,
+        bed_id: preSelectedBedId,
+      }));
+    }
+  }, [preSelectedRoomId, preSelectedBedId]);
+
   // Fetch states on mount
   useEffect(() => {
     fetchStates();
@@ -113,9 +128,12 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
       fetchBeds(formData.room_id.toString());
     } else {
       setBedsList([]);
-      setFormData(prev => ({ ...prev, bed_id: null }));
+      // Only reset bed_id if it wasn't pre-selected from bed screen
+      if (!preSelectedBedId) {
+        setFormData(prev => ({ ...prev, bed_id: null }));
+      }
     }
-  }, [formData.room_id]);
+  }, [formData.room_id, preSelectedBedId]);
 
   // Fetch cities when state is selected
   useEffect(() => {
@@ -658,13 +676,31 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
             />
 
             {/* Check-in Date */}
-            <DatePicker
-              label="Check-in Date"
-              value={formData.check_in_date}
-              onChange={(date) => updateField('check_in_date', date)}
-              error={errors.check_in_date}
-              required={true}
-            />
+            <View style={{ marginBottom: 0 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <Text style={{ fontSize: 11, color: Theme.colors.text.secondary, fontWeight: '600', marginLeft: 2 }}>
+                  Check-in Date <Text style={{ color: '#EF4444' }}>*</Text>
+                </Text>
+                <TouchableOpacity
+                  onPress={() => updateField('check_in_date', new Date().toISOString().split('T')[0])}
+                  style={{
+                    backgroundColor: Theme.colors.primary,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 6,
+                  }}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#fff' }}>Today</Text>
+                </TouchableOpacity>
+              </View>
+              <DatePicker
+                label=""
+                value={formData.check_in_date}
+                onChange={(date) => updateField('check_in_date', date)}
+                error={errors.check_in_date}
+                required={false}
+              />
+            </View>
           </Card>
 
           {/* Tenant Images */}

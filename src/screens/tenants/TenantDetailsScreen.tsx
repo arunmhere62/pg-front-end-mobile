@@ -16,6 +16,7 @@ import { AppDispatch, RootState } from '../../store';
 import { fetchTenantById } from '../../store/slices/tenantSlice';
 import { TenantPayment, AdvancePayment, RefundPayment, PendingPaymentMonth } from '../../services/tenants/tenantService';
 import { Card } from '../../components/Card';
+import { AnimatedPressableCard } from '../../components/AnimatedPressableCard';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
@@ -556,15 +557,18 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
         <PersonalInformation tenant={tenant} />
 
         {/* Rent Payments */}
-        <Card style={{ marginHorizontal: 16, marginBottom: 16, padding: 0, overflow: 'hidden' }}>
+        <View style={{ marginBottom: 16, marginHorizontal: 16 }}>
           <TouchableOpacity
             onPress={() => toggleSection('rentPayments')}
             style={{
               flexDirection: 'row',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: 16,
-              backgroundColor: '#F9FAFB',
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              backgroundColor: Theme.colors.background.primary,
+              borderRadius: 8,
+              marginBottom: 8,
             }}
           >
             <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary }}>
@@ -577,25 +581,30 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
 
           {expandedSections.rentPayments && (
             <ScrollView 
-              style={{ maxHeight: 600, padding: 16, paddingTop: 0 }}
+              style={{ maxHeight: 600, paddingHorizontal: 0, paddingVertical: 0 }}
               nestedScrollEnabled={true}
               showsVerticalScrollIndicator={true}
             >
               {tenant.tenant_payments && tenant.tenant_payments.length > 0 ? (
                 tenant.tenant_payments.map((payment: TenantPayment, index: number) => (
-                  <View
+                  <AnimatedPressableCard
                     key={payment.s_no}
+                    scaleValue={0.98}
+                    duration={120}
                     style={{
-                      paddingVertical: 14,
-                      paddingHorizontal: 12,
-                      marginBottom: 12,
-                      backgroundColor: '#FAFAFA',
+                      paddingVertical: 8,
+                      paddingHorizontal: 10,
+                      marginBottom: 6,
+                      marginHorizontal: 8,
+                      backgroundColor: 'white',
                       borderRadius: 8,
-                      borderLeftWidth: 4,
-                      borderLeftColor: 
-                        payment.status === 'PAID' ? '#10B981' :
-                        payment.status === 'PENDING' ? '#F59E0B' :
-                        payment.status === 'OVERDUE' ? '#EF4444' : '#9CA3AF',
+                      borderLeftWidth: 3,
+                      borderLeftColor: payment.status === 'PAID' ? '#10B981' : payment.status === 'PENDING' ? '#F59E0B' : payment.status === 'OVERDUE' ? '#EF4444' : '#9CA3AF',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.06,
+                      shadowRadius: 2,
+                      elevation: 1,
                     }}
                   >
                     {/* Header Row */}
@@ -604,14 +613,14 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                         flexDirection: 'row',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        marginBottom: 8,
+                        marginBottom: 6,
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: Theme.colors.text.primary }}>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: Theme.colors.text.primary }}>
                           Payment Date
                         </Text>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.secondary, marginTop: 2 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.secondary, marginTop: 1 }}>
                           {new Date(payment.payment_date).toLocaleDateString('en-IN', {
                             day: 'numeric',
                             month: 'short',
@@ -669,25 +678,25 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                     <View style={{ 
                       flexDirection: 'row', 
                       justifyContent: 'space-between',
-                      paddingVertical: 10,
-                      borderTopWidth: 1,
+                      paddingVertical: 6,
+                      borderTopWidth: 0.5,
                       borderTopColor: '#E5E7EB',
-                      marginBottom: 8,
+                      marginBottom: 6,
                     }}>
                       <View>
-                        <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, marginBottom: 2 }}>
+                        <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, marginBottom: 1 }}>
                           Amount Paid
                         </Text>
-                        <Text style={{ fontSize: 18, fontWeight: '700', color: Theme.colors.primary }}>
+                        <Text style={{ fontSize: 15, fontWeight: '700', color: Theme.colors.primary }}>
                           ₹{payment.amount_paid?.toLocaleString('en-IN')}
                         </Text>
                       </View>
                       {payment.actual_rent_amount && payment.actual_rent_amount !== payment.amount_paid && (
                         <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, marginBottom: 2 }}>
+                          <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, marginBottom: 1 }}>
                             Actual Rent
                           </Text>
-                          <Text style={{ fontSize: 15, fontWeight: '600', color: Theme.colors.text.secondary }}>
+                          <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.secondary }}>
                             ₹{payment.actual_rent_amount?.toLocaleString('en-IN')}
                           </Text>
                         </View>
@@ -695,14 +704,14 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                     </View>
 
                     {/* Details Grid */}
-                    <View style={{ gap: 6 }}>
+                    <View style={{ gap: 4 }}>
                       {/* Payment Period */}
                       {payment.start_date && payment.end_date && (
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, width: 80 }}>
+                          <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, width: 70 }}>
                             Period:
                           </Text>
-                          <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary, flex: 1 }}>
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: Theme.colors.text.primary, flex: 1 }}>
                             {new Date(payment.start_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} - {new Date(payment.end_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                           </Text>
                         </View>
@@ -756,7 +765,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
 
                     {/* Receipt Buttons */}
                     {payment.status === 'PAID' && (
-                      <View style={{ flexDirection: 'row', gap: 6, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                      <View style={{ flexDirection: 'row', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
                         <TouchableOpacity
                           onPress={() => handleViewReceipt(payment)}
                           style={{
@@ -764,14 +773,15 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                             flexDirection: 'row',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: 10,
+                            paddingVertical: 10,
+                            paddingHorizontal: 8,
                             backgroundColor: '#FEF3C7',
                             borderRadius: 8,
-                            gap: 6,
+                            marginRight: 4,
                           }}
                         >
-                          <Ionicons name="eye-outline" size={18} color="#F59E0B" />
-                          <Text style={{ color: '#F59E0B', fontSize: 12, fontWeight: '600' }}>
+                          <Ionicons name="eye-outline" size={16} color="#F59E0B" />
+                          <Text style={{ color: '#F59E0B', fontSize: 11, fontWeight: '600', marginLeft: 4 }}>
                             View
                           </Text>
                         </TouchableOpacity>
@@ -783,14 +793,15 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                             flexDirection: 'row',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: 10,
+                            paddingVertical: 10,
+                            paddingHorizontal: 8,
                             backgroundColor: '#F0FDF4',
                             borderRadius: 8,
-                            gap: 6,
+                            marginHorizontal: 4,
                           }}
                         >
-                          <Ionicons name="logo-whatsapp" size={18} color="#10B981" />
-                          <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '600' }}>
+                          <Ionicons name="logo-whatsapp" size={16} color="#10B981" />
+                          <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '600', marginLeft: 4 }}>
                             WhatsApp
                           </Text>
                         </TouchableOpacity>
@@ -802,20 +813,21 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                             flexDirection: 'row',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: 10,
+                            paddingVertical: 10,
+                            paddingHorizontal: 8,
                             backgroundColor: '#EFF6FF',
                             borderRadius: 8,
-                            gap: 6,
+                            marginLeft: 4,
                           }}
                         >
-                          <Ionicons name="share-social-outline" size={18} color="#3B82F6" />
-                          <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '600' }}>
+                          <Ionicons name="share-social-outline" size={16} color="#3B82F6" />
+                          <Text style={{ color: '#3B82F6', fontSize: 11, fontWeight: '600', marginLeft: 4 }}>
                             Share
                           </Text>
                         </TouchableOpacity>
                       </View>
                     )}
-                  </View>
+                  </AnimatedPressableCard>
                 ))
               ) : (
                 <View style={{ paddingVertical: 40, alignItems: 'center' }}>
@@ -830,18 +842,21 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
               )}
             </ScrollView>
           )}
-        </Card>
+        </View>
 
         {/* Advance Payments */}
-        <Card style={{ marginHorizontal: 16, marginBottom: 16, padding: 0, overflow: 'hidden' }}>
+        <View style={{ marginBottom: 16, marginHorizontal: 16 }}>
           <TouchableOpacity
             onPress={() => toggleSection('advancePayments')}
             style={{
               flexDirection: 'row',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
               backgroundColor: '#F0FDF4',
+              borderRadius: 8,
+              marginBottom: 8,
             }}
           >
             <Text style={{ fontSize: 16, fontWeight: '700', color: '#10B981' }}>
@@ -854,25 +869,30 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
 
           {expandedSections.advancePayments && (
             <ScrollView 
-              style={{ maxHeight: 600, padding: 16, paddingTop: 0 }}
+              style={{ maxHeight: 600, paddingHorizontal: 0, paddingVertical: 0 }}
               nestedScrollEnabled={true}
               showsVerticalScrollIndicator={true}
             >
               {tenant.advance_payments && tenant.advance_payments.length > 0 ? (
                 tenant.advance_payments.map((payment: AdvancePayment, index: number) => (
-                  <View
+                  <AnimatedPressableCard
                     key={payment.s_no}
+                    scaleValue={0.98}
+                    duration={120}
                     style={{
-                      paddingVertical: 14,
-                      paddingHorizontal: 12,
-                      marginBottom: 12,
-                      backgroundColor: '#F0FDF4',
+                      paddingVertical: 8,
+                      paddingHorizontal: 10,
+                      marginBottom: 6,
+                      marginHorizontal: 8,
+                      backgroundColor: 'white',
                       borderRadius: 8,
-                      borderLeftWidth: 4,
-                      borderLeftColor: 
-                        payment.status === 'PAID' ? '#10B981' :
-                        payment.status === 'PENDING' ? '#F59E0B' :
-                        payment.status === 'FAILED' ? '#EF4444' : '#9CA3AF',
+                      borderLeftWidth: 3,
+                      borderLeftColor: payment.status === 'PAID' ? '#10B981' : payment.status === 'PENDING' ? '#F59E0B' : payment.status === 'FAILED' ? '#EF4444' : payment.status === 'REFUNDED' ? '#3B82F6' : '#9CA3AF',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.06,
+                      shadowRadius: 2,
+                      elevation: 1,
                     }}
                   >
                     {/* Header Row */}
@@ -881,14 +901,14 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                         flexDirection: 'row',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        marginBottom: 8,
+                        marginBottom: 6,
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: Theme.colors.text.primary }}>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: Theme.colors.text.primary }}>
                           Payment Date
                         </Text>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.secondary, marginTop: 2 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.secondary, marginTop: 1 }}>
                           {new Date(payment.payment_date).toLocaleDateString('en-IN', {
                             day: 'numeric',
                             month: 'short',
@@ -1009,7 +1029,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
 
                     {/* Receipt Buttons - Only show for PAID status */}
                     {payment.status === 'PAID' && (
-                      <View style={{ flexDirection: 'row', gap: 6, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#D1FAE5' }}>
+                      <View style={{ flexDirection: 'row', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#D1FAE5' }}>
                         <TouchableOpacity
                           onPress={() => handleViewAdvanceReceipt(payment)}
                           style={{
@@ -1017,16 +1037,15 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                             flexDirection: 'row',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            paddingVertical: 8,
-                            paddingHorizontal: 12,
-                            backgroundColor: '#ECFDF5',
-                            borderRadius: 6,
-                            borderWidth: 1,
-                            borderColor: '#10B981',
+                            paddingVertical: 10,
+                            paddingHorizontal: 8,
+                            backgroundColor: '#FEF3C7',
+                            borderRadius: 8,
+                            marginRight: 4,
                           }}
                         >
-                          <Ionicons name="receipt-outline" size={14} color="#10B981" />
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#10B981', marginLeft: 4 }}>
+                          <Ionicons name="eye-outline" size={16} color="#F59E0B" />
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#F59E0B', marginLeft: 4 }}>
                             View
                           </Text>
                         </TouchableOpacity>
@@ -1038,15 +1057,14 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                             flexDirection: 'row',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            paddingVertical: 8,
-                            paddingHorizontal: 12,
-                            backgroundColor: '#ECFDF5',
-                            borderRadius: 6,
-                            borderWidth: 1,
-                            borderColor: '#10B981',
+                            paddingVertical: 10,
+                            paddingHorizontal: 8,
+                            backgroundColor: '#F0FDF4',
+                            borderRadius: 8,
+                            marginHorizontal: 4,
                           }}
                         >
-                          <Ionicons name="logo-whatsapp" size={14} color="#10B981" />
+                          <Ionicons name="logo-whatsapp" size={16} color="#10B981" />
                           <Text style={{ fontSize: 11, fontWeight: '600', color: '#10B981', marginLeft: 4 }}>
                             WhatsApp
                           </Text>
@@ -1059,22 +1077,21 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                             flexDirection: 'row',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            paddingVertical: 8,
-                            paddingHorizontal: 12,
-                            backgroundColor: '#ECFDF5',
-                            borderRadius: 6,
-                            borderWidth: 1,
-                            borderColor: '#10B981',
+                            paddingVertical: 10,
+                            paddingHorizontal: 8,
+                            backgroundColor: '#EFF6FF',
+                            borderRadius: 8,
+                            marginLeft: 4,
                           }}
                         >
-                          <Ionicons name="share-outline" size={14} color="#10B981" />
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#10B981', marginLeft: 4 }}>
+                          <Ionicons name="share-social-outline" size={16} color="#3B82F6" />
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#3B82F6', marginLeft: 4 }}>
                             Share
                           </Text>
                         </TouchableOpacity>
                       </View>
                     )}
-                  </View>
+                  </AnimatedPressableCard>
                 ))
               ) : (
                 <View style={{ paddingVertical: 40, alignItems: 'center' }}>
@@ -1111,19 +1128,23 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
               )}
             </ScrollView>
           )}
-        </Card>
+        </View>
 
         {/* Refund Payments */}
         {tenant.refund_payments && tenant.refund_payments.length > 0 && (
-          <Card style={{ marginHorizontal: 16, marginBottom: 16, padding: 0, overflow: 'hidden' }}>
+          <View style={{ marginBottom: 16 }}>
             <TouchableOpacity
               onPress={() => toggleSection('refundPayments')}
               style={{
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
                 backgroundColor: '#FEF3C7',
+                borderRadius: 8,
+                marginHorizontal: 16,
+                marginBottom: 8,
               }}
             >
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#F59E0B' }}>
@@ -1136,17 +1157,26 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
 
             {expandedSections.refundPayments && (
               <ScrollView 
-                style={{ maxHeight: 600, padding: 16, paddingTop: 0 }}
+                style={{ maxHeight: 600, paddingHorizontal: 8, paddingVertical: 0 }}
                 nestedScrollEnabled={true}
                 showsVerticalScrollIndicator={true}
               >
                 {tenant.refund_payments.map((payment: RefundPayment, index: number) => (
-                  <View
+                  <AnimatedPressableCard
                     key={payment.s_no}
+                    scaleValue={0.98}
+                    duration={120}
                     style={{
-                      paddingVertical: 12,
-                      borderBottomWidth: index < tenant.refund_payments!.length - 1 ? 1 : 0,
-                      borderBottomColor: '#E5E7EB',
+                      paddingVertical: 10,
+                      paddingHorizontal: 12,
+                      marginBottom: 8,
+                      backgroundColor: 'white',
+                      borderRadius: 10,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.08,
+                      shadowRadius: 4,
+                      elevation: 2,
                     }}
                   >
                     <View
@@ -1216,7 +1246,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                         {payment.remarks}
                       </Text>
                     )}
-                  </View>
+                  </AnimatedPressableCard>
                 ))}
                 <View style={{ paddingTop: 12, borderTopWidth: 2, borderTopColor: '#F59E0B', marginTop: 8 }}>
                   <Text style={{ fontSize: 14, fontWeight: '700', color: '#F59E0B', textAlign: 'right' }}>
@@ -1226,7 +1256,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                 </View>
               </ScrollView>
             )}
-          </Card>
+          </View>
         )}
 
         {/* Proof Documents */}

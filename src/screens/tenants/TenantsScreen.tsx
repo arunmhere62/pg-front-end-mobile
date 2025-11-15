@@ -18,6 +18,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { AppDispatch, RootState } from '../../store';
 import { fetchTenants, deleteTenant, checkoutTenant } from '../../store/slices/tenantSlice';
 import { Card } from '../../components/Card';
+import { AnimatedButton } from '../../components/AnimatedButton';
+import { AnimatedPressableCard } from '../../components/AnimatedPressableCard';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
@@ -309,12 +311,17 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
     const hasBothPartialAndPending = partialDueAmount > 0 && pendingDueAmount > 0;
 
     return (
-      <Card style={{ 
-        marginBottom: 12, 
-        padding: 12,
-        borderLeftWidth: hasOutstandingAmount ? 4 : 0,
-        borderLeftColor: isRentPartial ? '#F97316' : '#F59E0B',
-      }}>
+      <AnimatedPressableCard
+        onPress={() => navigation.navigate('TenantDetails', { tenantId: item.s_no })}
+        scaleValue={0.97}
+        duration={120}
+        style={{ marginBottom: 12 }}
+      >
+        <Card style={{ 
+          padding: 12,
+          borderLeftWidth: hasOutstandingAmount ? 4 : 0,
+          borderLeftColor: isRentPartial ? '#F97316' : '#F59E0B',
+        }}>
         {/* Header with Image */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
           {/* Tenant Image/Avatar */}
@@ -418,27 +425,22 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
         )}
       </View>
 
-      {/* Payment Status Section - Big Badges */}
+      {/* Payment Status Section - Medium Badges */}
       <View style={{ marginBottom: 12 }}>
         <Text style={{ fontSize: 11, fontWeight: '600', color: Theme.colors.text.secondary, marginBottom: 6 }}>
           Payment Status
         </Text>
-        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, alignItems: 'center' }}>
           {hasBothPartialAndPending ? (
             <>
               <View style={{
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 12,
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 11,
                 backgroundColor: '#F97316',
-                shadowColor: '#F97316',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.3,
-                shadowRadius: 4,
-                elevation: 3,
               }}>
                 <Text style={{
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: '700',
                   color: '#fff',
                 }}>
@@ -446,18 +448,13 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                 </Text>
               </View>
               <View style={{
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 12,
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 11,
                 backgroundColor: '#F59E0B',
-                shadowColor: '#F59E0B',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.3,
-                shadowRadius: 4,
-                elevation: 3,
               }}>
                 <Text style={{
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: '700',
                   color: '#fff',
                 }}>
@@ -467,18 +464,13 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
             </>
           ) : hasOutstandingAmount ? (
             <View style={{
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 14,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 11,
               backgroundColor: isRentPartial ? '#F97316' : '#F59E0B',
-              shadowColor: isRentPartial ? '#F97316' : '#F59E0B',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.3,
-              shadowRadius: 4,
-              elevation: 3,
             }}>
               <Text style={{
-                fontSize: 13,
+                fontSize: 11,
                 fontWeight: '700',
                 color: '#fff',
               }}>
@@ -487,18 +479,13 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
             </View>
           ) : isRentPaid ? (
             <View style={{
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 14,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 11,
               backgroundColor: '#10B981',
-              shadowColor: '#10B981',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.3,
-              shadowRadius: 4,
-              elevation: 3,
             }}>
               <Text style={{
-                fontSize: 13,
+                fontSize: 11,
                 fontWeight: '700',
                 color: '#fff',
               }}>
@@ -507,18 +494,13 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
             </View>
           ) : (
             <View style={{
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 14,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 11,
               backgroundColor: '#9CA3AF',
-              shadowColor: '#9CA3AF',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.3,
-              shadowRadius: 4,
-              elevation: 3,
             }}>
               <Text style={{
-                fontSize: 13,
+                fontSize: 11,
                 fontWeight: '700',
                 color: '#fff',
               }}>
@@ -530,15 +512,10 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
           {/* Due Amount Badge */}
           {hasOutstandingAmount && (
             <View style={{
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 12,
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              borderRadius: 11,
               backgroundColor: '#EF4444',
-              shadowColor: '#EF4444',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.3,
-              shadowRadius: 4,
-              elevation: 3,
             }}>
               <Text style={{
                 fontSize: 11,
@@ -553,15 +530,10 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
           {/* No Advance Badge */}
           {!isAdvancePaid && (
             <View style={{
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 12,
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              borderRadius: 11,
               backgroundColor: '#F59E0B',
-              shadowColor: '#F59E0B',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.3,
-              shadowRadius: 4,
-              elevation: 3,
             }}>
               <Text style={{
                 fontSize: 11,
@@ -883,8 +855,10 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
 
       {/* Action Buttons */}
       <View style={{ flexDirection: 'row', gap: 8 }}>
-        <TouchableOpacity
+        <AnimatedButton
           onPress={() => navigation.navigate('TenantDetails', { tenantId: item.s_no })}
+          scaleValue={0.94}
+          duration={120}
           style={{
             flex: 1,
             paddingVertical: 10,
@@ -895,7 +869,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
           }}
         >
           <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>View Details</Text>
-        </TouchableOpacity>
+        </AnimatedButton>
         {item.status === 'ACTIVE' && (
           <TouchableOpacity
             onPress={() => handleCheckout(item.s_no, item.name)}
@@ -926,7 +900,8 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
           </TouchableOpacity>
         )}
       </View>
-    </Card>
+        </Card>
+      </AnimatedPressableCard>
     );
   };
 

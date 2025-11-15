@@ -1,8 +1,8 @@
-import Constants from 'expo-constants';
+import { ENV } from './environment';
 
 export const API_CONFIG = {
-  // Uses value from app.config.js which reads from .env
-  BASE_URL: Constants.expoConfig?.extra?.apiBaseUrl || 'https://pg-api-mobile.onrender.com/api/v1',
+  // Uses centralized environment configuration
+  BASE_URL: ENV.API_BASE_URL,
   TIMEOUT: 30000,
   HEADERS: {
     'Content-Type': 'application/json',

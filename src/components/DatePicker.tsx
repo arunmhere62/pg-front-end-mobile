@@ -82,28 +82,41 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       </Text>
 
       {/* Date Display Button */}
-      <TouchableOpacity
-        onPress={() => !disabled && setShowPicker(true)}
-        disabled={disabled}
-        style={[
-          styles.dateButton,
-          error && styles.dateButtonError,
-          disabled && styles.dateButtonDisabled,
-        ]}
-      >
-        <View style={styles.dateContent}>
-          <Text style={styles.dateIcon}>📅</Text>
-          <Text
-            style={[
-              styles.dateText,
-              !value && styles.dateTextPlaceholder,
-              disabled && styles.dateTextDisabled,
-            ]}
+      <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+        <TouchableOpacity
+          onPress={() => !disabled && setShowPicker(true)}
+          disabled={disabled}
+          style={[
+            styles.dateButton,
+            error && styles.dateButtonError,
+            disabled && styles.dateButtonDisabled,
+            { flex: 1 },
+          ]}
+        >
+          <View style={styles.dateContent}>
+            <Text style={styles.dateIcon}>📅</Text>
+            <Text
+              style={[
+                styles.dateText,
+                !value && styles.dateTextPlaceholder,
+                disabled && styles.dateTextDisabled,
+              ]}
+            >
+              {formatDate(value)}
+            </Text>
+          </View>
+        </TouchableOpacity>
+        
+        {/* Clear Button - Only show if date is selected */}
+        {value && !disabled && (
+          <TouchableOpacity
+            onPress={() => onChange('')}
+            style={styles.clearButton}
           >
-            {formatDate(value)}
-          </Text>
-        </View>
-      </TouchableOpacity>
+            <Text style={styles.clearButtonText}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Error Message */}
       {error && <Text style={styles.errorText}>{error}</Text>}
@@ -161,23 +174,26 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: 0,
   },
   label: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '600',
-    color: Theme.colors.text.primary,
-    marginBottom: 6,
+    color: Theme.colors.text.secondary,
+    marginBottom: 4,
+    marginLeft: 2,
   },
   required: {
     color: '#EF4444',
   },
   dateButton: {
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
     borderRadius: 8,
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: '#fff',
+    minHeight: 42,
   },
   dateButtonError: {
     borderColor: '#EF4444',
@@ -190,15 +206,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dateIcon: {
-    fontSize: 20,
-    marginRight: 10,
+    fontSize: 18,
+    marginRight: 8,
   },
   dateText: {
-    fontSize: 14,
+    fontSize: 13,
     color: Theme.colors.text.primary,
+    fontWeight: '500',
   },
   dateTextPlaceholder: {
     color: '#9CA3AF',
+    fontWeight: '400',
   },
   dateTextDisabled: {
     color: '#9CA3AF',
@@ -240,5 +258,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Theme.colors.primary,
+  },
+  clearButton: {
+    width: 40,
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clearButtonText: {
+    fontSize: 18,
+    color: '#9CA3AF',
+    fontWeight: '600',
   },
 });

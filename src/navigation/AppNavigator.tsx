@@ -21,7 +21,6 @@ import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
 import { TenantsScreen } from '../screens/tenants/TenantsScreen';
 import { TenantDetailsScreen } from '../screens/tenants/TenantDetailsScreen';
 import { AddTenantScreen } from '../screens/tenants/AddTenantScreen';
-import { TenantStatusDashboard } from '../screens/tenants/TenantStatusDashboard';
 import { RoomsScreen } from '../screens/rooms/RoomsScreen';
 import { RoomDetailsScreen } from '../screens/rooms/RoomDetailsScreen';
 import { BedsScreen } from '../screens/beds/BedsScreen';
@@ -139,7 +138,6 @@ export const AppNavigator = () => {
             <Stack.Screen name="Beds" component={BedsScreen} />
             <Stack.Screen name="TenantDetails" component={TenantDetailsScreen} />
             <Stack.Screen name="AddTenant" component={AddTenantScreen} />
-            <Stack.Screen name="TenantStatusDashboard" component={TenantStatusDashboard} />
             <Stack.Screen name="UserProfile" component={UserProfileScreen} />
             <Stack.Screen name="Expenses" component={ExpenseScreen} />
             <Stack.Screen name="EmployeeSalary" component={EmployeeSalaryScreen} />

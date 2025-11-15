@@ -40,10 +40,4 @@ export const pgLocationService = {
     return response.data;
   },
 
-  getTenantRentPaymentStatus: async (pgId: number) => {
-    const response = await axiosInstance.get(
-      API_ENDPOINTS.PG_LOCATIONS.TENANT_RENT_STATUS(pgId)
-    );
-    return response.data;
-  },
 };

@@ -3,6 +3,7 @@ import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { Card } from '../../../components/Card';
 import { Theme } from '../../../theme';
 import { Tenant } from '../../../services/tenants/tenantService';
+import { AnimatedPressableCard } from '../../../components/AnimatedPressableCard';
 
 interface TenantHeaderProps {
   tenant: Tenant;
@@ -31,27 +32,36 @@ export const TenantHeader: React.FC<TenantHeaderProps> = ({
       : null;
 
   return (
-    <Card style={{ margin: 16, padding: 16, position: 'relative' }}>
-      {/* Edit Button - Top Right Corner */}
-      <TouchableOpacity
+    <Card style={{ marginHorizontal: 16, marginVertical: 12, paddingHorizontal: 16, paddingVertical: 16, position: 'relative' }}>
+      {/* Edit Button - Top Right Corner with Animation */}
+      <AnimatedPressableCard
         onPress={onEdit}
+        scaleValue={0.95}
+        duration={100}
         style={{
           position: 'absolute',
           top: 12,
           right: 12,
-          paddingHorizontal: 10,
-          paddingVertical: 6,
-          backgroundColor: '#fff',
-          borderRadius: 6,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.1,
-          shadowRadius: 2,
-          elevation: 2,
+          zIndex: 10,
         }}
       >
-        <Text style={{ color: Theme.colors.primary, fontWeight: '600', fontSize: 14 }}>✏️ Edit</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={{
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            backgroundColor: Theme.colors.primary,
+            borderRadius: 8,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+            elevation: 3,
+          }}
+        >
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Edit</Text>
+        </TouchableOpacity>
+      </AnimatedPressableCard>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
         {/* Tenant Image/Avatar */}
@@ -92,15 +102,6 @@ export const TenantHeader: React.FC<TenantHeaderProps> = ({
           >
             {tenant.name}
           </Text>
-          <Text
-            style={{
-              fontSize: 13,
-              color: Theme.colors.text.tertiary,
-              marginBottom: 8,
-            }}
-          >
-            ID: {tenant.tenant_id}
-          </Text>
           <View
             style={{
               alignSelf: 'flex-start',
@@ -127,103 +128,164 @@ export const TenantHeader: React.FC<TenantHeaderProps> = ({
       {/* Contact Actions */}
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {tenant.phone_no && (
-          <TouchableOpacity
+          <AnimatedPressableCard
             onPress={() => onCall(tenant.phone_no!)}
-            style={{
-              flex: 1,
-              paddingVertical: 10,
-              backgroundColor: '#3B82F6',
-              borderRadius: 8,
-              alignItems: 'center',
-            }}
+            scaleValue={0.96}
+            duration={100}
+            style={{ flex: 1 }}
           >
-            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>📞 Call</Text>
-          </TouchableOpacity>
+            <View
+              style={{
+                paddingVertical: 12,
+                backgroundColor: Theme.colors.primary,
+                borderRadius: 8,
+                alignItems: 'center',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 3,
+                elevation: 2,
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>📞 Call</Text>
+            </View>
+          </AnimatedPressableCard>
         )}
         {tenant.whatsapp_number && (
-          <TouchableOpacity
+          <AnimatedPressableCard
             onPress={() => onWhatsApp(tenant.whatsapp_number!)}
-            style={{
-              flex: 1,
-              paddingVertical: 10,
-              backgroundColor: '#25D366',
-              borderRadius: 8,
-              alignItems: 'center',
-            }}
+            scaleValue={0.96}
+            duration={100}
+            style={{ flex: 1 }}
           >
-            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>💬 WhatsApp</Text>
-          </TouchableOpacity>
+            <View
+              style={{
+                paddingVertical: 12,
+                backgroundColor: Theme.colors.secondary,
+                borderRadius: 8,
+                alignItems: 'center',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 3,
+                elevation: 2,
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>💬 WhatsApp</Text>
+            </View>
+          </AnimatedPressableCard>
         )}
         {tenant.email && (
-          <TouchableOpacity
+          <AnimatedPressableCard
             onPress={() => onEmail(tenant.email!)}
-            style={{
-              flex: 1,
-              paddingVertical: 10,
-              backgroundColor: '#EF4444',
-              borderRadius: 8,
-              alignItems: 'center',
-            }}
+            scaleValue={0.96}
+            duration={100}
+            style={{ flex: 1 }}
           >
-            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>✉️ Email</Text>
-          </TouchableOpacity>
+            <View
+              style={{
+                paddingVertical: 12,
+                backgroundColor: Theme.colors.warning,
+                borderRadius: 8,
+                alignItems: 'center',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 3,
+                elevation: 2,
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>✉️ Email</Text>
+            </View>
+          </AnimatedPressableCard>
         )}
       </View>
 
       {/* Action Buttons */}
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-        <TouchableOpacity
+        <AnimatedPressableCard
           onPress={onAddPayment}
-          style={{
-            flex: 1,
-            paddingVertical: 12,
-            backgroundColor: '#10B981',
-            borderRadius: 8,
-            alignItems: 'center',
-            flexDirection: 'row',
-            justifyContent: 'center',
-            gap: 8,
-          }}
+          scaleValue={0.96}
+          duration={100}
+          style={{ flex: 1 }}
         >
-          <Text style={{ fontSize: 18 }}>💰</Text>
-          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Add Payment</Text>
-        </TouchableOpacity>
+          <View
+            style={{
+              paddingVertical: 12,
+              backgroundColor: Theme.colors.secondary,
+              borderRadius: 8,
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.12,
+              shadowRadius: 3,
+              elevation: 2,
+            }}
+          >
+            <Text style={{ fontSize: 18 }}>💰</Text>
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>Add Payment</Text>
+          </View>
+        </AnimatedPressableCard>
         
-        <TouchableOpacity
+        <AnimatedPressableCard
           onPress={onAddAdvance}
-          style={{
-            flex: 1,
-            paddingVertical: 12,
-            backgroundColor: '#8B5CF6',
-            borderRadius: 8,
-            alignItems: 'center',
-            flexDirection: 'row',
-            justifyContent: 'center',
-            gap: 8,
-          }}
+          scaleValue={0.96}
+          duration={100}
+          style={{ flex: 1 }}
         >
-          <Text style={{ fontSize: 18 }}>🎁</Text>
-          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Add Advance</Text>
-        </TouchableOpacity>
+          <View
+            style={{
+              paddingVertical: 12,
+              backgroundColor: Theme.colors.primary,
+              borderRadius: 8,
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.12,
+              shadowRadius: 3,
+              elevation: 2,
+            }}
+          >
+            <Text style={{ fontSize: 18 }}>🎁</Text>
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>Add Advance</Text>
+          </View>
+        </AnimatedPressableCard>
       </View>
       
       {/* Refund Button */}
       <View style={{ marginTop: 8 }}>
-        <TouchableOpacity
+        <AnimatedPressableCard
           onPress={onAddRefund}
-          style={{
-            paddingVertical: 12,
-            backgroundColor: '#F97316',
-            borderRadius: 8,
-            alignItems: 'center',
-            flexDirection: 'row',
-            justifyContent: 'center',
-            gap: 8,
-          }}
+          scaleValue={0.96}
+          duration={100}
+          style={{ width: '100%' }}
         >
-          <Text style={{ fontSize: 18 }}>🔄</Text>
-          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Add Refund</Text>
-        </TouchableOpacity>
+          <View
+            style={{
+              paddingVertical: 12,
+              backgroundColor: Theme.colors.danger,
+              borderRadius: 8,
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.12,
+              shadowRadius: 3,
+              elevation: 2,
+            }}
+          >
+            <Text style={{ fontSize: 18 }}>🔄</Text>
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>Add Refund</Text>
+          </View>
+        </AnimatedPressableCard>
       </View>
     </Card>
   );

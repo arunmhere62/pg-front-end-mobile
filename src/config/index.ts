@@ -1,7 +1,6 @@
-import Constants from 'expo-constants';
-
-// API URL comes from app.config.js which reads from .env
-// To change: update API_BASE_URL in your .env file
-export const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl || 'https://pg-api-mobile.onrender.com/api/v1';
+// Re-export from centralized environment configuration
+import { ENV } from './environment';
+export { ENV, getApiUrl, logConfig } from './environment';
+export const API_BASE_URL = ENV.API_BASE_URL;
 
 export * from './api.config';

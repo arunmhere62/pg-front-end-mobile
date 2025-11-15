@@ -42,6 +42,65 @@ export interface Tenant {
   tenant_address?: string;
   images?: any;
   proof_documents?: any;
+  is_deleted?: boolean;
+  city_id?: number;
+  state_id?: number;
+  created_at?: string;
+  updated_at?: string;
+  // Payment status fields
+  is_rent_paid?: boolean;
+  is_rent_partial?: boolean;
+  rent_due_amount?: number;
+  partial_due_amount?: number;
+  pending_due_amount?: number;
+  is_advance_paid?: boolean;
+  is_refund_paid?: boolean;
+  pending_months?: number;
+  // Relations
+  pg_locations?: {
+    s_no: number;
+    location_name: string;
+    address: string;
+  };
+  rooms?: {
+    s_no: number;
+    room_no: string;
+    rent_price: string | number;
+  };
+  beds?: {
+    s_no: number;
+    bed_no: string;
+  };
+  city?: {
+    s_no: number;
+    name: string;
+  };
+  state?: {
+    s_no: number;
+    name: string;
+  };
+  tenant_payments?: Array<{
+    s_no: number;
+    amount_paid: number;
+    payment_date: string;
+    status: 'PAID' | 'PARTIAL' | 'PENDING' | 'FAILED' | 'REFUNDED';
+    actual_rent_amount?: number;
+    start_date?: string;
+    end_date?: string;
+  }>;
+  advance_payments?: Array<{
+    s_no: number;
+    amount_paid: number;
+    payment_date: string;
+    status: 'PAID' | 'PARTIAL' | 'PENDING' | 'FAILED' | 'REFUNDED';
+    actual_rent_amount?: number;
+  }>;
+  refund_payments?: Array<{
+    s_no: number;
+    amount_paid: number;
+    payment_date: string;
+    status: 'PAID' | 'PARTIAL' | 'PENDING' | 'FAILED' | 'REFUNDED';
+  }>;
 }
 
 export interface PGLocation {

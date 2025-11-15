@@ -261,6 +261,22 @@ export const BedsScreen: React.FC<BedsScreenProps> = ({ navigation }) => {
         </View>
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
+          {!item.is_occupied && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('AddTenant', { 
+                bed_id: item.s_no, 
+                room_id: item.room_id 
+              })}
+              style={{
+                backgroundColor: '#10B981',
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 6,
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>+ Tenant</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={() => handleEditBed(item)}
             style={{

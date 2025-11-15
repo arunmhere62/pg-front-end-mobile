@@ -69,15 +69,15 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     Animated.spring(scaleAnim, {
       toValue: 1,
       useNativeDriver: true,
-      tension: 50,
-      friction: 7,
+      tension: 60,
+      friction: 8,
     }).start();
   };
 
   const closeModal = () => {
     Animated.timing(scaleAnim, {
       toValue: 0,
-      duration: 200,
+      duration: 250,
       useNativeDriver: true,
     }).start(() => {
       setModalVisible(false);
@@ -206,23 +206,26 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
             </View>
 
             {/* Items List */}
-            {filteredItems.length > 0 ? (
-              <FlatList
-                data={filteredItems}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.id.toString()}
-                style={styles.list}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-              />
-            ) : (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No results found</Text>
-                <Text style={styles.emptySubtext}>
-                  Try adjusting your search
-                </Text>
-              </View>
-            )}
+            <View style={{ flex: 1 }}>
+              {filteredItems.length > 0 ? (
+                <FlatList
+                  data={filteredItems}
+                  renderItem={renderItem}
+                  keyExtractor={(item) => item.id.toString()}
+                  style={styles.list}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  scrollEnabled={true}
+                />
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No results found</Text>
+                  <Text style={styles.emptySubtext}>
+                    Try adjusting your search
+                  </Text>
+                </View>
+              )}
+            </View>
           </Animated.View>
         </TouchableOpacity>
       </Modal>
@@ -288,127 +291,132 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    justifyContent: 'flex-end',
+    padding: 0,
   },
   modalContent: {
     backgroundColor: 'white',
-    borderRadius: 16,
-    width: '90%',
-    maxHeight: '70%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    width: '100%',
+    height: '75%',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 8,
+      height: -8,
     },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 16,
-    elevation: 8,
+    elevation: 12,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
   modalTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     color: Theme.colors.text.primary,
   },
   closeButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
-    fontSize: 16,
+    fontSize: 18,
     color: Theme.colors.text.secondary,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F9FAFB',
-    borderRadius: 10,
-    marginHorizontal: 12,
-    marginVertical: 10,
-    paddingHorizontal: 10,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    paddingHorizontal: 12,
     borderWidth: 1.5,
     borderColor: '#E5E7EB',
+    height: 44,
   },
   searchIcon: {
-    fontSize: 16,
-    marginRight: 6,
+    fontSize: 18,
+    marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 9,
-    fontSize: 13,
+    paddingVertical: 10,
+    fontSize: 14,
     color: Theme.colors.text.primary,
   },
   clearButton: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
   },
   clearButtonText: {
-    fontSize: 12,
+    fontSize: 13,
     color: Theme.colors.text.secondary,
+    fontWeight: '600',
   },
   list: {
-    maxHeight: 350,
+    flex: 1,
+    paddingHorizontal: 0,
   },
   dropdownItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 0.5,
     borderBottomColor: '#F3F4F6',
   },
   selectedItem: {
     backgroundColor: '#EEF2FF',
   },
   dropdownItemText: {
-    fontSize: 13,
+    fontSize: 14,
     color: Theme.colors.text.primary,
     flex: 1,
+    fontWeight: '500',
   },
   selectedItemText: {
     color: Theme.colors.primary,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   checkmark: {
-    fontSize: 16,
+    fontSize: 18,
     color: Theme.colors.primary,
     fontWeight: 'bold',
-    marginLeft: 6,
+    marginLeft: 8,
   },
   emptyContainer: {
-    padding: 32,
+    padding: 40,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 15,
     color: Theme.colors.text.secondary,
     fontWeight: '600',
-    marginBottom: 3,
+    marginBottom: 4,
   },
   emptySubtext: {
-    fontSize: 12,
-    color: Theme.colors.text.secondary,
-    opacity: 0.7,
+    fontSize: 13,
+    color: Theme.colors.text.tertiary,
+    opacity: 0.8,
   },
 });

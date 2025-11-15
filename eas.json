@@ -38,6 +38,24 @@
       "env": {
         "NODE_ENV": "production"
       }
+    },
+    "ios-simulator": {
+      "ios": {
+        "simulator": true
+      },
+      "distribution": "internal",
+      "developmentClient": false
+    },
+    "ios-device": {
+      "ios": {
+        "simulator": false
+      },
+      "distribution": "internal",
+      "developmentClient": false,
+      "node": "20.19.4",
+      "env": {
+        "NODE_ENV": "production"
+      }
     }
   },
   "submit": {
