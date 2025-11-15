@@ -28,6 +28,7 @@ import { AddAdvancePaymentModal } from '../../components/AddAdvancePaymentModal'
 import { AddRefundPaymentModal } from '../../components/AddRefundPaymentModal';
 import { EditRentPaymentModal } from '../../components/EditRentPaymentModal';
 import { EditAdvancePaymentModal } from '../../components/EditAdvancePaymentModal';
+import { EditRefundPaymentModal } from '../../components/EditRefundPaymentModal';
 import { Ionicons } from '@expo/vector-icons';
 import { ReceiptPdfGenerator } from '@/services/receipt/receiptPdfGenerator';
 import { CompactReceiptGenerator } from '@/services/receipt/compactReceiptGenerator';
@@ -84,6 +85,10 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
   // Edit advance payment modal state
   const [editAdvancePaymentModalVisible, setEditAdvancePaymentModalVisible] = useState(false);
   const [editingAdvancePayment, setEditingAdvancePayment] = useState<any>(null);
+
+  // Edit refund payment modal state
+  const [editRefundPaymentModalVisible, setEditRefundPaymentModalVisible] = useState(false);
+  const [editingRefundPayment, setEditingRefundPayment] = useState<any>(null);
 
   // Receipt modal state
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
@@ -397,6 +402,61 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
     );
   };
 
+  const handleEditRefundPayment = (payment: any) => {
+    // Enrich payment with tenant, room, and bed info for display in modal
+    const enrichedPayment = {
+      ...payment,
+      tenants: payment.tenants || { name: currentTenant?.name },
+      rooms: payment.rooms || currentTenant?.rooms,
+      beds: payment.beds || currentTenant?.beds,
+    };
+    setEditingRefundPayment(enrichedPayment);
+    setEditRefundPaymentModalVisible(true);
+  };
+
+  const handleUpdateRefundPayment = async (id: number, data: any) => {
+    try {
+      await refundPaymentService.updateRefundPayment(id, data, {
+        pg_id: selectedPGLocationId || undefined,
+        organization_id: user?.organization_id,
+        user_id: user?.s_no,
+      });
+      setEditRefundPaymentModalVisible(false);
+      setEditingRefundPayment(null);
+      loadTenantDetails();
+    } catch (error: any) {
+      throw error; // Re-throw to let modal handle it
+    }
+  };
+
+  // Checkout handlers
+  const handleCheckout = () => {
+    setCheckoutDateModalVisible(true);
+    setNewCheckoutDate(new Date().toISOString().split('T')[0]);
+  };
+
+  const confirmCheckout = async () => {
+    if (!newCheckoutDate) {
+      Alert.alert('Error', 'Please select a checkout date');
+      return;
+    }
+
+    try {
+      setCheckoutLoading(true);
+      await axiosInstance.post(`/tenants/${currentTenant.s_no}/checkout`, {
+        check_out_date: newCheckoutDate,
+      });
+      Alert.alert('Success', 'Tenant checked out successfully');
+      setCheckoutDateModalVisible(false);
+      setNewCheckoutDate('');
+      loadTenantDetails();
+    } catch (error: any) {
+      Alert.alert('Error', error?.response?.data?.message || 'Failed to checkout tenant');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
   const handleDeleteRefundPayment = (payment: any) => {
     Alert.alert(
       'Delete Refund Payment',
@@ -557,7 +617,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
         <PersonalInformation tenant={tenant} />
 
         {/* Rent Payments */}
-        <View style={{ marginBottom: 16, marginHorizontal: 16 }}>
+        <View style={{ marginBottom: 16, marginHorizontal: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
           <TouchableOpacity
             onPress={() => toggleSection('rentPayments')}
             style={{
@@ -566,9 +626,9 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
               alignItems: 'center',
               paddingHorizontal: 16,
               paddingVertical: 12,
-              backgroundColor: Theme.colors.background.primary,
-              borderRadius: 8,
-              marginBottom: 8,
+              backgroundColor: '#FFFFFF',
+              borderBottomWidth: expandedSections.rentPayments ? 1 : 0,
+              borderBottomColor: '#E5E7EB',
             }}
           >
             <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary }}>
@@ -581,7 +641,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
 
           {expandedSections.rentPayments && (
             <ScrollView 
-              style={{ maxHeight: 600, paddingHorizontal: 0, paddingVertical: 0 }}
+              style={{ maxHeight: 600, paddingHorizontal: 0, paddingVertical: 0, backgroundColor: '#FFFFFF' }}
               nestedScrollEnabled={true}
               showsVerticalScrollIndicator={true}
             >
@@ -845,7 +905,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
         </View>
 
         {/* Advance Payments */}
-        <View style={{ marginBottom: 16, marginHorizontal: 16 }}>
+        <View style={{ marginBottom: 16, marginHorizontal: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
           <TouchableOpacity
             onPress={() => toggleSection('advancePayments')}
             style={{
@@ -854,9 +914,9 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
               alignItems: 'center',
               paddingHorizontal: 16,
               paddingVertical: 12,
-              backgroundColor: '#F0FDF4',
-              borderRadius: 8,
-              marginBottom: 8,
+              backgroundColor: '#FFFFFF',
+              borderBottomWidth: expandedSections.advancePayments ? 1 : 0,
+              borderBottomColor: '#E5E7EB',
             }}
           >
             <Text style={{ fontSize: 16, fontWeight: '700', color: '#10B981' }}>
@@ -869,7 +929,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
 
           {expandedSections.advancePayments && (
             <ScrollView 
-              style={{ maxHeight: 600, paddingHorizontal: 0, paddingVertical: 0 }}
+              style={{ maxHeight: 600, paddingHorizontal: 0, paddingVertical: 0, backgroundColor: '#FFFFFF' }}
               nestedScrollEnabled={true}
               showsVerticalScrollIndicator={true}
             >
@@ -1131,37 +1191,37 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
         </View>
 
         {/* Refund Payments */}
-        {tenant.refund_payments && tenant.refund_payments.length > 0 && (
-          <View style={{ marginBottom: 16 }}>
-            <TouchableOpacity
-              onPress={() => toggleSection('refundPayments')}
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                backgroundColor: '#FEF3C7',
-                borderRadius: 8,
-                marginHorizontal: 16,
-                marginBottom: 8,
-              }}
-            >
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#F59E0B' }}>
-                🔄 Refund Payments ({tenant.refund_payments.length})
-              </Text>
-              <Text style={{ fontSize: 16, color: Theme.colors.text.secondary }}>
-                {expandedSections.refundPayments ? '▼' : '▶'}
-              </Text>
-            </TouchableOpacity>
+        <View style={{ marginBottom: 16, marginHorizontal: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
+          <TouchableOpacity
+            onPress={() => toggleSection('refundPayments')}
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              backgroundColor: '#FFFFFF',
+              borderBottomWidth: expandedSections.refundPayments ? 1 : 0,
+              borderBottomColor: '#E5E7EB',
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#F59E0B' }}>
+              🔄 Refund Payments ({tenant.refund_payments?.length || 0})
+            </Text>
+            <Text style={{ fontSize: 16, color: Theme.colors.text.secondary }}>
+              {expandedSections.refundPayments ? '▼' : '▶'}
+            </Text>
+          </TouchableOpacity>
 
-            {expandedSections.refundPayments && (
-              <ScrollView 
-                style={{ maxHeight: 600, paddingHorizontal: 8, paddingVertical: 0 }}
-                nestedScrollEnabled={true}
-                showsVerticalScrollIndicator={true}
-              >
-                {tenant.refund_payments.map((payment: RefundPayment, index: number) => (
+          {expandedSections.refundPayments && (
+            <ScrollView 
+              style={{ maxHeight: 600, paddingHorizontal: 8, paddingVertical: 0, backgroundColor: '#FFFFFF' }}
+              nestedScrollEnabled={true}
+              showsVerticalScrollIndicator={true}
+            >
+              {tenant.refund_payments && tenant.refund_payments.length > 0 ? (
+                <>
+                  {tenant.refund_payments.map((payment: RefundPayment, index: number) => (
                   <AnimatedPressableCard
                     key={payment.s_no}
                     scaleValue={0.98}
@@ -1224,6 +1284,16 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                         </Text>
                         <View style={{ flexDirection: 'row', gap: 8 }}>
                           <TouchableOpacity
+                            onPress={() => handleEditRefundPayment(payment)}
+                            style={{
+                              padding: 6,
+                              borderRadius: 6,
+                              backgroundColor: '#DBEAFE',
+                            }}
+                          >
+                            <Text style={{ fontSize: 16 }}>✏️</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
                             onPress={() => handleDeleteRefundPayment(payment)}
                             style={{
                               padding: 6,
@@ -1247,20 +1317,31 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
                       </Text>
                     )}
                   </AnimatedPressableCard>
-                ))}
-                <View style={{ paddingTop: 12, borderTopWidth: 2, borderTopColor: '#F59E0B', marginTop: 8 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#F59E0B', textAlign: 'right' }}>
-                    Total Refund: ₹
-                    {tenant.refund_payments.reduce((sum: number, p: RefundPayment) => sum + parseFloat(p.amount_paid.toString()), 0)}
+                  ))}
+                  <View style={{ paddingTop: 12, borderTopWidth: 2, borderTopColor: '#F59E0B', marginTop: 8 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#F59E0B', textAlign: 'right' }}>
+                      Total Refund: ₹
+                      {tenant.refund_payments.reduce((sum: number, p: RefundPayment) => sum + parseFloat(p.amount_paid.toString()), 0)}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 48, marginBottom: 12 }}>🔄</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#F59E0B', marginBottom: 4 }}>
+                    No Refunds
+                  </Text>
+                  <Text style={{ fontSize: 14, color: Theme.colors.text.secondary, textAlign: 'center' }}>
+                    No refund records found for this tenant
                   </Text>
                 </View>
-              </ScrollView>
-            )}
-          </View>
-        )}
+              )}
+            </ScrollView>
+          )}
+        </View>
 
         {/* Proof Documents */}
-        <Card style={{ marginHorizontal: 16, marginBottom: 16, padding: 0, overflow: 'hidden' }}>
+        <View style={{ marginHorizontal: 16, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
           <TouchableOpacity
             onPress={() => toggleSection('proofDocuments')}
             style={{
@@ -1268,7 +1349,9 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
               justifyContent: 'space-between',
               alignItems: 'center',
               padding: 16,
-              backgroundColor: '#F3F4F6',
+              backgroundColor: '#FFFFFF',
+              borderBottomWidth: expandedSections.proofDocuments ? 1 : 0,
+              borderBottomColor: '#E5E7EB',
             }}
           >
             <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary }}>
@@ -1284,7 +1367,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
           </TouchableOpacity>
 
           {expandedSections.proofDocuments && (
-            <View style={{ padding: 16, paddingTop: 12 }}>
+            <View style={{ padding: 16, paddingTop: 12, backgroundColor: '#FFFFFF' }}>
               {tenant.proof_documents && Array.isArray(tenant.proof_documents) && tenant.proof_documents.length > 0 ? (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
                   {tenant.proof_documents.map((doc: string, index: number) => (
@@ -1340,10 +1423,10 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
               )}
             </View>
           )}
-        </Card>
+        </View>
 
         {/* Tenant Images */}
-        <Card style={{ marginHorizontal: 16, marginBottom: 16, padding: 0, overflow: 'hidden' }}>
+        <View style={{ marginHorizontal: 16, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
           <TouchableOpacity
             onPress={() => toggleSection('images')}
             style={{
@@ -1351,7 +1434,9 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
               justifyContent: 'space-between',
               alignItems: 'center',
               padding: 16,
-              backgroundColor: '#F3F4F6',
+              backgroundColor: '#FFFFFF',
+              borderBottomWidth: expandedSections.images ? 1 : 0,
+              borderBottomColor: '#E5E7EB',
             }}
           >
             <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary }}>
@@ -1364,7 +1449,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
           </TouchableOpacity>
 
           {expandedSections.images && (
-            <View style={{ padding: 16, paddingTop: 12 }}>
+            <View style={{ padding: 16, paddingTop: 12, backgroundColor: '#FFFFFF' }}>
               {tenant.images && Array.isArray(tenant.images) && tenant.images.length > 0 ? (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
                   {tenant.images.map((image: string, index: number) => (
@@ -1398,7 +1483,58 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
               )}
             </View>
           )}
-        </Card>
+        </View>
+
+        {/* Checkout Actions - Only show if there's an action available */}
+        {(currentTenant?.status === 'ACTIVE' && !currentTenant?.check_out_date) || 
+         (currentTenant?.status === 'INACTIVE' && currentTenant?.check_out_date) ? (
+          <Card style={{ marginHorizontal: 16, marginBottom: 16, padding: 16 }}>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              {currentTenant?.status === 'ACTIVE' && !currentTenant?.check_out_date && (
+                <TouchableOpacity
+                  onPress={handleCheckout}
+                  disabled={checkoutLoading}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    backgroundColor: checkoutLoading ? '#9CA3AF' : '#F59E0B',
+                    borderRadius: 8,
+                    alignItems: 'center',
+                    opacity: checkoutLoading ? 0.6 : 1,
+                  }}
+                >
+                  {checkoutLoading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Checkout</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+              {currentTenant?.status === 'INACTIVE' && currentTenant?.check_out_date && (
+                <TouchableOpacity
+                  onPress={handleClearCheckout}
+                  disabled={checkoutLoading}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    backgroundColor: checkoutLoading ? '#9CA3AF' : '#10B981',
+                    borderRadius: 8,
+                    alignItems: 'center',
+                    opacity: checkoutLoading ? 0.6 : 1,
+                  }}
+                >
+                  {checkoutLoading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Clear Checkout</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          </Card>
+        ) : null}
 
         {/* Bottom Spacing */}
         <View style={{ height: 32 }} />
@@ -1630,6 +1766,19 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
         }}
         onSave={handleUpdateAdvancePayment}
       />
+
+      {/* Edit Refund Payment Modal */}
+      {tenant && (
+        <EditRefundPaymentModal
+          visible={editRefundPaymentModalVisible}
+          payment={editingRefundPayment}
+          onClose={() => {
+            setEditRefundPaymentModalVisible(false);
+            setEditingRefundPayment(null);
+          }}
+          onSave={handleUpdateRefundPayment}
+        />
+      )}
 
       {/* Receipt View Modal */}
       <Modal

@@ -43,24 +43,18 @@ export const TenantHeader: React.FC<TenantHeaderProps> = ({
           top: 12,
           right: 12,
           zIndex: 10,
+          paddingHorizontal: 14,
+          paddingVertical: 8,
+          backgroundColor: Theme.colors.primary,
+          borderRadius: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.15,
+          shadowRadius: 4,
+          elevation: 3,
         }}
       >
-        <TouchableOpacity
-          activeOpacity={1}
-          style={{
-            paddingHorizontal: 14,
-            paddingVertical: 8,
-            backgroundColor: Theme.colors.primary,
-            borderRadius: 8,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.15,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
-        >
-          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Edit</Text>
-        </TouchableOpacity>
+        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Edit</Text>
       </AnimatedPressableCard>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>

@@ -54,10 +54,6 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
   const scrollPositionRef = React.useRef(0);
   
   // Checkout modal state
-  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
-  const [selectedTenantForCheckout, setSelectedTenantForCheckout] = useState<{ id: number; name: string } | null>(null);
-  const [checkoutDate, setCheckoutDate] = useState(new Date().toISOString().split('T')[0]);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
   
   // Toggle payment details for a tenant
   const togglePaymentDetails = (tenantId: number) => {
@@ -239,32 +235,6 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
         },
       ]
     );
-  };
-
-  const handleCheckout = (id: number, name: string) => {
-    // Show modal to select checkout date
-    setCheckoutModalVisible(true);
-    setSelectedTenantForCheckout({ id, name });
-  };
-
-  const confirmCheckout = async () => {
-    if (!selectedTenantForCheckout) return;
-
-    try {
-      setCheckoutLoading(true);
-      await axiosInstance.post(`/tenants/${selectedTenantForCheckout.id}/checkout`, {
-        check_out_date: checkoutDate,
-      });
-      Alert.alert('Success', 'Tenant checked out successfully');
-      setCheckoutModalVisible(false);
-      setSelectedTenantForCheckout(null);
-      setCheckoutDate(new Date().toISOString().split('T')[0]);
-      loadTenants(currentPage);
-    } catch (error: any) {
-      Alert.alert('Error', error?.response?.data?.message || 'Failed to checkout tenant');
-    } finally {
-      setCheckoutLoading(false);
-    }
   };
 
   const clearFilters = () => {
@@ -854,13 +824,14 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
       </Text>
 
       {/* Action Buttons */}
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <AnimatedButton
           onPress={() => navigation.navigate('TenantDetails', { tenantId: item.s_no })}
           scaleValue={0.94}
           duration={120}
           style={{
             flex: 1,
+            minWidth: 100,
             paddingVertical: 10,
             paddingHorizontal: 16,
             backgroundColor: Theme.colors.primary,
@@ -870,21 +841,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
         >
           <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>View Details</Text>
         </AnimatedButton>
-        {item.status === 'ACTIVE' && (
-          <TouchableOpacity
-            onPress={() => handleCheckout(item.s_no, item.name)}
-            style={{
-              paddingVertical: 10,
-              paddingHorizontal: 16,
-              backgroundColor: '#F59E0B',
-              borderRadius: 8,
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>Checkout</Text>
-          </TouchableOpacity>
-        )}
-        {/* Only show delete button for checked-out tenants */}
+        {/* Show delete button for checked-out tenants */}
         {item.status === 'INACTIVE' && item.check_out_date && (
           <TouchableOpacity
             onPress={() => handleDeleteTenant(item.s_no, item.name)}
@@ -1452,106 +1409,6 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
       >
         <Text style={{ color: '#fff', fontSize: 32, fontWeight: '300' }}>+</Text>
       </TouchableOpacity>
-
-      {/* Checkout Date Modal */}
-      <Modal
-        visible={checkoutModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setCheckoutModalVisible(false)}
-      >
-        <View style={{
-          flex: 1,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
-          <View style={{
-            backgroundColor: '#fff',
-            borderRadius: 12,
-            padding: 20,
-            width: '85%',
-            maxWidth: 400,
-          }}>
-            <Text style={{
-              fontSize: 20,
-              fontWeight: '700',
-              color: Theme.colors.text.primary,
-              marginBottom: 16,
-            }}>
-              Checkout Tenant
-            </Text>
-            
-            {selectedTenantForCheckout && (
-              <Text style={{
-                fontSize: 14,
-                color: Theme.colors.text.secondary,
-                marginBottom: 20,
-              }}>
-                Checking out: {selectedTenantForCheckout.name}
-              </Text>
-            )}
-
-            <DatePicker
-              label="Checkout Date"
-              value={checkoutDate}
-              onChange={(date) => setCheckoutDate(date)}
-            />
-
-            <View style={{
-              flexDirection: 'row',
-              gap: 12,
-              marginTop: 24,
-            }}>
-              <TouchableOpacity
-                onPress={() => {
-                  setCheckoutModalVisible(false);
-                  setSelectedTenantForCheckout(null);
-                }}
-                style={{
-                  flex: 1,
-                  paddingVertical: 12,
-                  borderRadius: 8,
-                  backgroundColor: '#F3F4F6',
-                  alignItems: 'center',
-                }}
-              >
-                <Text style={{
-                  color: Theme.colors.text.primary,
-                  fontWeight: '600',
-                  fontSize: 16,
-                }}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={confirmCheckout}
-                disabled={checkoutLoading}
-                style={{
-                  flex: 1,
-                  paddingVertical: 12,
-                  borderRadius: 8,
-                  backgroundColor: checkoutLoading ? '#9CA3AF' : Theme.colors.primary,
-                  alignItems: 'center',
-                }}
-              >
-                {checkoutLoading ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={{
-                    color: '#fff',
-                    fontWeight: '600',
-                    fontSize: 16,
-                  }}>
-                    Confirm
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
     </ScreenLayout>
   );

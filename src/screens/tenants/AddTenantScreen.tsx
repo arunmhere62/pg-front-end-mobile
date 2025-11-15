@@ -188,11 +188,16 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
     setLoadingRooms(true);
     try {
       const response = await axiosInstance.get('/rooms', {
+        params: {
+          pg_id: selectedPGLocationId,
+        },
       });
       if (response.data.success) {
         const rooms = response.data.data;
+        // Remove duplicates based on s_no
+        const uniqueRooms = Array.from(new Map(rooms.map((room: any) => [room.s_no, room])).values());
         setRoomList(
-          rooms.map((room: any) => ({
+          uniqueRooms.map((room: any) => ({
             label: `Room ${room.room_no}`,
             value: room.s_no.toString(),
           }))

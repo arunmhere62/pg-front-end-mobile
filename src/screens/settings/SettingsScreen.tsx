@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppDispatch, RootState } from '../../store';
 import { logout } from '../../store/slices/authSlice';
@@ -21,18 +22,13 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
   const { user } = useSelector((state: RootState) => state.auth);
   const { subscriptionStatus, loading: subscriptionLoading } = useSelector((state: RootState) => state.subscription);
 
-  useEffect(() => {
-    dispatch(fetchSubscriptionStatus());
-  }, [dispatch]);
-
-  // Refresh subscription when screen comes into focus
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      console.log('🔄 Settings screen focused, refreshing subscription...');
+  // Fetch subscription status only when screen comes into focus (lazy loading)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔄 Settings screen focused, fetching subscription...');
       dispatch(fetchSubscriptionStatus());
-    });
-    return unsubscribe;
-  }, [navigation, dispatch]);
+    }, [dispatch])
+  );
 
   // Debug log subscription status
   useEffect(() => {

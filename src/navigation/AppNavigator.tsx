@@ -91,7 +91,7 @@ const MainTabs = () => {
           screenOptions={{
             headerShown: false,
             tabBarStyle: { display: 'none' },
-            lazy: false,
+            lazy: true,
             animationEnabled: false,
           }}
           sceneContainerStyle={{ backgroundColor: 'transparent' }}

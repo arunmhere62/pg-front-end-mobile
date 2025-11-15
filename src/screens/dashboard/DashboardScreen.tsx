@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, ActivityIndicator, Alert, Animated } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Theme } from '../../theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
@@ -47,11 +47,14 @@ export const DashboardScreen: React.FC = () => {
   }>({});
   const [retryCount, setRetryCount] = useState(0);
 
-  useEffect(() => {
-    setIsMounted(true);
-    // Step 1: Fetch PG locations first
-    initializeDashboard();
-  }, []);
+  // Initialize dashboard only when screen comes into focus (lazy loading)
+  useFocusEffect(
+    useCallback(() => {
+      setIsMounted(true);
+      // Step 1: Fetch PG locations first
+      initializeDashboard();
+    }, [])
+  );
 
   // Step 2: Auto-select first PG location when locations are loaded
   useEffect(() => {

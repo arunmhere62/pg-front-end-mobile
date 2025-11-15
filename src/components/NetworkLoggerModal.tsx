@@ -343,17 +343,24 @@ export const NetworkLoggerModal: React.FC = () => {
     onCopy?: () => void
   ) => (
     <View style={styles.detailSection}>
-      <TouchableOpacity 
-        onPress={() => toggleSection(sectionKey)}
-        style={styles.sectionHeader}
-      >
-        <Text style={[styles.sectionTitle, color ? { color } : {}]}>
-          {expandedSections[sectionKey] ? '▼' : '▶'} {title}
-        </Text>
-        {summary && (
-          <Text style={styles.sectionSummary}>{summary}</Text>
+      <View style={styles.sectionHeaderContainer}>
+        <TouchableOpacity 
+          onPress={() => toggleSection(sectionKey)}
+          style={styles.sectionHeader}
+        >
+          <Text style={[styles.sectionTitle, color ? { color } : {}]}>
+            {expandedSections[sectionKey] ? '▼' : '▶'} {title}
+          </Text>
+          {summary && (
+            <Text style={styles.sectionSummary}>{summary}</Text>
+          )}
+        </TouchableOpacity>
+        {expandedSections[sectionKey] && onCopy && (
+          <TouchableOpacity onPress={onCopy} style={styles.copyButton}>
+            <Text style={styles.copyButtonText}>📋 Copy</Text>
+          </TouchableOpacity>
         )}
-      </TouchableOpacity>
+      </View>
       {expandedSections[sectionKey] && (
         <View>
           <ScrollView 
@@ -366,7 +373,10 @@ export const NetworkLoggerModal: React.FC = () => {
               showsVerticalScrollIndicator={true}
               nestedScrollEnabled={true}
             >
-              <Text style={[styles.jsonText, color ? { color } : {}]}>
+              <Text 
+                style={[styles.jsonText, color ? { color } : {}]}
+                selectable={true}
+              >
                 {content}
               </Text>
             </ScrollView>
@@ -966,5 +976,22 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 10,
     fontWeight: 'bold',
+  },
+  sectionHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  copyButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  copyButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 12,
   },
 });
