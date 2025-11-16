@@ -8,19 +8,17 @@ import {
   Image,
   Alert,
   Linking,
-  Modal,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { fetchTenantById } from '../../store/slices/tenantSlice';
-import { TenantPayment, AdvancePayment, RefundPayment, PendingPaymentMonth } from '../../services/tenants/tenantService';
+import { TenantPayment, AdvancePayment, RefundPayment, CurrentBill, PendingPaymentMonth } from '../../services/tenants/tenantService';
 import { Card } from '../../components/Card';
 import { AnimatedPressableCard } from '../../components/AnimatedPressableCard';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
-import { DatePicker } from '../../components/DatePicker';
 import axiosInstance from '../../services/core/axiosInstance';
 import { CONTENT_COLOR } from '@/constant';
 import AddTenantPaymentModal from '../../components/AddTenantPaymentModal';
@@ -37,10 +35,19 @@ import {
   PendingPaymentAlert,
   AccommodationDetails,
   PersonalInformation,
+  AddCurrentBillModal,
+  CheckoutDateModal,
+  ImageViewerModal,
+  ReceiptViewModal,
+  RentPaymentsSection,
+  AdvancePaymentsSection,
+  RefundPaymentsSection,
+  CurrentBillsSection,
 } from './components';
 import advancePaymentService from '@/services/payments/advancePaymentService';
 import refundPaymentService from '@/services/payments/refundPaymentService';
 import { paymentService } from '@/services/payments/paymentService';
+import { createCurrentBill } from '@/services/bills/currentBillService';
 
 // Inner component that doesn't directly interact with frozen navigation context
 const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({ tenantId, navigation }) => {
@@ -56,6 +63,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
     rentPayments: false,
     advancePayments: false,
     refundPayments: false,
+    currentBills: false,
     pendingMonths: false,
     proofDocuments: false,
     images: false,
@@ -89,6 +97,13 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
   // Edit refund payment modal state
   const [editRefundPaymentModalVisible, setEditRefundPaymentModalVisible] = useState(false);
   const [editingRefundPayment, setEditingRefundPayment] = useState<any>(null);
+
+  // Current bill modal state
+  const [currentBillModalVisible, setCurrentBillModalVisible] = useState(false);
+  const [currentBillAmount, setCurrentBillAmount] = useState('');
+  const [currentBillDate, setCurrentBillDate] = useState('');
+  const [currentBillRemarks, setCurrentBillRemarks] = useState('');
+  const [currentBillLoading, setCurrentBillLoading] = useState(false);
 
   // Receipt modal state
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
@@ -429,6 +444,51 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
     }
   };
 
+  // Current bill handlers
+  const handleAddCurrentBill = () => {
+    setCurrentBillAmount('');
+    setCurrentBillDate(new Date().toISOString().split('T')[0]);
+    setCurrentBillRemarks('');
+    setCurrentBillModalVisible(true);
+  };
+
+  const handleSaveCurrentBill = async () => {
+    if (!currentBillAmount || isNaN(Number(currentBillAmount)) || Number(currentBillAmount) <= 0) {
+      Alert.alert('Error', 'Please enter a valid bill amount');
+      return;
+    }
+
+    try {
+      setCurrentBillLoading(true);
+      await createCurrentBill(
+        {
+          tenant_id: currentTenant.s_no,
+          pg_id: selectedPGLocationId || 0,
+          bill_amount: parseFloat(currentBillAmount),
+          bill_date: currentBillDate,
+          remarks: currentBillRemarks || undefined,
+        },
+        {
+          pg_id: selectedPGLocationId || undefined,
+          organization_id: user?.organization_id,
+          user_id: user?.s_no,
+        }
+      );
+      Alert.alert('Success', 'Current bill added successfully');
+      setCurrentBillModalVisible(false);
+      loadTenantDetails();
+    } catch (error: any) {
+      // Extract error message from backend response
+      const errorMessage = 
+        error?.response?.data?.message || 
+        error?.message || 
+        'Failed to add current bill';
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setCurrentBillLoading(false);
+    }
+  };
+
   // Checkout handlers
   const handleCheckout = () => {
     setCheckoutDateModalVisible(true);
@@ -598,6 +658,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
           onAddPayment={() => setPaymentModalVisible(true)}
           onAddAdvance={() => setAdvancePaymentModalVisible(true)}
           onAddRefund={() => setRefundPaymentModalVisible(true)}
+          onAddCurrentBill={handleAddCurrentBill}
         />
 
         {/* Pending Payment Alert */}
@@ -616,729 +677,45 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
         {/* Personal Information */}
         <PersonalInformation tenant={tenant} />
 
+        {/* Current Bills */}
+        <CurrentBillsSection
+          bills={tenant?.current_bills}
+          expanded={expandedSections.currentBills}
+          onToggle={() => toggleSection('currentBills')}
+        />
+
         {/* Rent Payments */}
-        <View style={{ marginBottom: 16, marginHorizontal: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
-          <TouchableOpacity
-            onPress={() => toggleSection('rentPayments')}
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              backgroundColor: '#FFFFFF',
-              borderBottomWidth: expandedSections.rentPayments ? 1 : 0,
-              borderBottomColor: '#E5E7EB',
-            }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary }}>
-              💵 Rent Payments ({tenant.tenant_payments?.length || 0})
-            </Text>
-            <Text style={{ fontSize: 16, color: Theme.colors.text.secondary }}>
-              {expandedSections.rentPayments ? '▼' : '▶'}
-            </Text>
-          </TouchableOpacity>
-
-          {expandedSections.rentPayments && (
-            <ScrollView 
-              style={{ maxHeight: 600, paddingHorizontal: 0, paddingVertical: 0, backgroundColor: '#FFFFFF' }}
-              nestedScrollEnabled={true}
-              showsVerticalScrollIndicator={true}
-            >
-              {tenant.tenant_payments && tenant.tenant_payments.length > 0 ? (
-                tenant.tenant_payments.map((payment: TenantPayment, index: number) => (
-                  <AnimatedPressableCard
-                    key={payment.s_no}
-                    scaleValue={0.98}
-                    duration={120}
-                    style={{
-                      paddingVertical: 8,
-                      paddingHorizontal: 10,
-                      marginBottom: 6,
-                      marginHorizontal: 8,
-                      backgroundColor: 'white',
-                      borderRadius: 8,
-                      borderLeftWidth: 3,
-                      borderLeftColor: payment.status === 'PAID' ? '#10B981' : payment.status === 'PENDING' ? '#F59E0B' : payment.status === 'OVERDUE' ? '#EF4444' : '#9CA3AF',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowOpacity: 0.06,
-                      shadowRadius: 2,
-                      elevation: 1,
-                    }}
-                  >
-                    {/* Header Row */}
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: 6,
-                      }}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: Theme.colors.text.primary }}>
-                          Payment Date
-                        </Text>
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.secondary, marginTop: 1 }}>
-                          {new Date(payment.payment_date).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <TouchableOpacity
-                          onPress={() => handleEditRentPayment(payment)}
-                          style={{
-                            padding: 6,
-                            borderRadius: 6,
-                            backgroundColor: Theme.colors.background.blueLight,
-                          }}
-                        >
-                          <Ionicons name="pencil" size={16} color={Theme.colors.primary} />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => handleDeleteRentPayment(payment)}
-                          style={{
-                            padding: 6,
-                            borderRadius: 6,
-                            backgroundColor: '#FEE2E2',
-                          }}
-                        >
-                          <Ionicons name="trash-outline" size={16} color="#EF4444" />
-                        </TouchableOpacity>
-                        {payment.status && (
-                          <View style={{
-                            paddingHorizontal: 10,
-                            paddingVertical: 4,
-                            borderRadius: 6,
-                            backgroundColor: 
-                              payment.status === 'PAID' ? '#10B98120' :
-                              payment.status === 'PENDING' ? '#F59E0B20' :
-                              payment.status === 'OVERDUE' ? '#EF444420' : '#9CA3AF20',
-                          }}>
-                            <Text style={{
-                              fontSize: 11,
-                              fontWeight: '700',
-                              color: 
-                                payment.status === 'PAID' ? '#10B981' :
-                                payment.status === 'PENDING' ? '#F59E0B' :
-                                payment.status === 'OVERDUE' ? '#EF4444' : '#6B7280',
-                            }}>
-                              {payment.status}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-
-                    {/* Amount Section */}
-                    <View style={{ 
-                      flexDirection: 'row', 
-                      justifyContent: 'space-between',
-                      paddingVertical: 6,
-                      borderTopWidth: 0.5,
-                      borderTopColor: '#E5E7EB',
-                      marginBottom: 6,
-                    }}>
-                      <View>
-                        <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, marginBottom: 1 }}>
-                          Amount Paid
-                        </Text>
-                        <Text style={{ fontSize: 15, fontWeight: '700', color: Theme.colors.primary }}>
-                          ₹{payment.amount_paid?.toLocaleString('en-IN')}
-                        </Text>
-                      </View>
-                      {payment.actual_rent_amount && payment.actual_rent_amount !== payment.amount_paid && (
-                        <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, marginBottom: 1 }}>
-                            Actual Rent
-                          </Text>
-                          <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.secondary }}>
-                            ₹{payment.actual_rent_amount?.toLocaleString('en-IN')}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Details Grid */}
-                    <View style={{ gap: 4 }}>
-                      {/* Payment Period */}
-                      {payment.start_date && payment.end_date && (
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, width: 70 }}>
-                            Period:
-                          </Text>
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: Theme.colors.text.primary, flex: 1 }}>
-                            {new Date(payment.start_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} - {new Date(payment.end_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                          </Text>
-                        </View>
-                      )}
-
-                      {/* Payment Method */}
-                      {payment.payment_method && (
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, width: 80 }}>
-                            Method:
-                          </Text>
-                          <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
-                            {payment.payment_method}
-                          </Text>
-                        </View>
-                      )}
-
-                      {/* Room & Bed */}
-                      {((payment as any).rooms || (payment as any).beds) && (
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, width: 80 }}>
-                            Location:
-                          </Text>
-                          <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
-                            {(payment as any).rooms?.room_no && `Room ${(payment as any).rooms.room_no}`}
-                            {(payment as any).rooms?.room_no && (payment as any).beds?.bed_no && ' • '}
-                            {(payment as any).beds?.bed_no && `Bed ${(payment as any).beds.bed_no}`}
-                          </Text>
-                        </View>
-                      )}
-
-                      {/* Remarks */}
-                      {payment.remarks && (
-                        <View style={{ 
-                          marginTop: 6, 
-                          padding: 8, 
-                          backgroundColor: '#FFF', 
-                          borderRadius: 6,
-                          borderWidth: 1,
-                          borderColor: '#E5E7EB',
-                        }}>
-                          <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, marginBottom: 2, fontWeight: '600' }}>
-                            REMARKS
-                          </Text>
-                          <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, fontStyle: 'italic' }}>
-                            {payment.remarks}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Receipt Buttons */}
-                    {payment.status === 'PAID' && (
-                      <View style={{ flexDirection: 'row', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
-                        <TouchableOpacity
-                          onPress={() => handleViewReceipt(payment)}
-                          style={{
-                            flex: 1,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            paddingVertical: 10,
-                            paddingHorizontal: 8,
-                            backgroundColor: '#FEF3C7',
-                            borderRadius: 8,
-                            marginRight: 4,
-                          }}
-                        >
-                          <Ionicons name="eye-outline" size={16} color="#F59E0B" />
-                          <Text style={{ color: '#F59E0B', fontSize: 11, fontWeight: '600', marginLeft: 4 }}>
-                            View
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          onPress={() => handleWhatsAppReceipt(payment)}
-                          style={{
-                            flex: 1,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            paddingVertical: 10,
-                            paddingHorizontal: 8,
-                            backgroundColor: '#F0FDF4',
-                            borderRadius: 8,
-                            marginHorizontal: 4,
-                          }}
-                        >
-                          <Ionicons name="logo-whatsapp" size={16} color="#10B981" />
-                          <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '600', marginLeft: 4 }}>
-                            WhatsApp
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          onPress={() => handleShareReceipt(payment)}
-                          style={{
-                            flex: 1,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            paddingVertical: 10,
-                            paddingHorizontal: 8,
-                            backgroundColor: '#EFF6FF',
-                            borderRadius: 8,
-                            marginLeft: 4,
-                          }}
-                        >
-                          <Ionicons name="share-social-outline" size={16} color="#3B82F6" />
-                          <Text style={{ color: '#3B82F6', fontSize: 11, fontWeight: '600', marginLeft: 4 }}>
-                            Share
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </AnimatedPressableCard>
-                ))
-              ) : (
-                <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 48, marginBottom: 12 }}>💵</Text>
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 4 }}>
-                    No Rent Payments
-                  </Text>
-                  <Text style={{ fontSize: 14, color: Theme.colors.text.secondary, textAlign: 'center' }}>
-                    No rent payment records found for this tenant
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
-          )}
-        </View>
+        <RentPaymentsSection
+          payments={tenant?.tenant_payments}
+          expanded={expandedSections.rentPayments}
+          onToggle={() => toggleSection('rentPayments')}
+          onEdit={handleEditRentPayment}
+          onDelete={handleDeleteRentPayment}
+          onViewReceipt={handleViewReceipt}
+          onWhatsAppReceipt={handleWhatsAppReceipt}
+          onShareReceipt={handleShareReceipt}
+        />
 
         {/* Advance Payments */}
-        <View style={{ marginBottom: 16, marginHorizontal: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
-          <TouchableOpacity
-            onPress={() => toggleSection('advancePayments')}
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              backgroundColor: '#FFFFFF',
-              borderBottomWidth: expandedSections.advancePayments ? 1 : 0,
-              borderBottomColor: '#E5E7EB',
-            }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#10B981' }}>
-              💰 Advance Payments ({tenant.advance_payments?.length || 0})
-            </Text>
-            <Text style={{ fontSize: 16, color: Theme.colors.text.secondary }}>
-              {expandedSections.advancePayments ? '▼' : '▶'}
-            </Text>
-          </TouchableOpacity>
-
-          {expandedSections.advancePayments && (
-            <ScrollView 
-              style={{ maxHeight: 600, paddingHorizontal: 0, paddingVertical: 0, backgroundColor: '#FFFFFF' }}
-              nestedScrollEnabled={true}
-              showsVerticalScrollIndicator={true}
-            >
-              {tenant.advance_payments && tenant.advance_payments.length > 0 ? (
-                tenant.advance_payments.map((payment: AdvancePayment, index: number) => (
-                  <AnimatedPressableCard
-                    key={payment.s_no}
-                    scaleValue={0.98}
-                    duration={120}
-                    style={{
-                      paddingVertical: 8,
-                      paddingHorizontal: 10,
-                      marginBottom: 6,
-                      marginHorizontal: 8,
-                      backgroundColor: 'white',
-                      borderRadius: 8,
-                      borderLeftWidth: 3,
-                      borderLeftColor: payment.status === 'PAID' ? '#10B981' : payment.status === 'PENDING' ? '#F59E0B' : payment.status === 'FAILED' ? '#EF4444' : payment.status === 'REFUNDED' ? '#3B82F6' : '#9CA3AF',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowOpacity: 0.06,
-                      shadowRadius: 2,
-                      elevation: 1,
-                    }}
-                  >
-                    {/* Header Row */}
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: 6,
-                      }}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: Theme.colors.text.primary }}>
-                          Payment Date
-                        </Text>
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.secondary, marginTop: 1 }}>
-                          {new Date(payment.payment_date).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <TouchableOpacity
-                          onPress={() => handleEditAdvancePayment(payment)}
-                          style={{
-                            padding: 6,
-                            borderRadius: 6,
-                            backgroundColor: Theme.colors.background.blueLight,
-                          }}
-                        >
-                          <Ionicons name="pencil" size={16} color={Theme.colors.primary} />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => handleDeleteAdvancePayment(payment)}
-                          style={{
-                            padding: 6,
-                            borderRadius: 6,
-                            backgroundColor: '#FEE2E2',
-                          }}
-                        >
-                          <Ionicons name="trash-outline" size={16} color="#EF4444" />
-                        </TouchableOpacity>
-                        {payment.status && (
-                          <View style={{
-                            paddingHorizontal: 10,
-                            paddingVertical: 4,
-                            borderRadius: 6,
-                            backgroundColor: 
-                              payment.status === 'PAID' ? '#10B98120' :
-                              payment.status === 'PENDING' ? '#F59E0B20' :
-                              payment.status === 'FAILED' ? '#EF444420' :
-                              payment.status === 'REFUNDED' ? '#3B82F620' : '#9CA3AF20',
-                          }}>
-                            <Text style={{
-                              fontSize: 11,
-                              fontWeight: '700',
-                              color: 
-                                payment.status === 'PAID' ? '#10B981' :
-                                payment.status === 'PENDING' ? '#F59E0B' :
-                                payment.status === 'FAILED' ? '#EF4444' :
-                                payment.status === 'REFUNDED' ? '#3B82F6' : '#6B7280',
-                            }}>
-                              {payment.status}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-
-                    {/* Amount Section */}
-                    <View style={{ 
-                      paddingVertical: 10,
-                      borderTopWidth: 1,
-                      borderTopColor: '#D1FAE5',
-                      marginBottom: 8,
-                    }}>
-                      <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, marginBottom: 2 }}>
-                        Advance Amount
-                      </Text>
-                      <Text style={{ fontSize: 18, fontWeight: '700', color: '#10B981' }}>
-                        ₹{payment.amount_paid?.toLocaleString('en-IN')}
-                      </Text>
-                    </View>
-
-                    {/* Details */}
-                    <View style={{ gap: 6 }}>
-                      {/* Payment Method */}
-                      {payment.payment_method && (
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, width: 80 }}>
-                            Method:
-                          </Text>
-                          <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
-                            {payment.payment_method}
-                          </Text>
-                        </View>
-                      )}
-
-                      {/* Room & Bed */}
-                      {((payment as any).rooms || (payment as any).beds) && (
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, width: 80 }}>
-                            Location:
-                          </Text>
-                          <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
-                            {(payment as any).rooms?.room_no && `Room ${(payment as any).rooms.room_no}`}
-                            {(payment as any).rooms?.room_no && (payment as any).beds?.bed_no && ' • '}
-                            {(payment as any).beds?.bed_no && `Bed ${(payment as any).beds.bed_no}`}
-                          </Text>
-                        </View>
-                      )}
-
-                      {/* Remarks */}
-                      {payment.remarks && (
-                        <View style={{ 
-                          marginTop: 6, 
-                          padding: 8, 
-                          backgroundColor: '#FFF', 
-                          borderRadius: 6,
-                          borderWidth: 1,
-                          borderColor: '#D1FAE5',
-                        }}>
-                          <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, marginBottom: 2, fontWeight: '600' }}>
-                            REMARKS
-                          </Text>
-                          <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, fontStyle: 'italic' }}>
-                            {payment.remarks}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Receipt Buttons - Only show for PAID status */}
-                    {payment.status === 'PAID' && (
-                      <View style={{ flexDirection: 'row', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#D1FAE5' }}>
-                        <TouchableOpacity
-                          onPress={() => handleViewAdvanceReceipt(payment)}
-                          style={{
-                            flex: 1,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            paddingVertical: 10,
-                            paddingHorizontal: 8,
-                            backgroundColor: '#FEF3C7',
-                            borderRadius: 8,
-                            marginRight: 4,
-                          }}
-                        >
-                          <Ionicons name="eye-outline" size={16} color="#F59E0B" />
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#F59E0B', marginLeft: 4 }}>
-                            View
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          onPress={() => handleWhatsAppAdvanceReceipt(payment)}
-                          style={{
-                            flex: 1,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            paddingVertical: 10,
-                            paddingHorizontal: 8,
-                            backgroundColor: '#F0FDF4',
-                            borderRadius: 8,
-                            marginHorizontal: 4,
-                          }}
-                        >
-                          <Ionicons name="logo-whatsapp" size={16} color="#10B981" />
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#10B981', marginLeft: 4 }}>
-                            WhatsApp
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          onPress={() => handleShareAdvanceReceipt(payment)}
-                          style={{
-                            flex: 1,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            paddingVertical: 10,
-                            paddingHorizontal: 8,
-                            backgroundColor: '#EFF6FF',
-                            borderRadius: 8,
-                            marginLeft: 4,
-                          }}
-                        >
-                          <Ionicons name="share-social-outline" size={16} color="#3B82F6" />
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#3B82F6', marginLeft: 4 }}>
-                            Share
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </AnimatedPressableCard>
-                ))
-              ) : (
-                <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 48, marginBottom: 12 }}>💰</Text>
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#10B981', marginBottom: 4 }}>
-                    No Advance Payments
-                  </Text>
-                  <Text style={{ fontSize: 14, color: Theme.colors.text.secondary, textAlign: 'center' }}>
-                    No advance payment records found for this tenant
-                  </Text>
-                </View>
-              )}
-              
-              {/* Total Advance Summary - Only show if there are payments */}
-              {tenant.advance_payments && tenant.advance_payments.length > 0 && (
-                <View style={{ 
-                  paddingVertical: 12, 
-                  paddingHorizontal: 16,
-                  borderTopWidth: 2, 
-                  borderTopColor: '#10B981', 
-                  marginTop: 8,
-                  backgroundColor: '#ECFDF5',
-                  borderRadius: 8,
-                }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#047857' }}>
-                      Total Advance Paid
-                    </Text>
-                    <Text style={{ fontSize: 18, fontWeight: '700', color: '#10B981' }}>
-                      ₹{tenant.advance_payments.reduce((sum: number, p: AdvancePayment) => sum + parseFloat(p.amount_paid.toString()), 0).toLocaleString('en-IN')}
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </ScrollView>
-          )}
-        </View>
+        <AdvancePaymentsSection
+          payments={tenant?.advance_payments}
+          expanded={expandedSections.advancePayments}
+          onToggle={() => toggleSection('advancePayments')}
+          onEdit={handleEditAdvancePayment}
+          onDelete={handleDeleteAdvancePayment}
+          onViewReceipt={handleViewAdvanceReceipt}
+          onWhatsAppReceipt={handleWhatsAppAdvanceReceipt}
+          onShareReceipt={handleShareAdvanceReceipt}
+        />
 
         {/* Refund Payments */}
-        <View style={{ marginBottom: 16, marginHorizontal: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
-          <TouchableOpacity
-            onPress={() => toggleSection('refundPayments')}
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              backgroundColor: '#FFFFFF',
-              borderBottomWidth: expandedSections.refundPayments ? 1 : 0,
-              borderBottomColor: '#E5E7EB',
-            }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#F59E0B' }}>
-              🔄 Refund Payments ({tenant.refund_payments?.length || 0})
-            </Text>
-            <Text style={{ fontSize: 16, color: Theme.colors.text.secondary }}>
-              {expandedSections.refundPayments ? '▼' : '▶'}
-            </Text>
-          </TouchableOpacity>
-
-          {expandedSections.refundPayments && (
-            <ScrollView 
-              style={{ maxHeight: 600, paddingHorizontal: 8, paddingVertical: 0, backgroundColor: '#FFFFFF' }}
-              nestedScrollEnabled={true}
-              showsVerticalScrollIndicator={true}
-            >
-              {tenant.refund_payments && tenant.refund_payments.length > 0 ? (
-                <>
-                  {tenant.refund_payments.map((payment: RefundPayment, index: number) => (
-                  <AnimatedPressableCard
-                    key={payment.s_no}
-                    scaleValue={0.98}
-                    duration={120}
-                    style={{
-                      paddingVertical: 10,
-                      paddingHorizontal: 12,
-                      marginBottom: 8,
-                      backgroundColor: 'white',
-                      borderRadius: 10,
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowOpacity: 0.08,
-                      shadowRadius: 4,
-                      elevation: 2,
-                    }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        marginBottom: 8,
-                      }}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
-                          {new Date(payment.payment_date).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </Text>
-                        {payment.status && (
-                          <View style={{
-                            marginTop: 4,
-                            paddingHorizontal: 8,
-                            paddingVertical: 3,
-                            borderRadius: 6,
-                            alignSelf: 'flex-start',
-                            backgroundColor: 
-                              payment.status === 'PAID' ? '#10B98120' :
-                              payment.status === 'PENDING' ? '#F59E0B20' : '#9CA3AF20',
-                          }}>
-                            <Text style={{
-                              fontSize: 10,
-                              fontWeight: '600',
-                              color: 
-                                payment.status === 'PAID' ? '#10B981' :
-                                payment.status === 'PENDING' ? '#F59E0B' : '#6B7280',
-                            }}>
-                              {payment.status}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                      <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={{ fontSize: 16, fontWeight: '700', color: '#F59E0B', marginBottom: 8 }}>
-                          ₹{payment.amount_paid}
-                        </Text>
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
-                          <TouchableOpacity
-                            onPress={() => handleEditRefundPayment(payment)}
-                            style={{
-                              padding: 6,
-                              borderRadius: 6,
-                              backgroundColor: '#DBEAFE',
-                            }}
-                          >
-                            <Text style={{ fontSize: 16 }}>✏️</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            onPress={() => handleDeleteRefundPayment(payment)}
-                            style={{
-                              padding: 6,
-                              borderRadius: 6,
-                              backgroundColor: '#FEE2E2',
-                            }}
-                          >
-                            <Text style={{ fontSize: 16 }}>🗑️</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    </View>
-                    {payment.payment_method && (
-                      <Text style={{ fontSize: 11, color: Theme.colors.text.secondary }}>
-                        Method: {payment.payment_method}
-                      </Text>
-                    )}
-                    {payment.remarks && (
-                      <Text style={{ fontSize: 11, color: Theme.colors.text.secondary, fontStyle: 'italic' }}>
-                        {payment.remarks}
-                      </Text>
-                    )}
-                  </AnimatedPressableCard>
-                  ))}
-                  <View style={{ paddingTop: 12, borderTopWidth: 2, borderTopColor: '#F59E0B', marginTop: 8 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#F59E0B', textAlign: 'right' }}>
-                      Total Refund: ₹
-                      {tenant.refund_payments.reduce((sum: number, p: RefundPayment) => sum + parseFloat(p.amount_paid.toString()), 0)}
-                    </Text>
-                  </View>
-                </>
-              ) : (
-                <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 48, marginBottom: 12 }}>🔄</Text>
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#F59E0B', marginBottom: 4 }}>
-                    No Refunds
-                  </Text>
-                  <Text style={{ fontSize: 14, color: Theme.colors.text.secondary, textAlign: 'center' }}>
-                    No refund records found for this tenant
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
-          )}
-        </View>
+        <RefundPaymentsSection
+          payments={tenant?.refund_payments}
+          expanded={expandedSections.refundPayments}
+          onToggle={() => toggleSection('refundPayments')}
+          onEdit={handleEditRefundPayment}
+          onDelete={handleDeleteRefundPayment}
+        />
 
         {/* Proof Documents */}
         <View style={{ marginHorizontal: 16, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
@@ -1541,144 +918,22 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
       </ScrollView>
 
       {/* Full Screen Image Viewer Modal */}
-      <Modal
+      <ImageViewerModal
         visible={imageViewerVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={closeImageViewer}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          {/* Close Button */}
-          <TouchableOpacity
-            onPress={closeImageViewer}
-            style={{
-              position: 'absolute',
-              top: 40,
-              right: 20,
-              zIndex: 10,
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              borderRadius: 20,
-              width: 40,
-              height: 40,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold' }}>×</Text>
-          </TouchableOpacity>
-
-          {/* Full Screen Image */}
-          {selectedImage && (
-            <Image
-              source={{ uri: selectedImage }}
-              style={{ width: '100%', height: '100%' }}
-              resizeMode="contain"
-            />
-          )}
-        </View>
-      </Modal>
+        imageUri={selectedImage}
+        onClose={closeImageViewer}
+      />
 
       {/* Change Checkout Date Modal */}
-      <Modal
+      <CheckoutDateModal
         visible={checkoutDateModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setCheckoutDateModalVisible(false)}
-      >
-        <View style={{
-          flex: 1,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
-          <View style={{
-            backgroundColor: '#fff',
-            borderRadius: 12,
-            padding: 20,
-            width: '85%',
-            maxWidth: 400,
-          }}>
-            <Text style={{
-              fontSize: 20,
-              fontWeight: '700',
-              color: Theme.colors.text.primary,
-              marginBottom: 16,
-            }}>
-              Change Checkout Date
-            </Text>
-            
-            <Text style={{
-              fontSize: 14,
-              color: Theme.colors.text.secondary,
-              marginBottom: 20,
-            }}>
-              Update the checkout date for {tenant.name}
-            </Text>
-
-            <DatePicker
-              label="New Checkout Date"
-              value={newCheckoutDate}
-              onChange={(date) => setNewCheckoutDate(date)}
-            />
-
-            <View style={{
-              flexDirection: 'row',
-              gap: 12,
-              marginTop: 24,
-            }}>
-              <TouchableOpacity
-                onPress={() => setCheckoutDateModalVisible(false)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 12,
-                  borderRadius: 8,
-                  backgroundColor: '#F3F4F6',
-                  alignItems: 'center',
-                }}
-              >
-                <Text style={{
-                  color: Theme.colors.text.primary,
-                  fontWeight: '600',
-                  fontSize: 16,
-                }}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={confirmUpdateCheckoutDate}
-                disabled={checkoutLoading}
-                style={{
-                  flex: 1,
-                  paddingVertical: 12,
-                  borderRadius: 8,
-                  backgroundColor: checkoutLoading ? '#9CA3AF' : Theme.colors.primary,
-                  alignItems: 'center',
-                }}
-              >
-                {checkoutLoading ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={{
-                    color: '#fff',
-                    fontWeight: '600',
-                    fontSize: 16,
-                  }}>
-                    Update
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        tenantName={tenant?.name || ''}
+        checkoutDate={newCheckoutDate}
+        loading={checkoutLoading}
+        onDateChange={setNewCheckoutDate}
+        onClose={() => setCheckoutDateModalVisible(false)}
+        onConfirm={confirmUpdateCheckoutDate}
+      />
 
       {/* Add Payment Modal */}
       {tenant && (
@@ -1780,57 +1035,35 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
         />
       )}
 
+      {/* Current Bill Modal */}
+      <AddCurrentBillModal
+        visible={currentBillModalVisible}
+        billAmount={currentBillAmount}
+        billDate={currentBillDate}
+        billRemarks={currentBillRemarks}
+        loading={currentBillLoading}
+        onBillAmountChange={setCurrentBillAmount}
+        onBillDateChange={setCurrentBillDate}
+        onBillRemarksChange={setCurrentBillRemarks}
+        onClose={() => setCurrentBillModalVisible(false)}
+        onSave={handleSaveCurrentBill}
+      />
+
       {/* Receipt View Modal */}
-      <Modal
+      <ReceiptViewModal
         visible={receiptModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setReceiptModalVisible(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: '#FFF', borderRadius: 12, padding: 20, maxWidth: '90%' }}>
-            {receiptData && (
-              <CompactReceiptGenerator.ReceiptComponent data={receiptData} />
-            )}
-            
-            {/* Action Buttons */}
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
-              <TouchableOpacity
-                onPress={() => setReceiptModalVisible(false)}
-                style={{
-                  flex: 1,
-                  padding: 12,
-                  backgroundColor: '#F3F4F6',
-                  borderRadius: 8,
-                  alignItems: 'center',
-                }}
-              >
-                <Text style={{ color: '#6B7280', fontWeight: '600' }}>Close</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                onPress={async () => {
-                  try {
-                    await CompactReceiptGenerator.shareImage(receiptRef);
-                    setReceiptModalVisible(false);
-                  } catch (error) {
-                    Alert.alert('Error', 'Failed to share');
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  padding: 12,
-                  backgroundColor: '#3B82F6',
-                  borderRadius: 8,
-                  alignItems: 'center',
-                }}
-              >
-                <Text style={{ color: '#FFF', fontWeight: '600' }}>Share</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        receiptData={receiptData}
+        receiptRef={receiptRef}
+        onClose={() => setReceiptModalVisible(false)}
+        onShare={async () => {
+          try {
+            await CompactReceiptGenerator.shareImage(receiptRef);
+            setReceiptModalVisible(false);
+          } catch (error) {
+            Alert.alert('Error', 'Failed to share');
+          }
+        }}
+      />
 
       {/* Hidden receipt for capture (off-screen) */}
       {receiptData && !receiptModalVisible && (

@@ -20,6 +20,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { EditRoomModal } from './EditRoomModal';
 import { CONTENT_COLOR } from '@/constant';
+import { CurrentBillModal } from './CurrentBillModal';
 
 interface RoomsScreenProps {
   navigation: any;
@@ -38,6 +39,10 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
   // Edit modal state
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
+
+  // Current bill modal state
+  const [billModalVisible, setBillModalVisible] = useState(false);
+  const [selectedRoomForBill, setSelectedRoomForBill] = useState<Room | null>(null);
 
   useEffect(() => {
     loadRooms();
@@ -120,6 +125,20 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
   };
 
   const handleEditSuccess = () => {
+    loadRooms();
+  };
+
+  const handleOpenBillModal = (room: Room) => {
+    setSelectedRoomForBill(room);
+    setBillModalVisible(true);
+  };
+
+  const handleCloseBillModal = () => {
+    setBillModalVisible(false);
+    setSelectedRoomForBill(null);
+  };
+
+  const handleBillSuccess = () => {
     loadRooms();
   };
 
@@ -215,6 +234,17 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
           </View>
 
           <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              onPress={() => handleOpenBillModal(item)}
+              style={{
+                backgroundColor: '#F59E0B',
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 6,
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>Bill</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={() => handleOpenEditModal(item.s_no)}
               style={{
@@ -398,6 +428,16 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
         onClose={handleCloseEditModal}
         onSuccess={handleEditSuccess}
       />
+
+      {/* Current Bill Modal */}
+      {selectedRoomForBill && (
+        <CurrentBillModal
+          visible={billModalVisible}
+          room={selectedRoomForBill}
+          onClose={handleCloseBillModal}
+          onSuccess={handleBillSuccess}
+        />
+      )}
     </ScreenLayout>
   );
 };

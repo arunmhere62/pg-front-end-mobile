@@ -14,6 +14,7 @@ interface TenantHeaderProps {
   onAddPayment: () => void;
   onAddAdvance: () => void;
   onAddRefund: () => void;
+  onAddCurrentBill?: () => void;
 }
 
 export const TenantHeader: React.FC<TenantHeaderProps> = ({
@@ -25,6 +26,7 @@ export const TenantHeader: React.FC<TenantHeaderProps> = ({
   onAddPayment,
   onAddAdvance,
   onAddRefund,
+  onAddCurrentBill,
 }) => {
   const tenantImage =
     tenant.images && Array.isArray(tenant.images) && tenant.images.length > 0
@@ -281,6 +283,38 @@ export const TenantHeader: React.FC<TenantHeaderProps> = ({
           </View>
         </AnimatedPressableCard>
       </View>
+
+      {/* Current Bill Button */}
+      {onAddCurrentBill && (
+        <View style={{ marginTop: 8 }}>
+          <AnimatedPressableCard
+            onPress={onAddCurrentBill}
+            scaleValue={0.96}
+            duration={100}
+            style={{ width: '100%' }}
+          >
+            <View
+              style={{
+                paddingVertical: 12,
+                backgroundColor: '#F59E0B',
+                borderRadius: 8,
+                alignItems: 'center',
+                flexDirection: 'row',
+                justifyContent: 'center',
+                gap: 8,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 3,
+                elevation: 2,
+              }}
+            >
+              <Text style={{ fontSize: 18 }}>📊</Text>
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>Add Current Bill</Text>
+            </View>
+          </AnimatedPressableCard>
+        </View>
+      )}
     </Card>
   );
 };

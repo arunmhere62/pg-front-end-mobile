@@ -37,6 +37,14 @@ export interface RefundPayment {
   actual_rent_amount?: number;
 }
 
+export interface CurrentBill {
+  s_no: number;
+  bill_amount: number;
+  bill_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PendingPaymentMonth {
   month: string;
   year: number;
@@ -107,6 +115,7 @@ export interface Tenant {
   tenant_payments?: TenantPayment[];
   advance_payments?: AdvancePayment[];
   refund_payments?: RefundPayment[];
+  current_bills?: CurrentBill[];
   pending_payment?: PendingPayment | null;
   // Status fields calculated by TenantStatusService on API side
   is_rent_paid?: boolean;
