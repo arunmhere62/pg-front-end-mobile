@@ -12,7 +12,9 @@
     "ios": "expo run:ios",
     "preios": "npm run typecheck",
     "web": "expo start --web",
-    "lint": "tsc --noEmit && eslint . --ext .ts,.tsx"
+    "lint": "tsc --noEmit && eslint . --ext .ts,.tsx",
+    "clean": "powershell -Command \"Remove-Item -Recurse -Force @('android/app/.cxx', 'android/app/build', 'android/build', 'node_modules/.cache') -ErrorAction SilentlyContinue; Write-Host '✅ All builds removed!' -ForegroundColor Green\"",
+    "build:clean": "npm run clean && cd android && .\\gradlew assembleRelease"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
