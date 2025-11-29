@@ -27,7 +27,7 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
 
   return (
     <View style={{ flex: 1, backgroundColor  }}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: backgroundColor }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: backgroundColor, }} edges={['top']}>
         {children}
       </SafeAreaView>
     </View>

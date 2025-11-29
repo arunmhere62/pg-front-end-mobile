@@ -225,7 +225,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
             </View>
             <View>
               <Text style={{ fontSize: 18, fontWeight: '700', color: Theme.colors.text.primary }}>
-                Room {item.room_no}
+                {item.room_no}
               </Text>
               <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary }}>
                 ID: {item.s_no}

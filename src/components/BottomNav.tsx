@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Theme } from '../theme';
 import { usePermissions } from '../hooks/usePermissions';
 import { Permission } from '../config/rbac.config';
+import { Ionicons } from '@expo/vector-icons';
 
 interface BottomNavProps {
   navigation: any;
@@ -19,10 +21,10 @@ interface TabConfig {
 
 // User tabs (Admin/Employee) - Super Admin will use separate web app
 const userTabs: TabConfig[] = [
-  { name: 'Dashboard', label: 'Home', icon: '🏠', permission: Permission.VIEW_DASHBOARD },
-  { name: 'Tenants', label: 'Tenants', icon: '👥', permission: Permission.VIEW_TENANTS },
-  { name: 'Payments', label: 'Payments', icon: '💰', permission: Permission.VIEW_PAYMENTS },
-  { name: 'Settings', label: 'Settings', icon: '⚙️', permission: Permission.VIEW_SETTINGS },
+  { name: 'Dashboard', label: 'Home', icon: 'home-outline', permission: Permission.VIEW_DASHBOARD },
+  { name: 'Tenants', label: 'Tenants', icon: 'people-outline', permission: Permission.VIEW_TENANTS },
+  { name: 'Payments', label: 'Payments', icon: 'card-outline', permission: Permission.VIEW_PAYMENTS },
+  { name: 'Settings', label: 'Settings', icon: 'settings-outline', permission: Permission.VIEW_SETTINGS },
 ];
 
 export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, currentRoute }) => {
@@ -33,7 +35,11 @@ export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, cur
   const accessibleTabs = userTabs.filter(tab => can(tab.permission));
   
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+    <BlurView
+      intensity={100}
+      tint="light"
+      style={[styles.container, { paddingBottom: Math.max(insets.bottom + 8, 20) }]}
+    >
       {accessibleTabs.map((tab) => {
         const isActive = currentRoute === tab.name;
         return (
@@ -41,23 +47,28 @@ export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, cur
             key={tab.name}
             style={styles.tab}
             onPress={() => navigation.navigate(tab.name)}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.icon, { opacity: isActive ? 1 : 0.6 }]}>{tab.icon}</Text>
-            <Text style={[
-              styles.label,
-              { 
-                color: isActive ? Theme.colors.primary : Theme.colors.text.secondary,
-                fontWeight: isActive ? '700' : '600'
-              }
-            ]}>
-              {tab.label}
-            </Text>
-            {isActive && <View style={styles.activeIndicator} />}
+            <View style={styles.tabContainer}>
+              <View style={styles.tabContent}>
+                {isActive && <View style={styles.activeIndicator} />}
+                <Ionicons 
+                  name={tab.icon as any} 
+                  size={20} 
+                  color={isActive ? Theme.colors.text.inverse : Theme.colors.text.tertiary}
+                />
+                <Text style={[
+                  styles.label,
+                  { color: isActive ? Theme.colors.text.inverse : Theme.colors.text.tertiary }
+                ]}>
+                  {tab.label}
+                </Text>
+              </View>
+            </View>
           </TouchableOpacity>
         );
       })}
-    </View>
+    </BlurView>
   );
 });
 
@@ -70,48 +81,53 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.98)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.06)',
-    paddingTop: 8,
-    minHeight: 60,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -3 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 12,
-        borderTopWidth: 1.5,
-        borderTopColor: 'rgba(0, 0, 0, 0.08)',
-      },
-    }),
+    paddingTop: 12,
+    paddingBottom: 0,
+    minHeight: 70,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 0,
     position: 'relative',
   },
   icon: {
-    fontSize: 24,
-    marginBottom: 4,
+    marginBottom: 1,
     textAlign: 'center',
   },
   label: {
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 9,
+    fontWeight: '600',
     textAlign: 'center',
   },
   activeIndicator: {
     position: 'absolute',
-    top: 0,
-    width: 32,
-    height: 3,
+    top: -4,
+    left: -12,
+    right: -12,
+    bottom: -4,
     backgroundColor: Theme.colors.primary,
-    borderRadius: 2,
+    borderRadius: 20,
+    zIndex: -1,
+  },
+  tabContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    position: 'relative',
+  },
+  tabContent: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    paddingHorizontal: 6,
+    paddingVertical: 8,
   },
 });

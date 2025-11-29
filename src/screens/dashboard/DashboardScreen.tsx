@@ -401,6 +401,8 @@ export const DashboardScreen: React.FC = () => {
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
           >
+            {/* Quick Actions - Moved to top */}
+            <QuickActions menuItems={menuItems} onNavigate={handleNavigate} />
 
             {/* PG Summary Section */}
             {selectedPGLocationId && (
@@ -460,9 +462,6 @@ export const DashboardScreen: React.FC = () => {
             )}
 
             {/* Summary content ends here */}
-
-            {/* Quick Actions */}
-            <QuickActions menuItems={menuItems} onNavigate={handleNavigate} />
           </ScrollView>
         ) : (
           // Rent Status tab content

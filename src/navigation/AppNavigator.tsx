@@ -52,8 +52,27 @@ const MainTabs = () => {
   const navigation = useNavigation();
   const { can } = usePermissions();
   const currentRoute = useNavigationState((state: any) => {
-    const route = state?.routes[state.index];
-    return route?.state?.routes?.[route.state.index]?.name || route?.name || 'Dashboard';
+    if (!state || !state.routes || state.index === undefined) {
+      console.log('BottomNav currentRoute = Dashboard (fallback)');
+      return 'Dashboard';
+    }
+    
+    const route = state.routes[state.index];
+    
+    if (route?.state?.routes?.[route.state.index]) {
+      const tabRoute = route.state.routes[route.state.index].name;
+      console.log('BottomNav currentRoute =', tabRoute, '(from nested state)');
+      return tabRoute;
+    }
+    
+    // If we get 'MainTabs' (stack route), force Dashboard as default
+    if (route?.name === 'MainTabs') {
+      console.log('BottomNav currentRoute = Dashboard (MainTabs fallback)');
+      return 'Dashboard';
+    }
+    
+    console.log('BottomNav currentRoute =', route?.name || 'Dashboard', '(direct route)');
+    return route?.name || 'Dashboard';
   });
 
   // Define screen configurations with permissions
@@ -86,7 +105,7 @@ const MainTabs = () => {
 
   return (
     <View style={{ flex: 1, position: 'relative' }}>
-      <View style={{ flex: 1, paddingBottom: 60 }}>
+      <View style={{ flex: 1, }}>
         <Tab.Navigator
           screenOptions={{
             headerShown: false,

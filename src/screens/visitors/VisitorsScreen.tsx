@@ -8,6 +8,8 @@ import {
   Alert,
   TextInput,
   ActivityIndicator,
+  Modal,
+  Dimensions,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
@@ -17,8 +19,11 @@ import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
+import { VisitorFormModal } from '../../components/VisitorFormModal';
 import { Ionicons } from '@expo/vector-icons';
 import { CONTENT_COLOR } from '@/constant';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface VisitorsScreenProps {
   navigation: any;
@@ -35,6 +40,9 @@ export const VisitorsScreen: React.FC<VisitorsScreenProps> = ({ navigation }) =>
   const [hasMore, setHasMore] = useState(true);
   const [visibleItemsCount, setVisibleItemsCount] = useState(0);
   const [convertedFilter, setConvertedFilter] = useState<'ALL' | 'CONVERTED' | 'NOT_CONVERTED'>('ALL');
+  const [visitorModalVisible, setVisitorModalVisible] = useState(false);
+  const [selectedVisitorId, setSelectedVisitorId] = useState<number | undefined>();
+  const [showFilters, setShowFilters] = useState(false);
   
   const flatListRef = React.useRef<any>(null);
 
@@ -138,6 +146,32 @@ export const VisitorsScreen: React.FC<VisitorsScreenProps> = ({ navigation }) =>
     );
   };
 
+  const handleAddVisitor = () => {
+    setSelectedVisitorId(undefined);
+    setVisitorModalVisible(true);
+  };
+
+  const handleEditVisitor = (visitorId: number) => {
+    setSelectedVisitorId(visitorId);
+    setVisitorModalVisible(true);
+  };
+
+  const handleVisitorFormSuccess = () => {
+    // Refresh the visitors list
+    setCurrentPage(1);
+    setHasMore(true);
+    loadVisitors(1, true);
+  };
+
+  const handleCloseModal = () => {
+    setVisitorModalVisible(false);
+    setSelectedVisitorId(undefined);
+  };
+
+  const getFilterCount = () => {
+    return convertedFilter !== 'ALL' ? 1 : 0;
+  };
+
   const renderVisitorCard = ({ item }: { item: any }) => {
     const visitorName = item?.visitor_name || 'Unknown Visitor';
     const phoneNo = item?.phone_no || 'N/A';
@@ -146,99 +180,96 @@ export const VisitorsScreen: React.FC<VisitorsScreenProps> = ({ navigation }) =>
     const remarks = item?.remarks || '';
     
     return (
-    <Card style={{ marginBottom: 12, padding: 16 }}>
+    <Card style={{ 
+      marginBottom: 8, 
+      padding: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#E5E7EB',
+      backgroundColor: '#fff',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    }}>
       {/* Header */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: Theme.colors.text.primary, marginBottom: 4 }}>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary, marginBottom: 4 }}>
             {visitorName}
           </Text>
-          {item.convertedTo_tenant && (
-            <View style={{ 
-              backgroundColor: Theme.withOpacity(Theme.colors.secondary, 0.1), 
-              paddingHorizontal: 8, 
-              paddingVertical: 4, 
-              borderRadius: 6,
-              alignSelf: 'flex-start',
-              marginTop: 4,
-            }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: Theme.colors.secondary }}>
-                ✓ CONVERTED TO TENANT
-              </Text>
-            </View>
-          )}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="call-outline" size={14} color={Theme.colors.text.tertiary} />
+            <Text style={{ fontSize: 13, color: Theme.colors.text.tertiary }}>
+              {phoneNo}
+            </Text>
+          </View>
         </View>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
           <TouchableOpacity
-            onPress={() => navigation.navigate('AddVisitor', { visitorId: item?.s_no })}
+            onPress={() => handleEditVisitor(item?.s_no)}
             style={{
-              padding: 8,
-              borderRadius: 8,
-              backgroundColor: Theme.colors.background.blueLight,
+              padding: 6,
+              borderRadius: 6,
+              backgroundColor: '#F3F4F6',
             }}
           >
-            <Ionicons name="pencil" size={18} color={Theme.colors.primary} />
+            <Ionicons name="pencil" size={16} color={Theme.colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => handleDeleteVisitor(item?.s_no, visitorName)}
             style={{
-              padding: 8,
-              borderRadius: 8,
+              padding: 6,
+              borderRadius: 6,
               backgroundColor: '#FEE2E2',
             }}
           >
-            <Ionicons name="trash-outline" size={18} color="#EF4444" />
+            <Ionicons name="trash-outline" size={16} color="#EF4444" />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Contact Info */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-        <Ionicons name="call-outline" size={16} color={Theme.colors.text.secondary} />
-        <Text style={{ fontSize: 14, color: Theme.colors.text.secondary, marginLeft: 8 }}>
-          {phoneNo}
-        </Text>
-      </View>
-
-      {/* Purpose */}
-      {purpose && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-          <Ionicons name="document-text-outline" size={16} color={Theme.colors.text.secondary} />
-          <Text style={{ fontSize: 14, color: Theme.colors.text.secondary, marginLeft: 8 }}>
-            {purpose}
-          </Text>
-        </View>
-      )}
-
-      {/* Visit Date */}
-      {visitedDate && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-          <Ionicons name="calendar-outline" size={16} color={Theme.colors.text.secondary} />
-          <Text style={{ fontSize: 14, color: Theme.colors.text.secondary, marginLeft: 8 }}>
-            {new Date(visitedDate).toLocaleDateString('en-IN', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            })}
-          </Text>
+      {/* Purpose and Date */}
+      {(purpose || visitedDate) && (
+        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 8 }}>
+          {purpose && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
+              <Ionicons name="document-text-outline" size={14} color={Theme.colors.text.tertiary} />
+              <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, flex: 1 }} numberOfLines={1}>
+                {purpose}
+              </Text>
+            </View>
+          )}
+          {visitedDate && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name="calendar-outline" size={14} color={Theme.colors.text.tertiary} />
+              <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary }}>
+                {new Date(visitedDate).toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                })}
+              </Text>
+            </View>
+          )}
         </View>
       )}
 
       {/* Room & Bed Info */}
       {(item.rooms || item.beds) && (
-        <View style={{ flexDirection: 'row', gap: 16, marginTop: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: Theme.colors.border }}>
+        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 8 }}>
           {item.rooms && (
-            <View>
-              <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary }}>Room</Text>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary }}>🏠</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
                 {item.rooms.room_no}
               </Text>
             </View>
           )}
           {item.beds && (
-            <View>
-              <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary }}>Bed</Text>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary }}>🛏️</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: Theme.colors.text.primary }}>
                 {item.beds.bed_no}
               </Text>
             </View>
@@ -246,11 +277,34 @@ export const VisitorsScreen: React.FC<VisitorsScreenProps> = ({ navigation }) =>
         </View>
       )}
 
+      {/* Converted Badge */}
+      {item.convertedTo_tenant && (
+        <View style={{ 
+          backgroundColor: '#10B98120', 
+          paddingHorizontal: 8, 
+          paddingVertical: 4, 
+          borderRadius: 6,
+          alignSelf: 'flex-start',
+          marginBottom: 4,
+        }}>
+          <Text style={{ fontSize: 10, fontWeight: '700', color: '#10B981' }}>
+            ✓ CONVERTED TO TENANT
+          </Text>
+        </View>
+      )}
+
       {/* Remarks */}
       {remarks && (
-        <View style={{ marginTop: 12, padding: 12, backgroundColor: Theme.colors.background.secondary, borderRadius: 8 }}>
-          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, marginBottom: 4 }}>Remarks</Text>
-          <Text style={{ fontSize: 13, color: Theme.colors.text.secondary }}>
+        <View style={{ 
+          marginTop: 8, 
+          padding: 8, 
+          backgroundColor: '#F9FAFB', 
+          borderRadius: 6,
+          borderLeftWidth: 2,
+          borderLeftColor: Theme.colors.primary,
+        }}>
+          <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, marginBottom: 2 }}>Remarks</Text>
+          <Text style={{ fontSize: 12, color: Theme.colors.text.secondary }} numberOfLines={2}>
             {remarks}
           </Text>
         </View>
@@ -263,13 +317,15 @@ export const VisitorsScreen: React.FC<VisitorsScreenProps> = ({ navigation }) =>
     <ScreenLayout backgroundColor={Theme.colors.background.blue}  contentBackgroundColor ={ CONTENT_COLOR}>
       <ScreenHeader 
         title="Visitors" 
+        showBackButton={true}
+        onBackPress={() => navigation.goBack()}
         subtitle={`${pagination?.total || 0} total`}
-        showPGSelector={true}
+        showPGSelector={false}
       />
 
       {/* Search & Filter Bar */}
-      <View style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border, backgroundColor: '#fff' }}>
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+      <View style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border }}>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
           <TextInput
             style={{
               flex: 1,
@@ -293,34 +349,38 @@ export const VisitorsScreen: React.FC<VisitorsScreenProps> = ({ navigation }) =>
               justifyContent: 'center',
             }}
           >
-            <Ionicons name="search" size={20} color="#fff" />
+            <Ionicons name="search" size={18} color="#fff" />
           </TouchableOpacity>
-        </View>
-
-        {/* Filter Chips */}
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {['ALL', 'CONVERTED', 'NOT_CONVERTED'].map((filter) => (
-            <TouchableOpacity
-              key={filter}
-              onPress={() => setConvertedFilter(filter as any)}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
-                backgroundColor: convertedFilter === filter ? Theme.colors.primary : '#F3F4F6',
-                borderWidth: 1,
-                borderColor: convertedFilter === filter ? Theme.colors.primary : Theme.colors.border,
-              }}
-            >
-              <Text style={{
-                fontSize: 12,
-                fontWeight: '600',
-                color: convertedFilter === filter ? '#fff' : Theme.colors.text.secondary,
-              }}>
-                {filter === 'ALL' ? 'All' : filter === 'CONVERTED' ? 'Converted' : 'Not Converted'}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          <TouchableOpacity
+            onPress={() => setShowFilters(!showFilters)}
+            style={{
+              backgroundColor: getFilterCount() > 0 ? Theme.colors.primary : Theme.colors.light,
+              borderRadius: 8,
+              paddingHorizontal: 14,
+              justifyContent: 'center',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            <Ionicons name="filter" size={18} color={getFilterCount() > 0 ? '#fff' : Theme.colors.text.primary} />
+            {getFilterCount() > 0 && (
+              <View
+                style={{
+                  backgroundColor: '#fff',
+                  borderRadius: 10,
+                  width: 18,
+                  height: 18,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '700', color: Theme.colors.primary }}>
+                  {getFilterCount()}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -369,6 +429,7 @@ export const VisitorsScreen: React.FC<VisitorsScreenProps> = ({ navigation }) =>
         </View>
       ) : (
         <FlatList
+        style={{ backgroundColor : '#ffff'}}
           ref={flatListRef}
           data={visitors}
           renderItem={renderVisitorCard}
@@ -409,7 +470,7 @@ export const VisitorsScreen: React.FC<VisitorsScreenProps> = ({ navigation }) =>
 
       {/* Floating Add Visitor Button */}
       <TouchableOpacity
-        onPress={() => navigation.navigate('AddVisitor')}
+        onPress={handleAddVisitor}
         style={{
           position: 'absolute',
           right: 20,
@@ -429,6 +490,152 @@ export const VisitorsScreen: React.FC<VisitorsScreenProps> = ({ navigation }) =>
       >
         <Text style={{ color: '#fff', fontSize: 32, fontWeight: '300' }}>+</Text>
       </TouchableOpacity>
+
+      {/* Visitor Form Modal */}
+      <VisitorFormModal
+        visible={visitorModalVisible}
+        onClose={handleCloseModal}
+        onSuccess={handleVisitorFormSuccess}
+        visitorId={selectedVisitorId}
+      />
+
+      {/* Filter Modal Overlay */}
+      <Modal
+        visible={showFilters}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowFilters(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setShowFilters(false)}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{
+              backgroundColor: '#fff',
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              maxHeight: SCREEN_HEIGHT * 0.6,
+            }}
+          >
+            {/* Filter Header */}
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: 20,
+              borderBottomWidth: 1,
+              borderBottomColor: Theme.colors.border,
+            }}>
+              <View>
+                <Text style={{ fontSize: 20, fontWeight: '700', color: Theme.colors.text.primary }}>
+                  Filter Visitors
+                </Text>
+                {getFilterCount() > 0 && (
+                  <Text style={{ fontSize: 13, color: Theme.colors.text.secondary, marginTop: 2 }}>
+                    {getFilterCount()} filter{getFilterCount() > 1 ? 's' : ''} active
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowFilters(false)}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: Theme.colors.background.secondary,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="close" size={18} color={Theme.colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Filter Content */}
+            <View style={{ padding: 20 }}>
+              {/* Status Filter */}
+              <View style={{ marginBottom: 24 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 12 }}>
+                  Filter by Status
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {['ALL', 'CONVERTED', 'NOT_CONVERTED'].map((status) => (
+                    <TouchableOpacity
+                      key={status}
+                      onPress={() => setConvertedFilter(status as any)}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 12,
+                        borderRadius: 8,
+                        backgroundColor: convertedFilter === status ? Theme.colors.primary : '#fff',
+                        borderWidth: 1,
+                        borderColor: convertedFilter === status ? Theme.colors.primary : Theme.colors.border,
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: '600',
+                          color: convertedFilter === status ? '#fff' : Theme.colors.text.secondary,
+                        }}
+                      >
+                        {status === 'ALL' ? 'All' : status === 'CONVERTED' ? 'Converted' : 'Not Converted'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Filter Actions */}
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setConvertedFilter('ALL');
+                    setTimeout(() => {
+                      setShowFilters(false);
+                    }, 100);
+                  }}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 14,
+                    borderRadius: 8,
+                    backgroundColor: Theme.colors.background.secondary,
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: Theme.colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.secondary }}>
+                    Clear All
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setShowFilters(false)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 14,
+                    borderRadius: 8,
+                    backgroundColor: Theme.colors.primary,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>
+                    Apply Filters
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </ScreenLayout>
   );
 };

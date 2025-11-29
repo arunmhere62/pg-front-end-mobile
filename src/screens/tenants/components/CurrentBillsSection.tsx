@@ -24,7 +24,7 @@ export const CurrentBillsSection: React.FC<CurrentBillsSectionProps> = ({
   const totalBills = bills?.reduce((sum: number, bill: CurrentBill) => sum + parseFloat(bill.bill_amount.toString()), 0) || 0;
 
   return (
-    <View style={{ marginBottom: 16, marginHorizontal: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
+    <View style={{ marginBottom: 8, marginHorizontal: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
       <TouchableOpacity
         onPress={onToggle}
         style={{
@@ -48,7 +48,7 @@ export const CurrentBillsSection: React.FC<CurrentBillsSectionProps> = ({
 
       {expanded && (
         <ScrollView 
-          style={{ maxHeight: 600, paddingHorizontal: 0, paddingVertical: 0, backgroundColor: '#FFFFFF' }}
+          style={{ maxHeight: 600, paddingHorizontal: 0, paddingVertical: 10, backgroundColor: '#FFFFFF' }}
           nestedScrollEnabled={true}
           showsVerticalScrollIndicator={true}
         >

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StatusBar, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StatusBar, Platform, Animated } from 'react-native';
 import { Theme } from '../theme';
 import { PGLocationSelector } from './PGLocationSelector';
 
@@ -32,6 +32,26 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   syncMobileHeaderBg = false,
   notificationBarColor
 }) => {
+  // Animation value for back button
+  const backButtonScale = new Animated.Value(1);
+
+  const handleBackPressIn = () => {
+    Animated.spring(backButtonScale, {
+      toValue: 0.9,
+      useNativeDriver: true,
+      tension: 100,
+      friction: 8,
+    }).start();
+  };
+
+  const handleBackPressOut = () => {
+    Animated.spring(backButtonScale, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 100,
+      friction: 8,
+    }).start();
+  };
   // Auto-detect status bar style based on background color
   useEffect(() => {
     let style: 'light' | 'dark' = 'light';
@@ -68,17 +88,36 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {/* Back Button */}
           {showBackButton && onBackPress && (
-            <TouchableOpacity
-              onPress={onBackPress}
-              style={{
-                marginRight: 8,
-                padding: 4,
-              }}
-            >
-              <Text style={{ color: textColor, fontSize: 24, fontWeight: 'bold' }}>
-                ←
-              </Text>
-            </TouchableOpacity>
+            <Animated.View style={{ transform: [{ scale: backButtonScale }] }}>
+              <TouchableOpacity
+                onPress={onBackPress}
+                onPressIn={handleBackPressIn}
+                onPressOut={handleBackPressOut}
+                activeOpacity={0.6}
+                style={{
+                  marginRight: 12,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8, // iPhone-style rounded corners instead of circular
+                  backgroundColor: Theme.withOpacity('#000000', 0.15), // Lighter background like iOS
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ 
+                  color: textColor, 
+                  fontSize: 20, 
+                  fontWeight: '500', 
+                  textAlign: 'center',
+                  marginBottom : 6,
+                  textAlignVertical: 'center',
+                  includeFontPadding: false,
+                  lineHeight: undefined
+                }}>
+                  ←
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
           )}
           
           {/* Title and Subtitle */}

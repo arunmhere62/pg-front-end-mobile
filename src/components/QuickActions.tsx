@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Animated } from 'react-native';
 import { Card } from './Card';
 import { Theme } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,38 +18,85 @@ interface QuickActionsProps {
 
 export const QuickActions = memo<QuickActionsProps>(({ menuItems, onNavigate }) => {
   return (
-    <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
-      <Text style={{ fontSize: 20, fontWeight: '700', color: Theme.colors.text.primary, marginBottom: 16 }}>
+    <View style={{ marginBottom: 16 }}>
+      <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary, marginBottom: 12, paddingHorizontal: 16 }}>
         Quick Actions
       </Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-        {menuItems.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            onPress={() => onNavigate(item.screen)}
-            style={{ width: '48%', marginBottom: 12 }}
-          >
-            <Card style={{ padding: 16, alignItems: 'center' }}>
-              <View
-                style={{
-                  width: 64,
-                  height: 64,
-                  backgroundColor: item.color,
-                  borderRadius: 32,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 12,
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+      >
+        {menuItems.map((item, index) => {
+          const scaleValue = new Animated.Value(1);
+          
+          const handlePressIn = () => {
+            Animated.spring(scaleValue, {
+              toValue: 0.95,
+              useNativeDriver: true,
+              tension: 100,
+              friction: 8,
+            }).start();
+          };
+          
+          const handlePressOut = () => {
+            Animated.spring(scaleValue, {
+              toValue: 1,
+              useNativeDriver: true,
+              tension: 100,
+              friction: 8,
+            }).start();
+          };
+          
+          return (
+            <Animated.View key={index} style={{ transform: [{ scale: scaleValue }] }}>
+              <TouchableOpacity
+                onPress={() => onNavigate(item.screen)}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                activeOpacity={0.8}
+                style={{ 
+                  height: 85, // Fixed height
+                  minWidth: 70, // Minimum width
+                  maxWidth: 90, // Maximum width for responsiveness
+                  justifyContent: 'center'
                 }}
               >
-                <Ionicons name={item.icon as any} size={32} color="#fff" />
-              </View>
-              <Text style={{ color: Theme.colors.text.primary, fontWeight: '600', textAlign: 'center' }}>
-                {item.title}
-              </Text>
-            </Card>
-          </TouchableOpacity>
-        ))}
-      </View>
+                <Card style={{ 
+                  padding: 10, 
+                  alignItems: 'center',
+                  height: '100%',
+                  justifyContent: 'center'
+                }}>
+                  <View
+                    style={{
+                      width: 32,
+                      height: 32,
+                      backgroundColor: item.color,
+                      borderRadius: 16,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 6,
+                    }}
+                  >
+                    <Ionicons name={item.icon as any} size={16} color="#fff" />
+                  </View>
+                  <Text style={{ 
+                    color: Theme.colors.text.primary, 
+                    fontWeight: '600', 
+                    textAlign: 'center', 
+                    fontSize: 10,
+                    lineHeight: 12,
+                    maxWidth: '100%'
+                  }}>
+                    {item.title.length > 10 ? item.title.substring(0, 10) + '...' : item.title}
+                  </Text>
+                </Card>
+              </TouchableOpacity>
+            </Animated.View>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 });

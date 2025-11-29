@@ -32,7 +32,7 @@ export const RentPaymentsSection: React.FC<RentPaymentsSectionProps> = ({
   onShareReceipt,
 }) => {
   return (
-    <View style={{ marginBottom: 16, marginHorizontal: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
+    <View style={{ marginBottom: 8, marginHorizontal: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
       <TouchableOpacity
         onPress={onToggle}
         style={{
@@ -56,7 +56,7 @@ export const RentPaymentsSection: React.FC<RentPaymentsSectionProps> = ({
 
       {expanded && (
         <ScrollView 
-          style={{ maxHeight: 600, paddingHorizontal: 0, paddingVertical: 0, backgroundColor: '#FFFFFF' }}
+          style={{ maxHeight: 600, paddingHorizontal: 0, paddingVertical: 10, backgroundColor: '#FFFFFF' }}
           nestedScrollEnabled={true}
           showsVerticalScrollIndicator={true}
         >

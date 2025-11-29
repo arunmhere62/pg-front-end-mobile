@@ -34,7 +34,7 @@ export const AdvancePaymentsSection: React.FC<AdvancePaymentsSectionProps> = ({
   const totalAdvance = payments?.reduce((sum: number, p: AdvancePayment) => sum + parseFloat(p.amount_paid.toString()), 0) || 0;
 
   return (
-    <View style={{ marginBottom: 16, marginHorizontal: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
+    <View style={{ marginBottom: 8, marginHorizontal: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
       <TouchableOpacity
         onPress={onToggle}
         style={{
