@@ -1,4 +1,5 @@
 import axiosInstance from '../core/axiosInstance';
+import { extractResponseData, isApiResponseSuccess } from '../../utils/apiResponseHandler';
 
 export interface Room {
   s_no: number;
@@ -77,7 +78,12 @@ export const getAllRooms = async (
     headers: requestHeaders,
   });
 
-  return response.data;
+  const data = extractResponseData(response.data) as any;
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: Array.isArray(data) ? data : (data?.data || []),
+    pagination: data?.pagination || undefined,
+  };
 };
 
 /**
@@ -96,7 +102,11 @@ export const getRoomById = async (
     headers: requestHeaders,
   });
 
-  return response.data;
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: extractResponseData(response.data),
+    message: response.data?.message || 'Success',
+  };
 };
 
 /**
@@ -115,7 +125,11 @@ export const createRoom = async (
     headers: requestHeaders,
   });
 
-  return response.data;
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: extractResponseData(response.data),
+    message: response.data?.message || 'Success',
+  };
 };
 
 /**
@@ -135,7 +149,11 @@ export const updateRoom = async (
     headers: requestHeaders,
   });
 
-  return response.data;
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: extractResponseData(response.data),
+    message: response.data?.message || 'Success',
+  };
 };
 
 /**
@@ -154,5 +172,8 @@ export const deleteRoom = async (
     headers: requestHeaders,
   });
 
-  return response.data;
+  return {
+    success: isApiResponseSuccess(response.data),
+    message: response.data?.message || 'Success',
+  };
 };

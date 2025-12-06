@@ -91,7 +91,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         params: { countryCode: 'IN' },
       });
       if (response.data.success) {
-        setStateData(response.data.data);
+        setStateData(response.data.data || []);
       }
     } catch (error) {
       console.error('Error fetching states:', error);
@@ -107,7 +107,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         params: { stateCode },
       });
       if (response.data.success) {
-        setCityData(response.data.data);
+        setCityData(response.data.data || []);
       }
     } catch (error) {
       console.error('Error fetching cities:', error);

@@ -167,7 +167,7 @@ export const AddVisitorScreen: React.FC<AddVisitorScreenProps> = ({ navigation, 
         params: { countryCode: 'IN' },
       });
       if (response.data.success) {
-        const statesData = response.data.data;
+        const statesData = response.data.data || [];
         setStates(statesData);
       }
     } catch (error) {
@@ -185,7 +185,7 @@ export const AddVisitorScreen: React.FC<AddVisitorScreenProps> = ({ navigation, 
         params: { stateCode },
       });
       if (response.data.success) {
-        const citiesData = response.data.data;
+        const citiesData = response.data.data || [];
         setCities(citiesData);
       }
     } catch (error) {

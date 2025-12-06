@@ -2,20 +2,17 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  Modal,
   ScrollView,
-  TouchableOpacity,
   TextInput,
   Alert,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { getRoomById, updateRoom, createRoom, Room } from '../../services/rooms/roomService';
 import { Theme } from '../../theme';
 import { ImageUploadS3 } from '../../components/ImageUploadS3';
+import { SlideBottomModal } from '../../components/SlideBottomModal';
 import { getFolderConfig } from '../../config/aws.config';
 
 interface RoomModalProps {
@@ -189,108 +186,28 @@ export const RoomModal: React.FC<RoomModalProps> = ({
   };
 
   return (
-    <Modal
+    <SlideBottomModal
       visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={handleClose}
+      onClose={handleClose}
+      title={roomId ? 'Edit Room' : 'Add Room'}
+      subtitle={roomId ? 'Update room details' : 'Create a new room'}
+      onSubmit={handleSubmit}
+      onCancel={handleClose}
+      submitLabel={roomId ? 'Update Room' : 'Create Room'}
+      cancelLabel="Cancel"
+      isLoading={loading}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            justifyContent: 'flex-end',
-          }}
-          activeOpacity={1}
-          onPress={handleClose}
-        >
-          <View
-            style={{
-              backgroundColor: 'white',
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              maxHeight: '90%',
-              flex: 1,
-              flexDirection: 'column',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: -4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 12,
-              elevation: 20,
-            }}
-          >
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={(e) => e.stopPropagation()}
-              style={{ flex: 1, flexDirection: 'column' }}
-            >
-            {/* Modal Header */}
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingHorizontal: 20,
-                paddingTop: 20,
-                paddingBottom: 16,
-                borderBottomWidth: 1,
-                borderBottomColor: '#F3F4F6',
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    backgroundColor: Theme.colors.primary + '20',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: 12,
-                  }}
-                >
-                  <Text style={{ fontSize: 20 }}>🏠</Text>
-                </View>
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: Theme.colors.text.primary }}>
-                  {roomId ? 'Edit Room' : 'Add Room'}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={handleClose}
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: '#F3F4F6',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Text style={{ fontSize: 18, color: Theme.colors.text.secondary, fontWeight: 'bold' }}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Modal Content */}
-            {loadingData ? (
-              <View style={{ padding: 60, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color={Theme.colors.primary} />
-                <Text style={{ marginTop: 16, color: Theme.colors.text.secondary }}>
-                  Loading room data...
-                </Text>
-              </View>
-            ) : (
-              <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-              >
-                {/* Room Number */}
-                <View style={{ marginBottom: 16 }}>
+      {loadingData ? (
+        <View style={{ padding: 60, alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={Theme.colors.primary} />
+          <Text style={{ marginTop: 16, color: Theme.colors.text.secondary }}>
+            Loading room data...
+          </Text>
+        </View>
+      ) : (
+        <View>
+          {/* Room Number */}
+          <View style={{ marginBottom: 16 }}>
                   <Text
                     style={{
                       fontSize: 13,
@@ -390,61 +307,10 @@ export const RoomModal: React.FC<RoomModalProps> = ({
                       </Text>
                     </View>
                   </View>
-                </View>
-              </ScrollView>
-            )}
-
-            {/* Modal Footer */}
-            {!loadingData && (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  gap: 12,
-                  padding: 20,
-                  borderTopWidth: 1,
-                  borderTopColor: '#F3F4F6',
-                }}
-              >
-                <TouchableOpacity
-                  onPress={handleClose}
-                  style={{
-                    flex: 1,
-                    backgroundColor: '#F3F4F6',
-                    paddingVertical: 14,
-                    borderRadius: 10,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text style={{ fontSize: 15, fontWeight: '600', color: Theme.colors.text.secondary }}>
-                    Cancel
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleSubmit}
-                  disabled={loading}
-                  style={{
-                    flex: 1,
-                    backgroundColor: Theme.colors.primary,
-                    paddingVertical: 14,
-                    borderRadius: 10,
-                    alignItems: 'center',
-                  }}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff' }}>
-                      {roomId ? 'Update Room' : 'Create Room'}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
-            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
-    </Modal>
+        </View>
+      )}
+    </SlideBottomModal>
   );
 };
 

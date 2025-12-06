@@ -61,12 +61,16 @@ export const NetworkLoggerModal: React.FC = () => {
   // Register global open function
   useEffect(() => {
     globalOpenLogger = () => {
+      console.log('🔍 globalOpenLogger called, opening modal');
       const currentLogs = networkLogger.getLogs();
       setLogs(currentLogs);
       setVisible(true);
     };
+    console.log('✅ globalOpenLogger registered');
     return () => {
-      globalOpenLogger = null;
+      console.log('⚠️ globalOpenLogger cleanup');
+      // Don't set to null - keep it available
+      // globalOpenLogger = null;
     };
   }, []);
 

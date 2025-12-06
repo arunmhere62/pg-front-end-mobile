@@ -26,6 +26,7 @@ import { ScreenLayout } from '../../components/ScreenLayout';
 import { Ionicons } from '@expo/vector-icons';
 import axiosInstance from '../../services/core/axiosInstance';
 import { DatePicker } from '../../components/DatePicker';
+import { showErrorAlert } from '../../utils/errorHandler';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -229,7 +230,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
               Alert.alert('Success', 'Tenant deleted successfully');
               loadTenants(currentPage);
             } catch (error: any) {
-              Alert.alert('Error', error?.response?.data?.message || 'Failed to delete tenant');
+              showErrorAlert(error, 'Delete Error');
             }
           },
         },

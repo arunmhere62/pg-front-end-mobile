@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { BedFormModal } from '../../components/BedFormModal';
 import { Ionicons } from '@expo/vector-icons';
+import { showErrorAlert } from '../../utils/errorHandler';
 import { CONTENT_COLOR } from '@/constant';
 
 interface BedsScreenProps {
@@ -51,21 +52,29 @@ export const BedsScreen: React.FC<BedsScreenProps> = ({ navigation }) => {
   const [bedModalVisible, setBedModalVisible] = useState(false);
   const [selectedBed, setSelectedBed] = useState<Bed | null>(null);
 
+  // Track if this is the first mount to load data
+  const isFirstMount = useRef(true);
+
   useEffect(() => {
-    loadRooms();
-    loadBeds();
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      loadRooms();
+      loadBeds();
+    }
   }, [selectedPGLocationId]);
 
   useEffect(() => {
     loadBeds();
   }, [selectedRoomId, occupancyFilter]);
 
-  // Reload beds when screen comes into focus
+  // Only reload beds when PG location changes, not on every focus
   useFocusEffect(
     React.useCallback(() => {
-      loadBeds();
-      loadRooms();
-    }, [selectedPGLocationId, selectedRoomId, occupancyFilter])
+      // Don't reload on focus - only load on PG location or filter change
+      return () => {
+        // Cleanup if needed
+      };
+    }, [])
   );
 
   const loadRooms = async () => {
@@ -200,9 +209,7 @@ export const BedsScreen: React.FC<BedsScreenProps> = ({ navigation }) => {
             Alert.alert('Success', 'Bed deleted successfully');
             loadBeds();
           } catch (error: any) {
-            const backendMsg = error?.response?.data?.message ?? error?.response?.data?.error ?? error?.response?.data?.errors ?? error?.message;
-            const msg = Array.isArray(backendMsg) ? backendMsg.join('\n') : backendMsg || 'Failed to delete bed';
-            Alert.alert('Error', msg);
+            showErrorAlert(error, 'Delete Error');
           }
         },
       },

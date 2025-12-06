@@ -6,28 +6,24 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
-  Modal,
   TextInput,
   ActivityIndicator,
   Image,
-  Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { Ionicons } from '@expo/vector-icons';
 import { AppDispatch, RootState } from '../../store';
 import { fetchPGLocations, setSelectedPGLocation } from '../../store/slices/pgLocationSlice';
 import { Theme } from '../../theme';
-
-// Try to import expo-image-picker, fallback if not installed
-let ImagePicker: any = null;
-try {
-  ImagePicker = require('expo-image-picker');
-} catch (e) {
-}
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { Card } from '../../components/Card';
+import { AnimatedButton } from '../../components/AnimatedButton';
 import { SearchableDropdown } from '../../components/SearchableDropdown';
+import { SlideBottomModal } from '../../components/SlideBottomModal';
+import { ImageUploadS3 } from '../../components/ImageUploadS3';
+import { getFolderConfig } from '../../config/aws.config';
+import { showErrorAlert } from '../../utils/errorHandler';
 import axiosInstance from '../../services/core/axiosInstance';
 
 interface PGLocationsScreenProps {
@@ -84,56 +80,7 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
   const [modalVisible, setModalVisible] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedPG, setSelectedPG] = useState<PGLocation | null>(null);
-
-  // Helper function to pick image from gallery
-  const pickImageFromGallery = async () => {
-    // Check if ImagePicker is available
-    if (!ImagePicker) {
-      Alert.alert(
-        'Package Not Installed',
-        'Please install expo-image-picker:\n\nnpx expo install expo-image-picker',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    try {
-      // Request permission
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (permissionResult.granted === false) {
-        Alert.alert('Permission Required', 'Please allow access to your photo library');
-        return;
-      }
-
-      // Launch image picker
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.3, // Reduced quality to avoid "Request Entity Too Large" error
-        base64: true,
-      });
-
-      if (!result.canceled && result.assets && result.assets[0]) {
-        const asset = result.assets[0];
-        
-        // Get base64 string
-        if (asset.base64) {
-          const base64String = `data:image/jpeg;base64,${asset.base64}`;
-          setFormData({
-            ...formData,
-            images: [...formData.images, base64String],
-          });
-          Alert.alert('Success', 'Image added successfully!');
-        } else {
-          Alert.alert('Error', 'Failed to convert image to base64');
-        }
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to pick image from gallery');
-    }
-  };
+  const [submitting, setSubmitting] = useState(false);
   
   // Form states
   const [formData, setFormData] = useState<FormData>({
@@ -150,7 +97,6 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
   const [cities, setCities] = useState<City[]>([]);
   const [loadingStates, setLoadingStates] = useState(false);
   const [loadingCities, setLoadingCities] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadPGLocations();
@@ -161,7 +107,7 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
     setLoading(true);
     try {
       const response = await axiosInstance.get('/pg-locations');
-      if (response.data.success) {
+      if (response.data.success && Array.isArray(response.data.data)) {
         setPgLocations(response.data.data);
       }
     } catch (error) {
@@ -177,10 +123,28 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
       const response = await axiosInstance.get('/location/states', {
         params: { countryCode: 'IN' },
       });
+      console.log('📍 Raw States Response:', response.data);
+      
       if (response.data.success) {
-        setStates(response.data.data);
+        // Extract from nested structure: response.data.data.data
+        let statesData: any[] = [];
+        
+        if (response.data.data && typeof response.data.data === 'object') {
+          // Check if response.data.data has a data property (nested structure)
+          if (Array.isArray(response.data.data.data)) {
+            statesData = response.data.data.data;
+          } else if (Array.isArray(response.data.data)) {
+            statesData = response.data.data;
+          }
+        } else if (Array.isArray(response.data.data)) {
+          statesData = response.data.data;
+        }
+        
+        console.log('📍 States extracted:', statesData);
+        setStates(statesData);
       }
     } catch (error) {
+      console.error('Error loading states:', error);
     } finally {
       setLoadingStates(false);
     }
@@ -192,10 +156,28 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
       const response = await axiosInstance.get('/location/cities', {
         params: { stateCode },
       });
+      console.log('🏙️ Raw Cities Response:', response.data);
+      
       if (response.data.success) {
-        setCities(response.data.data);
+        // Extract from nested structure: response.data.data.data
+        let citiesData: any[] = [];
+        
+        if (response.data.data && typeof response.data.data === 'object') {
+          // Check if response.data.data has a data property (nested structure)
+          if (Array.isArray(response.data.data.data)) {
+            citiesData = response.data.data.data;
+          } else if (Array.isArray(response.data.data)) {
+            citiesData = response.data.data;
+          }
+        } else if (Array.isArray(response.data.data)) {
+          citiesData = response.data.data;
+        }
+        
+        console.log('🏙️ Cities extracted:', citiesData);
+        setCities(citiesData);
       }
     } catch (error) {
+      console.error('Error loading cities:', error);
     } finally {
       setLoadingCities(false);
     }
@@ -377,7 +359,7 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
                 Alert.alert('Success', 'PG location deleted successfully');
               }
             } catch (error: any) {
-              Alert.alert('Error', error?.response?.data?.message || 'Something went wrong');
+              showErrorAlert(error, 'Delete Error');
             }
           },
         },
@@ -450,7 +432,17 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
         </View>
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity
+          <AnimatedButton
+            onPress={() => navigation.navigate('PGDetails', { pgId: pg.s_no })}
+            style={{
+              backgroundColor: '#F0F9FF',
+              padding: 8,
+              borderRadius: 8,
+            }}
+          >
+            <Ionicons name="eye" size={18} color={Theme.colors.primary} />
+          </AnimatedButton>
+          <AnimatedButton
             onPress={() => openEditModal(pg)}
             style={{
               backgroundColor: '#EEF2FF',
@@ -458,9 +450,9 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
               borderRadius: 8,
             }}
           >
-            <Text style={{ fontSize: 18 }}>✏️</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
+            <Ionicons name="pencil" size={18} color={Theme.colors.primary} />
+          </AnimatedButton>
+          <AnimatedButton
             onPress={() => handleDelete(pg)}
             style={{
               backgroundColor: '#FEE2E2',
@@ -468,389 +460,205 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
               borderRadius: 8,
             }}
           >
-            <Text style={{ fontSize: 18 }}>🗑️</Text>
-          </TouchableOpacity>
+            <Ionicons name="trash" size={18} color="#EF4444" />
+          </AnimatedButton>
         </View>
       </View>
     </Card>
   );
 
-  const renderModal = () => (
-    <Modal
-      visible={modalVisible}
-      animationType="slide"
-      transparent
-      onRequestClose={closeModal}
-    >
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          justifyContent: 'flex-end',
-        }}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1, justifyContent: 'flex-end' }}
-        >
-          <View
-            style={{
-              backgroundColor: 'white',
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              maxHeight: '90%',
-            }}
+  return (
+    <>
+      <ScreenLayout backgroundColor={Theme.colors.background.blue}>
+        <ScreenHeader 
+          title="PG Locations" 
+          subtitle="Manage your PG locations"
+          showBackButton={true}
+          onBackPress={() => navigation.goBack()}
+        />
+        <View style={{ flex: 1, backgroundColor: Theme.colors.light }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           >
-            {/* Modal Header */}
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: 20,
-                borderBottomWidth: 1,
-                borderBottomColor: '#E5E7EB',
-              }}
-            >
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: Theme.colors.text.primary }}>
-                {editMode ? 'Edit PG Location' : 'Add PG Location'}
-              </Text>
-              <TouchableOpacity onPress={closeModal}>
-                <Text style={{ fontSize: 24, color: Theme.colors.text.secondary }}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Modal Content */}
-            <ScrollView
-              style={{ padding: 20 }}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-            <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, marginBottom: 4, marginLeft: 4 }}>
-              PG Location Name *
-            </Text>
-            <TextInput
-              style={{
-                backgroundColor: 'white',
-                borderRadius: 12,
-                padding: 14,
-                marginBottom: 16,
-                borderWidth: 2,
-                borderColor: '#E5E7EB',
-                fontSize: 15,
-              }}
-              placeholder="Enter PG location name"
-              value={formData.locationName}
-              onChangeText={(text) => setFormData({ ...formData, locationName: text })}
-            />
-
-            <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, marginBottom: 4, marginLeft: 4 }}>
-              Address *
-            </Text>
-            <TextInput
-              style={{
-                backgroundColor: 'white',
-                borderRadius: 12,
-                padding: 14,
-                marginBottom: 16,
-                borderWidth: 2,
-                borderColor: '#E5E7EB',
-                fontSize: 15,
-                minHeight: 80,
-                textAlignVertical: 'top',
-              }}
-              placeholder="Enter complete address"
-              value={formData.address}
-              onChangeText={(text) => setFormData({ ...formData, address: text })}
-              multiline
-              numberOfLines={3}
-            />
-
-            <SearchableDropdown
-              label="State"
-              placeholder="Select a state"
-              items={states.map(state => ({
-                id: state.s_no,
-                label: state.name,
-                value: state.iso_code,
-              }))}
-              selectedValue={formData.stateId}
-              onSelect={(item) => handleStateChange(item.id)}
-              loading={loadingStates}
-              required
-            />
-
-            {formData.stateId && (
-              <SearchableDropdown
-                label="City"
-                placeholder="Select a city"
-                items={cities.map(city => ({
-                  id: city.s_no,
-                  label: city.name,
-                  value: city.s_no,
-                }))}
-                selectedValue={formData.cityId}
-                onSelect={(item) => setFormData({ ...formData, cityId: item.id })}
-                loading={loadingCities}
-                required
-              />
-            )}
-
-            <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, marginBottom: 4, marginLeft: 4 }}>
-              Pincode
-            </Text>
-            <TextInput
-              style={{
-                backgroundColor: 'white',
-                borderRadius: 12,
-                padding: 14,
-                marginBottom: 16,
-                borderWidth: 2,
-                borderColor: '#E5E7EB',
-                fontSize: 15,
-              }}
-              placeholder="Enter pincode"
-              value={formData.pincode}
-              onChangeText={(text) => setFormData({ ...formData, pincode: text })}
-              keyboardType="numeric"
-            />
-
-            {/* Image Upload Section */}
-            <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, marginBottom: 4, marginLeft: 4 }}>
-              Images (Base64)
-            </Text>
-            <View style={{ marginBottom: 16 }}>
-              {formData.images.map((image, index) => (
-                <View
-                  key={index}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginBottom: 8,
-                    backgroundColor: '#F3F4F6',
-                    padding: 8,
-                    borderRadius: 8,
-                  }}
-                >
-                  {image.startsWith('data:image') && (
-                    <Image
-                      source={{ uri: image }}
-                      style={{ width: 50, height: 50, borderRadius: 4, marginRight: 8 }}
-                    />
-                  )}
-                  <Text style={{ flex: 1, fontSize: 12, color: Theme.colors.text.secondary }} numberOfLines={1}>
-                    Image {index + 1}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      const newImages = formData.images.filter((_, i) => i !== index);
-                      setFormData({ ...formData, images: newImages });
-                    }}
-                    style={{ padding: 4 }}
-                  >
-                    <Text style={{ color: '#EF4444', fontSize: 18 }}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-              
-              <TouchableOpacity
-                style={{
-                  backgroundColor: '#EEF2FF',
-                  borderRadius: 8,
-                  padding: 12,
-                  alignItems: 'center',
-                  borderWidth: 2,
-                  borderColor: Theme.colors.primary,
-                  borderStyle: 'dashed',
-                }}
-                onPress={async () => {
-                  Alert.alert(
-                    'Add Image',
-                    'Choose an option:',
-                    [
-                      {
-                        text: '📷 Pick from Gallery',
-                        onPress: pickImageFromGallery,
-                      },
-                      {
-                        text: 'Paste Base64',
-                        onPress: () => {
-                          Alert.prompt(
-                            'Paste Base64 Image',
-                            'Paste base64 string (data:image/...)',
-                            [
-                              { text: 'Cancel', style: 'cancel' },
-                              {
-                                text: 'Add',
-                                onPress: (imageString?: string) => {
-                                  if (imageString && imageString.trim()) {
-                                    setFormData({
-                                      ...formData,
-                                      images: [...formData.images, imageString.trim()],
-                                    });
-                                    Alert.alert('Success', 'Image added!');
-                                  }
-                                },
-                              },
-                            ],
-                            'plain-text'
-                          );
-                        },
-                      },
-                      {
-                        text: 'Paste Image URL',
-                        onPress: () => {
-                          Alert.prompt(
-                            'Paste Image URL',
-                            'Paste image URL (https://...)',
-                            [
-                              { text: 'Cancel', style: 'cancel' },
-                              {
-                                text: 'Add',
-                                onPress: (imageUrl?: string) => {
-                                  if (imageUrl && imageUrl.trim()) {
-                                    setFormData({
-                                      ...formData,
-                                      images: [...formData.images, imageUrl.trim()],
-                                    });
-                                    Alert.alert('Success', 'Image URL added!');
-                                  }
-                                },
-                              },
-                            ],
-                            'plain-text'
-                          );
-                        },
-                      },
-                      { text: 'Cancel', style: 'cancel' },
-                    ]
-                  );
-                }}
-              >
-                <Text style={{ color: Theme.colors.primary, fontWeight: 'bold', fontSize: 14 }}>
-                  📷 Upload Image from Device
+            {loading ? (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color={Theme.colors.primary} />
+                <Text style={{ marginTop: 16, color: Theme.colors.text.secondary }}>
+                  Loading PG locations...
                 </Text>
-              </TouchableOpacity>
-              
-              <Text style={{ fontSize: 11, color: Theme.colors.text.secondary, marginTop: 4, textAlign: 'center' }}>
-                Select image file from your device (JPG, PNG, etc.)
-              </Text>
-            </View>
+              </View>
+            ) : pgLocations.length === 0 ? (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                <Text style={{ fontSize: 48, marginBottom: 16 }}>🏢</Text>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: Theme.colors.text.primary, marginBottom: 8 }}>
+                  No PG Locations Yet
+                </Text>
+                <Text style={{ fontSize: 14, color: Theme.colors.text.secondary, textAlign: 'center' }}>
+                  Add your first PG location to get started
+                </Text>
+              </View>
+            ) : (
+              pgLocations.map(renderPGCard)
+            )}
           </ScrollView>
 
-          {/* Modal Footer */}
-          <View
+          {/* Floating Add Button */}
+          <TouchableOpacity
             style={{
-              padding: 16,
-              borderTopWidth: 1,
-              borderTopColor: '#E5E7EB',
-              flexDirection: 'row',
-              gap: 12,
+              position: 'absolute',
+              bottom: 90,
+              right: 20,
+              backgroundColor: Theme.colors.primary,
+              width: 60,
+              height: 60,
+              borderRadius: 30,
+              justifyContent: 'center',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 8,
             }}
+            onPress={openCreateModal}
           >
-            <TouchableOpacity
-              style={{
-                flex: 1,
-                backgroundColor: 'white',
-                borderRadius: 12,
-                padding: 16,
-                alignItems: 'center',
-                borderWidth: 2,
-                borderColor: Theme.colors.primary,
-              }}
-              onPress={closeModal}
-            >
-              <Text style={{ color: Theme.colors.primary, fontWeight: 'bold', fontSize: 16 }}>
-                Cancel
-              </Text>
-            </TouchableOpacity>
+            <Text style={{ fontSize: 32, color: 'white', lineHeight: 32 }}>+</Text>
+          </TouchableOpacity>
+        </View>
+      </ScreenLayout>
 
-            <TouchableOpacity
-              style={{
-                flex: 1,
-                backgroundColor: Theme.colors.primary,
-                borderRadius: 12,
-                padding: 16,
-                alignItems: 'center',
-              }}
-              onPress={handleSubmit}
-              disabled={submitting}
-            >
-              {submitting ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
-                  {editMode ? 'Update' : 'Create'}
-                </Text>
-              )}
-            </TouchableOpacity>
+      {/* Form Modal */}
+      <SlideBottomModal
+        visible={modalVisible}
+        onClose={closeModal}
+        title={editMode ? 'Edit PG Location' : 'Add PG Location'}
+        subtitle={editMode ? selectedPG?.location_name : 'Create a new PG location'}
+        onSubmit={handleSubmit}
+        onCancel={closeModal}
+        submitLabel={editMode ? 'Update' : 'Create'}
+        cancelLabel="Cancel"
+        isLoading={submitting}
+      >
+        {/* Location Name */}
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 6 }}>
+            Location Name <Text style={{ color: '#EF4444' }}>*</Text>
+          </Text>
+          <TextInput
+            style={{
+              backgroundColor: Theme.colors.light,
+              borderRadius: 12,
+              padding: 14,
+              fontSize: 15,
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+            }}
+            placeholder="Enter PG location name"
+            value={formData.locationName}
+            onChangeText={(text) => setFormData({ ...formData, locationName: text })}
+            editable={!submitting}
+          />
+        </View>
+
+        {/* Address */}
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 6 }}>
+            Address <Text style={{ color: '#EF4444' }}>*</Text>
+          </Text>
+          <TextInput
+            style={{
+              backgroundColor: Theme.colors.light,
+              borderRadius: 12,
+              padding: 14,
+              fontSize: 15,
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              minHeight: 80,
+              textAlignVertical: 'top',
+            }}
+            placeholder="Enter complete address"
+            value={formData.address}
+            onChangeText={(text) => setFormData({ ...formData, address: text })}
+            multiline
+            numberOfLines={3}
+            editable={!submitting}
+          />
+        </View>
+
+        {/* State */}
+        <View style={{ marginBottom: 16 }}>
+          <SearchableDropdown
+            label="State"
+            placeholder="Select a state"
+            items={states.map(state => ({
+              id: state.s_no,
+              label: state.name,
+              value: state.iso_code,
+            }))}
+            selectedValue={formData.stateId}
+            onSelect={(item) => handleStateChange(item.id)}
+            loading={loadingStates}
+            required
+          />
+        </View>
+
+        {/* City */}
+        {formData.stateId && (
+          <View style={{ marginBottom: 16 }}>
+            <SearchableDropdown
+              label="City"
+              placeholder="Select a city"
+              items={cities.map(city => ({
+                id: city.s_no,
+                label: city.name,
+                value: city.s_no,
+              }))}
+              selectedValue={formData.cityId}
+              onSelect={(item) => setFormData({ ...formData, cityId: item.id })}
+              loading={loadingCities}
+              required
+            />
           </View>
-          </View>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
-  );
+        )}
 
-  return (
-    <ScreenLayout backgroundColor={Theme.colors.background.blue}>
-      <ScreenHeader 
-        title="PG Locations" 
-        subtitle="Manage your PG locations"
-        showBackButton={true}
-        onBackPress={() => navigation.goBack()}
-      />
-      <View style={{ flex: 1, backgroundColor: Theme.colors.light }}>
-        <ScrollView
-          contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-          {loading ? (
-            <View style={{ padding: 40, alignItems: 'center' }}>
-              <ActivityIndicator size="large" color={Theme.colors.primary} />
-              <Text style={{ marginTop: 16, color: Theme.colors.text.secondary }}>
-                Loading PG locations...
-              </Text>
-            </View>
-          ) : pgLocations.length === 0 ? (
-            <View style={{ padding: 40, alignItems: 'center' }}>
-              <Text style={{ fontSize: 48, marginBottom: 16 }}>🏢</Text>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', color: Theme.colors.text.primary, marginBottom: 8 }}>
-                No PG Locations Yet
-              </Text>
-              <Text style={{ fontSize: 14, color: Theme.colors.text.secondary, textAlign: 'center' }}>
-                Add your first PG location to get started
-              </Text>
-            </View>
-          ) : (
-            pgLocations.map(renderPGCard)
-          )}
-        </ScrollView>
+        {/* Pincode */}
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 6 }}>
+            Pincode
+          </Text>
+          <TextInput
+            style={{
+              backgroundColor: Theme.colors.light,
+              borderRadius: 12,
+              padding: 14,
+              fontSize: 15,
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+            }}
+            placeholder="Enter pincode (optional)"
+            value={formData.pincode}
+            onChangeText={(text) => setFormData({ ...formData, pincode: text })}
+            keyboardType="numeric"
+            editable={!submitting}
+          />
+        </View>
 
-        {/* Floating Add Button */}
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            bottom: 90,
-            right: 20,
-            backgroundColor: Theme.colors.primary,
-            width: 60,
-            height: 60,
-            borderRadius: 30,
-            justifyContent: 'center',
-            alignItems: 'center',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            elevation: 8,
-          }}
-          onPress={openCreateModal}
-        >
-          <Text style={{ fontSize: 32, color: 'white', lineHeight: 32 }}>+</Text>
-        </TouchableOpacity>
-
-        {renderModal()}
-      </View>
-    </ScreenLayout>
+        {/* Images */}
+        <View style={{ marginBottom: 16 }}>
+          <ImageUploadS3
+            images={formData.images}
+            onImagesChange={(images: string[]) => setFormData((prev) => ({ ...prev, images }))}
+            maxImages={5}
+            label="PG Location Images"
+            disabled={submitting}
+            folder={getFolderConfig().pgLocations?.images || 'pg-locations/images'}
+            useS3={true}
+            entityId={selectedPG?.s_no?.toString()}
+            autoSave={false}
+          />
+        </View>
+      </SlideBottomModal>
+    </>
   );
 };

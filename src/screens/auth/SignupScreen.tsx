@@ -88,7 +88,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
     try {
       const response = await axiosInstance.get('/location/countries');
       if (response.data.success) {
-        setCountries(response.data.data);
+        setCountries(response.data.data || []);
       }
     } catch (error) {
       console.error('Error fetching countries:', error);
@@ -102,7 +102,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
         params: { countryCode },
       });
       if (response.data.success) {
-        setStates(response.data.data);
+        setStates(response.data.data || []);
       }
     } catch (error) {
       console.error('Error fetching states:', error);
@@ -118,7 +118,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
         params: { stateCode },
       });
       if (response.data.success) {
-        setCities(response.data.data);
+        setCities(response.data.data || []);
       }
     } catch (error) {
       console.error('Error fetching cities:', error);

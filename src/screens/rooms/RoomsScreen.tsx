@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { RoomFormModal } from './CreateEditRoomModal';
 import { CurrentBillModal } from './CurrentBillModal';
+import { showErrorAlert } from '../../utils/errorHandler';
 import { CONTENT_COLOR } from '@/constant';
 
 interface RoomsScreenProps {
@@ -43,15 +44,24 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
   const [billModalVisible, setBillModalVisible] = useState(false);
   const [selectedRoomForBill, setSelectedRoomForBill] = useState<Room | null>(null);
 
+  // Track if this is the first mount to load data
+  const isFirstMount = useRef(true);
+
   useEffect(() => {
-    loadRooms();
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      loadRooms();
+    }
   }, [selectedPGLocationId]);
 
-  // Reload rooms when screen comes into focus
+  // Only reload rooms when PG location changes, not on every focus
   useFocusEffect(
     React.useCallback(() => {
-      loadRooms();
-    }, [selectedPGLocationId])
+      // Don't reload on focus - only load on PG location change
+      return () => {
+        // Cleanup if needed
+      };
+    }, [])
   );
 
   const loadRooms = async () => {
@@ -152,14 +162,6 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              // First, get room data to access images
-              console.log('Fetching room data for deletion...');
-              const roomResponse = await getRoomById(roomId, {
-                pg_id: selectedPGLocationId || undefined,
-                organization_id: user?.organization_id,
-                user_id: user?.s_no,
-              });
-
               // Delete room from database (backend will handle S3 image deletion)
               await deleteRoom(roomId, {
                 pg_id: selectedPGLocationId || undefined,
@@ -170,12 +172,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
               Alert.alert('Success', 'Room and all associated images deleted successfully');
               loadRooms();
             } catch (error: any) {
-              console.error('Delete room error:', error);
-              const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message;
-              
-              if (errorMessage) {
-                Alert.alert('Error', errorMessage);
-              }
+              showErrorAlert(error, 'Delete Error');
             }
           },
         },

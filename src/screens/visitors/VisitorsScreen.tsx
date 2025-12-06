@@ -17,6 +17,7 @@ import { AppDispatch, RootState } from '../../store';
 import { fetchVisitors, deleteVisitor } from '../../store/slices/visitorSlice';
 import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
+import { showErrorAlert } from '../../utils/errorHandler';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { VisitorFormModal } from '../../components/VisitorFormModal';
@@ -138,7 +139,7 @@ export const VisitorsScreen: React.FC<VisitorsScreenProps> = ({ navigation }) =>
               await dispatch(deleteVisitor(id)).unwrap();
               Alert.alert('Success', 'Visitor deleted successfully');
             } catch (error: any) {
-              Alert.alert('Error', error || 'Failed to delete visitor');
+              showErrorAlert(error, 'Delete Error');
             }
           },
         },

@@ -51,7 +51,8 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ navigation
         params: { countryCode: 'IN' },
       });
       if (response.data.success) {
-        const state = response.data.data.find((s: any) => s.s_no === stateId);
+        const states = response.data.data || [];
+        const state = states.find((s: any) => s.s_no === stateId);
         if (state) {
           setStateName(state.name);
         }
@@ -69,13 +70,15 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ navigation
           params: { countryCode: 'IN' },
         });
         if (stateResponse.data.success) {
-          const state = stateResponse.data.data.find((s: any) => s.s_no === user.state_id);
+          const states = stateResponse.data.data || [];
+          const state = states.find((s: any) => s.s_no === user.state_id);
           if (state) {
             const cityResponse = await axiosInstance.get('/location/cities', {
               params: { stateCode: state.iso_code },
             });
             if (cityResponse.data.success) {
-              const city = cityResponse.data.data.find((c: any) => c.s_no === cityId);
+              const cities = cityResponse.data.data || [];
+              const city = cities.find((c: any) => c.s_no === cityId);
               if (city) {
                 setCityName(city.name);
               }

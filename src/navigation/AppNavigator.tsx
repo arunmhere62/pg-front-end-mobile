@@ -28,6 +28,7 @@ import { PaymentsScreen } from '../screens/payments/PaymentsScreen';
 import { SettingsScreen } from '../screens/settings/SettingsScreen';
 import { UserProfileScreen } from '../screens/settings/UserProfileScreen';
 import { PGLocationsScreen } from '../screens/pg-locations/PGLocationsScreen';
+import { PGDetailsScreen } from '../screens/pg-locations/PGDetailsScreen';
 import { OrganizationsScreen } from '../screens/organizations/OrganizationsScreen';
 import { BottomNav } from '../components/BottomNav';
 import { ExpenseScreen } from '@/screens/expense/ExpenseScreen';
@@ -43,6 +44,7 @@ import { SubscriptionPlansScreen } from '@/screens/subscription/SubscriptionPlan
 import { SubscriptionHistoryScreen } from '@/screens/subscription/SubscriptionHistoryScreen';
 import { PaymentOptionsScreen } from '@/screens/subscription/PaymentOptionsScreen';
 import { PaymentWebViewScreen } from '@/screens/subscription/PaymentWebViewScreen';
+import { NetworkLoggerModal } from '../components/NetworkLoggerModal';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -151,6 +153,7 @@ export const AppNavigator = () => {
           <>
             <Stack.Screen name="MainTabs" component={MainTabs} />
             <Stack.Screen name="PGLocations" component={PGLocationsScreen} />
+            <Stack.Screen name="PGDetails" component={PGDetailsScreen} />
             <Stack.Screen name="Organizations" component={OrganizationsScreen} />
             <Stack.Screen name="Rooms" component={RoomsScreen} />
             <Stack.Screen name="RoomDetails" component={RoomDetailsScreen} />
@@ -174,6 +177,7 @@ export const AppNavigator = () => {
           </>
         )}
       </Stack.Navigator>
+      <NetworkLoggerModal />
     </NavigationContainer>
   );
 };

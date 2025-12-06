@@ -11,6 +11,9 @@ import { Theme } from './src/theme';
 import { AppNavigator } from '@/navigation/AppNavigator';
 import { setupGlobalErrorHandlers } from './src/utils/errorHandler';
 import { initializeGlobalErrorHandling } from './src/config/globalErrorHandler';
+import { ErrorProvider } from './src/providers/ErrorProvider';
+import ErrorAlert from './src/components/ErrorAlert/ErrorAlert';
+import { useError } from './src/providers/ErrorProvider';
 
 export default function App() {
   const [appError, setAppError] = useState<string | null>(null);
@@ -80,14 +83,25 @@ export default function App() {
             }
             persistor={persistor}
           >
-            <NetworkStatusProvider>
-              <StatusBar translucent backgroundColor="transparent" />
-              <AppNavigator />
-              <NetworkLoggerModal />
-            </NetworkStatusProvider>
+            <ErrorProvider>
+              <AppContent />
+            </ErrorProvider>
           </PersistGate>
         </Provider>
       </SafeAreaProvider>
     </ErrorBoundary>
+  );
+}
+
+function AppContent() {
+  const { error, clearError } = useError();
+
+  return (
+    <NetworkStatusProvider>
+      <ErrorAlert error={error} onDismiss={clearError} />
+      <StatusBar translucent backgroundColor="transparent" />
+      <AppNavigator />
+      <NetworkLoggerModal />
+    </NetworkStatusProvider>
   );
 }

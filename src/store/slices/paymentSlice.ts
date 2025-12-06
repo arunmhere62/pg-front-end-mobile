@@ -45,12 +45,12 @@ export const fetchPayments = createAsyncThunk(
   }
 );
 
-export const createPayment = createAsyncThunk(
+export const createPayment = createAsyncThunk<Payment, Partial<Payment>>(
   'payments/create',
   async (data: Partial<Payment>, { rejectWithValue }) => {
     try {
       const response = await paymentService.createPayment(data);
-      return response;
+      return response.data as Payment;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to create payment');
     }
@@ -92,7 +92,7 @@ const paymentSlice = createSlice({
       })
       .addCase(createPayment.fulfilled, (state, action) => {
         state.loading = false;
-        state.payments.push(action.payload.data || action.payload);
+        state.payments.push(action.payload);
       })
       .addCase(createPayment.rejected, (state, action) => {
         state.loading = false;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  PanResponder,
+  Animated,
 } from 'react-native';
 import { Theme } from '../theme';
 
@@ -36,6 +38,72 @@ export const SlideBottomModal: React.FC<SlideBottomModalProps> = ({
   cancelLabel = 'Cancel',
   isLoading = false,
 }) => {
+  const [panY] = useState(new Animated.Value(0));
+  const [backdropOpacity] = useState(new Animated.Value(0));
+  const [slideY] = useState(new Animated.Value(500));
+  const [isDraggingHeader, setIsDraggingHeader] = useState(false);
+
+  React.useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(backdropOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideY, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(backdropOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideY, {
+          toValue: 500,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible, backdropOpacity, slideY]);
+
+  const headerPanResponder = React.useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Only respond to downward swipes (dy > 5 to avoid accidental triggers)
+        return Math.abs(gestureState.dy) > 5 && gestureState.dy > 0;
+      },
+      onPanResponderGrant: () => {
+        setIsDraggingHeader(true);
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        if (gestureState.dy > 0) {
+          panY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        setIsDraggingHeader(false);
+        // Close if swiped down more than 100 pixels
+        if (gestureState.dy > 100) {
+          onClose();
+        } else {
+          // Snap back to original position
+          Animated.spring(panY, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
   const handleSubmit = async () => {
     if (onSubmit) {
       await onSubmit();
@@ -51,40 +119,66 @@ export const SlideBottomModal: React.FC<SlideBottomModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="none" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-        <View
+        <Animated.View
           style={{
             flex: 1,
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
             justifyContent: 'flex-end',
+            opacity: backdropOpacity,
           }}
         >
-          <View
+          <Animated.View
             style={{
               backgroundColor: Theme.colors.canvas,
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
-              maxHeight: '90%',
+              maxHeight: '85%',
               flex: 1,
               flexDirection: 'column',
+              transform: [
+                { translateY: slideY },
+                { translateY: panY },
+              ],
             }}
           >
+            {/* Drag Indicator & Header Container */}
+            <View
+              {...headerPanResponder.panHandlers}
+              style={{
+                alignItems: 'center',
+                paddingTop: 12,
+                paddingBottom: 8,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: '#D1D5DB',
+                }}
+              />
+            </View>
+
             {/* Header */}
             <View
+              {...headerPanResponder.panHandlers}
               style={{
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: 20,
+                paddingHorizontal: 20,
+                paddingBottom: 20,
                 borderBottomWidth: 1,
                 borderBottomColor: Theme.colors.border,
               }}
             >
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 20, fontWeight: '700', color: Theme.colors.text.primary }}>
                   {title}
                 </Text>
@@ -94,8 +188,20 @@ export const SlideBottomModal: React.FC<SlideBottomModalProps> = ({
                   </Text>
                 )}
               </View>
-              <TouchableOpacity onPress={onClose} disabled={isLoading}>
-                <Text style={{ fontSize: 24, color: Theme.colors.text.primary }}>✕</Text>
+              <TouchableOpacity 
+                onPress={onClose} 
+                disabled={isLoading}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: '#F3F4F6',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginLeft: 12,
+                }}
+              >
+                <Text style={{ fontSize: 20, fontWeight: '600', color: Theme.colors.text.primary }}>✕</Text>
               </TouchableOpacity>
             </View>
 
@@ -160,8 +266,8 @@ export const SlideBottomModal: React.FC<SlideBottomModalProps> = ({
                 </TouchableOpacity>
               )}
             </View>
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   );

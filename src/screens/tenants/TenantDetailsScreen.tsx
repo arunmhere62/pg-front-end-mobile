@@ -48,6 +48,7 @@ import advancePaymentService from '@/services/payments/advancePaymentService';
 import refundPaymentService from '@/services/payments/refundPaymentService';
 import { paymentService } from '@/services/payments/paymentService';
 import { createCurrentBill } from '@/services/bills/currentBillService';
+import { showErrorAlert } from '@/utils/errorHandler';
 
 // Inner component that doesn't directly interact with frozen navigation context
 const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({ tenantId, navigation }) => {
@@ -229,7 +230,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
               Alert.alert('Success', 'Rent payment deleted successfully');
               loadTenantDetails();
             } catch (error: any) {
-              Alert.alert('Error', error.response?.data?.message || 'Failed to delete payment');
+              showErrorAlert(error, 'Delete Error');
             }
           },
         },
@@ -409,7 +410,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
               Alert.alert('Success', 'Advance payment deleted successfully');
               loadTenantDetails();
             } catch (error: any) {
-              Alert.alert('Error', error.response?.data?.message || 'Failed to delete payment');
+              showErrorAlert(error, 'Delete Error');
             }
           },
         },

@@ -18,10 +18,11 @@ import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
-import { AWSImageUpload } from '../../components/AWSImageUpload';
+import { ImageUploadS3 } from '../../components/ImageUploadS3';
 import { DatePicker } from '../../components/DatePicker';
 import { SearchableDropdown } from '../../components/SearchableDropdown';
 import axiosInstance from '../../services/core/axiosInstance';
+import { getFolderConfig } from '../../config/aws.config';
 import { CONTENT_COLOR } from '@/constant';
 
 interface AddTenantScreenProps {
@@ -155,8 +156,9 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
         params: { countryCode: 'IN' },
       });
       if (response.data.success) {
-        const states = response.data.data;
-        setStateData(states);
+        // Handle nested data structure: { success: true, data: { data: [...] } }
+        const statesData = response.data.data?.data || response.data.data || [];
+        setStateData(statesData);
       }
     } catch (error) {
       console.error('Error fetching states:', error);
@@ -173,8 +175,9 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
         params: { stateCode },
       });
       if (response.data.success) {
-        const cities = response.data.data;
-        setCityData(cities);
+        // Handle nested data structure: { success: true, data: { data: [...] } }
+        const citiesData = response.data.data?.data || response.data.data || [];
+        setCityData(citiesData);
       }
     } catch (error) {
       console.error('Error fetching cities:', error);
@@ -193,7 +196,8 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
         },
       });
       if (response.data.success) {
-        const rooms = response.data.data;
+        // Handle nested data structure: { success: true, data: { data: [...] } }
+        const rooms = response.data.data?.data || response.data.data || [];
         // Remove duplicates based on s_no
         const uniqueRooms = Array.from(new Map(rooms.map((room: any) => [room.s_no, room])).values());
         setRoomList(
@@ -223,7 +227,8 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
         },
       });
       if (response.data.success) {
-        const beds = response.data.data;
+        // Handle nested data structure: { success: true, data: { data: [...] } }
+        const beds = response.data.data?.data || response.data.data || [];
         setBedsList(
           beds.map((bed: any) => ({
             label: `Bed ${bed.bed_no}`,
@@ -243,7 +248,8 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
     try {
       setInitialLoading(true);
       const response = await axiosInstance.get(`/tenants/${tenantId}`);
-      const tenant = response.data.data;
+      // Handle nested data structure: { success: true, data: { data: tenant } }
+      const tenant = response.data.data?.data || response.data.data || response.data;
       
       setFormData({
         name: tenant.name || '',
@@ -359,6 +365,7 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
 
       if (isEditMode) {
         // Update existing tenant
+        // Backend will handle S3 deletion for removed images
         await axiosInstance.put(`/tenants/${tenantId}`, tenantData);
         Alert.alert('Success', 'Tenant updated successfully', [
           {
@@ -720,14 +727,15 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
             >
               📷 Tenant Images
             </Text>
-            <AWSImageUpload
+            <ImageUploadS3
               images={tenantImages}
               onImagesChange={setTenantImages}
               maxImages={5}
               label="Tenant Photos"
-              folder="tenants/images"
-              category="image"
-              filePrefix="tenant"
+              folder={getFolderConfig().tenants.images}
+              useS3={true}
+              entityId={isEditMode ? tenantId?.toString() : undefined}
+              autoSave={false}
             />
           </Card>
 
@@ -743,17 +751,18 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
             >
               📄 Proof Documents
             </Text>
-            <AWSImageUpload
+            <ImageUploadS3
               images={proofDocuments}
               onImagesChange={setProofDocuments}
               maxImages={5}
               label="ID Proof / Documents"
-              folder="tenants/documents"
-              category="image-document"
-              filePrefix="proof"
+              folder={getFolderConfig().tenants.documents}
+              useS3={true}
+              entityId={isEditMode ? tenantId?.toString() : undefined}
+              autoSave={false}
             />
             <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, marginTop: 8 }}>
-              Upload Aadhaar, PAN, Driving License, or other ID proofs (Images or PDF files)
+              Upload Aadhaar, PAN, Driving License, or other ID proofs
             </Text>
           </Card>
 

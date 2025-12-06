@@ -1,4 +1,5 @@
 import axiosInstance from '../core/axiosInstance';
+import { extractResponseData, isApiResponseSuccess } from '../../utils/apiResponseHandler';
 
 export interface TenantStatus {
   ACTIVE: 'ACTIVE';
@@ -207,7 +208,17 @@ export const getAllTenants = async (
   const url = `/tenants?${queryParams.toString()}`;
   const response = await axiosInstance.get(url, { headers });
   
-  return response.data;
+  const extractedData = extractResponseData(response.data) as any;
+  
+  // Handle nested data structure: { success: true, data: { data: [...], pagination: {...} } }
+  const tenantsData = extractedData?.data?.data || extractedData?.data || extractedData || [];
+  const pagination = extractedData?.data?.pagination || extractedData?.pagination || undefined;
+  
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: Array.isArray(tenantsData) ? tenantsData : [],
+    pagination,
+  };
 };
 
 /**
@@ -223,7 +234,16 @@ export const getTenantById = async (
   if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
 
   const response = await axiosInstance.get(`/tenants/${id}`, { headers: requestHeaders });
-  return response.data;
+  const extractedData = extractResponseData(response.data) as any;
+  
+  // Handle nested data structure: { success: true, data: { data: tenant } }
+  const tenantData = extractedData?.data || extractedData;
+  
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: tenantData,
+    message: response.data?.message || 'Success',
+  };
 };
 
 /**
@@ -239,7 +259,16 @@ export const createTenant = async (
   if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
 
   const response = await axiosInstance.post('/tenants', data, { headers: requestHeaders });
-  return response.data;
+  const extractedData = extractResponseData(response.data) as any;
+  
+  // Handle nested data structure: { success: true, data: { data: tenant } }
+  const tenantData = extractedData?.data || extractedData;
+  
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: tenantData,
+    message: response.data?.message || 'Success',
+  };
 };
 
 /**
@@ -256,7 +285,16 @@ export const updateTenant = async (
   if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
 
   const response = await axiosInstance.put(`/tenants/${id}`, data, { headers: requestHeaders });
-  return response.data;
+  const extractedData = extractResponseData(response.data) as any;
+  
+  // Handle nested data structure: { success: true, data: { data: tenant } }
+  const tenantData = extractedData?.data || extractedData;
+  
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: tenantData,
+    message: response.data?.message || 'Success',
+  };
 };
 
 /**
@@ -272,7 +310,10 @@ export const deleteTenant = async (
   if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
 
   const response = await axiosInstance.delete(`/tenants/${id}`, { headers: requestHeaders });
-  return response.data;
+  return {
+    success: isApiResponseSuccess(response.data),
+    message: response.data?.message || 'Success',
+  };
 };
 
 /**
@@ -288,7 +329,16 @@ export const checkoutTenant = async (
   if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
 
   const response = await axiosInstance.post(`/tenants/${id}/checkout`, {}, { headers: requestHeaders });
-  return response.data;
+  const extractedData = extractResponseData(response.data) as any;
+  
+  // Handle nested data structure: { success: true, data: { data: tenant } }
+  const tenantData = extractedData?.data || extractedData;
+  
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: tenantData,
+    message: response.data?.message || 'Success',
+  };
 };
 
 /**
@@ -314,7 +364,17 @@ export const getTenantsWithPendingRent = async (
   const url = `/tenants/pending-rent?${queryParams.toString()}`;
   const response = await axiosInstance.get(url, { headers: requestHeaders });
   
-  return response.data;
+  const extractedData = extractResponseData(response.data) as any;
+  
+  // Handle nested data structure: { success: true, data: { data: [...], pagination: {...} } }
+  const tenantsData = extractedData?.data?.data || extractedData?.data || extractedData || [];
+  const pagination = extractedData?.data?.pagination || extractedData?.pagination || undefined;
+  
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: Array.isArray(tenantsData) ? tenantsData : [],
+    pagination,
+  };
 };
 
 /**
@@ -340,7 +400,17 @@ export const getTenantsWithPartialRent = async (
   const url = `/tenants/partial-rent?${queryParams.toString()}`;
   const response = await axiosInstance.get(url, { headers: requestHeaders });
   
-  return response.data;
+  const extractedData = extractResponseData(response.data) as any;
+  
+  // Handle nested data structure: { success: true, data: { data: [...], pagination: {...} } }
+  const tenantsData = extractedData?.data?.data || extractedData?.data || extractedData || [];
+  const pagination = extractedData?.data?.pagination || extractedData?.pagination || undefined;
+  
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: Array.isArray(tenantsData) ? tenantsData : [],
+    pagination,
+  };
 };
 
 /**
@@ -366,5 +436,15 @@ export const getTenantsWithoutAdvance = async (
   const url = `/tenants/pending-advance?${queryParams.toString()}`;
   const response = await axiosInstance.get(url, { headers: requestHeaders });
   
-  return response.data;
+  const extractedData = extractResponseData(response.data) as any;
+  
+  // Handle nested data structure: { success: true, data: { data: [...], pagination: {...} } }
+  const tenantsData = extractedData?.data?.data || extractedData?.data || extractedData || [];
+  const pagination = extractedData?.data?.pagination || extractedData?.pagination || undefined;
+  
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: Array.isArray(tenantsData) ? tenantsData : [],
+    pagination,
+  };
 };

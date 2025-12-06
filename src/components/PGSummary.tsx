@@ -58,7 +58,7 @@ const PGSummaryComponent: React.FC<PGSummaryProps> = ({ summary, loading }) => {
           <CardSkeleton />
           <CardSkeleton />
         </ScrollView>
-      ) : summary && (
+      ) : summary && summary.rooms && (
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
@@ -71,21 +71,21 @@ const PGSummaryComponent: React.FC<PGSummaryProps> = ({ summary, loading }) => {
                 <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#3B82F6', alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontSize: 18 }}>🏠</Text>
                 </View>
-                <Text style={{ fontSize: 24, fontWeight: '900', color: '#1F2937' }}>{summary.rooms.total}</Text>
+                <Text style={{ fontSize: 24, fontWeight: '900', color: '#1F2937' }}>{summary.rooms?.total || 0}</Text>
               </View>
               <Text style={{ fontSize: 10, color: '#6B7280', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>Rooms</Text>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
               <View style={{ alignItems: 'center', flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: '800', color: '#10B981' }}>{summary.rooms.occupied}</Text>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: '#10B981' }}>{summary.rooms?.occupied || 0}</Text>
                 <Text style={{ fontSize: 7, color: '#9CA3AF', fontWeight: '600', marginTop: 1 }}>OCCUPIED</Text>
               </View>
               <View style={{ alignItems: 'center', flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: '800', color: '#F59E0B' }}>{summary.rooms.vacant}</Text>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: '#F59E0B' }}>{summary.rooms?.vacant || 0}</Text>
                 <Text style={{ fontSize: 7, color: '#9CA3AF', fontWeight: '600', marginTop: 1 }}>VACANT</Text>
               </View>
               <View style={{ alignItems: 'center', flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: '800', color: '#EF4444' }}>{summary.rooms.maintenance}</Text>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: '#EF4444' }}>{summary.rooms?.maintenance || 0}</Text>
                 <Text style={{ fontSize: 7, color: '#9CA3AF', fontWeight: '600', marginTop: 1 }}>MAINT</Text>
               </View>
             </View>

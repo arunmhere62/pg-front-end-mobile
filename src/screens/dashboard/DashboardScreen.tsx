@@ -124,6 +124,7 @@ export const DashboardScreen: React.FC = () => {
       );
       
       if (response.success) {
+        console.log('📊 PG Summary Data:', response.data);
         setSummary(response.data);
       }
     } catch (error) {
@@ -152,6 +153,7 @@ export const DashboardScreen: React.FC = () => {
       );
       
       if (response.success) {
+        console.log('💰 Financial Analytics Data:', response.data);
         setFinancialData(response.data);
       }
     } catch (error) {
@@ -195,30 +197,34 @@ export const DashboardScreen: React.FC = () => {
       
       // Debug logging to compare API responses
       console.log('🔍 API Response Comparison (using getAllTenants):');
+      const pendingData = Array.isArray(pendingResponse.data) ? pendingResponse.data : [];
+      const partialData = Array.isArray(partialResponse.data) ? partialResponse.data : [];
+      const noAdvanceData = Array.isArray(noAdvanceResponse.data) ? noAdvanceResponse.data : [];
+      
       console.log('📍 Pending Rent Filter (/tenants?pending_rent=true):', {
         success: pendingResponse.success,
-        count: pendingResponse.data?.length || 0,
-        tenants: pendingResponse.data?.map((t: Tenant) => ({ id: t.s_no, name: t.name, tenant_id: t.tenant_id })) || []
+        count: pendingData.length,
+        tenants: pendingData.map((t: Tenant) => ({ id: t.s_no, name: t.name, tenant_id: t.tenant_id })) || []
       });
       console.log('📍 Partial Rent Filter (/tenants?partial_rent=true):', {
         success: partialResponse.success,
-        count: partialResponse.data?.length || 0,
-        tenants: partialResponse.data?.map((t: Tenant) => ({ id: t.s_no, name: t.name, tenant_id: t.tenant_id })) || []
+        count: partialData.length,
+        tenants: partialData.map((t: Tenant) => ({ id: t.s_no, name: t.name, tenant_id: t.tenant_id })) || []
       });
       console.log('📍 No Advance Filter (/tenants?pending_advance=true):', {
         success: noAdvanceResponse.success,
-        count: noAdvanceResponse.data?.length || 0,
-        tenants: noAdvanceResponse.data?.map((t: Tenant) => ({ id: t.s_no, name: t.name, tenant_id: t.tenant_id })) || []
+        count: noAdvanceData.length,
+        tenants: noAdvanceData.map((t: Tenant) => ({ id: t.s_no, name: t.name, tenant_id: t.tenant_id })) || []
       });
       
       if (pendingResponse.success) {
-        setPendingTenants(pendingResponse.data);
+        setPendingTenants(pendingData);
       }
       if (partialResponse.success) {
-        setPartialTenants(partialResponse.data);
+        setPartialTenants(partialData);
       }
       if (noAdvanceResponse.success) {
-        setNoAdvanceTenants(noAdvanceResponse.data);
+        setNoAdvanceTenants(noAdvanceData);
       }
     } catch (error) {
       const errorInfo = categorizeError(error);
@@ -242,13 +248,13 @@ export const DashboardScreen: React.FC = () => {
   const getFilteredTenants = useCallback(() => {
     switch (selectedCategory) {
       case 'pending':
-        return pendingTenants;
+        return Array.isArray(pendingTenants) ? pendingTenants : [];
       case 'partial':
-        return partialTenants;
+        return Array.isArray(partialTenants) ? partialTenants : [];
       case 'noAdvance':
-        return noAdvanceTenants;
+        return Array.isArray(noAdvanceTenants) ? noAdvanceTenants : [];
       default:
-        return pendingTenants;
+        return Array.isArray(pendingTenants) ? pendingTenants : [];
     }
   }, [selectedCategory, pendingTenants, partialTenants, noAdvanceTenants]);
 
@@ -316,11 +322,15 @@ export const DashboardScreen: React.FC = () => {
   };
 
 
-  const activeTenants = tenants.filter(t => t.status === 'ACTIVE').length;
-  const totalRevenue = payments
-    .filter(p => p.status === 'PAID')
-    .reduce((sum, p) => sum + Number(p.amount_paid), 0);
-  const pendingPayments = payments.filter(p => p.status === 'PENDING').length;
+  const activeTenants = tenants?.filter(t => t.status === 'ACTIVE').length || 0;
+  const totalRevenue = payments && Array.isArray(payments)
+    ? payments
+        .filter(p => p.status === 'PAID')
+        .reduce((sum, p) => sum + Number(p.amount_paid || 0), 0)
+    : 0;
+  const pendingPayments = payments && Array.isArray(payments)
+    ? payments.filter(p => p.status === 'PENDING').length
+    : 0;
 
   const menuItems = [
     { title: 'PG Locations', icon: 'business', screen: 'PGLocations', color: '#A855F7' },
@@ -528,7 +538,7 @@ export const DashboardScreen: React.FC = () => {
                             color: selectedCategory === 'pending' ? 'white' : Theme.colors.text.secondary, 
                             fontWeight: '700', 
                             fontSize: 8 
-                          }}>{pendingTenants.length}</Text>
+                          }}>{Array.isArray(pendingTenants) ? pendingTenants.length : 0}</Text>
                         </View>
                       </TouchableOpacity>
                       
@@ -602,7 +612,7 @@ export const DashboardScreen: React.FC = () => {
                             color: selectedCategory === 'noAdvance' ? 'white' : Theme.colors.text.secondary, 
                             fontWeight: '700', 
                             fontSize: 8 
-                          }}>{noAdvanceTenants.length}</Text>
+                          }}>{Array.isArray(noAdvanceTenants) ? noAdvanceTenants.length : 0}</Text>
                         </View>
                       </TouchableOpacity>
                     </View>

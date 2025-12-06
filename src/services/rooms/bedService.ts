@@ -1,4 +1,5 @@
 import axiosInstance from '../core/axiosInstance';
+import { extractResponseData, isApiResponseSuccess } from '../../utils/apiResponseHandler';
 
 export interface Bed {
   s_no: number;
@@ -56,6 +57,7 @@ export interface GetBedsResponse {
 export interface BedResponse {
   success: boolean;
   data: Bed;
+  message?: string;
 }
 
 /**
@@ -84,7 +86,12 @@ export const getAllBeds = async (
     headers: requestHeaders,
   });
 
-  return response.data;
+  const data = extractResponseData(response.data) as any;
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: Array.isArray(data) ? data : (data?.data || []),
+    pagination: data?.pagination || undefined,
+  };
 };
 
 /**
@@ -103,7 +110,12 @@ export const getBedsByRoomId = async (
     headers: requestHeaders,
   });
 
-  return response.data;
+  const data = extractResponseData(response.data) as any;
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: Array.isArray(data) ? data : (data?.data || []),
+    pagination: data?.pagination || undefined,
+  };
 };
 
 /**
@@ -122,7 +134,11 @@ export const getBedById = async (
     headers: requestHeaders,
   });
 
-  return response.data;
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: extractResponseData(response.data),
+    message: response.data?.message || 'Success',
+  };
 };
 
 /**
@@ -141,7 +157,11 @@ export const createBed = async (
     headers: requestHeaders,
   });
 
-  return response.data;
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: extractResponseData(response.data),
+    message: response.data?.message || 'Success',
+  };
 };
 
 /**
@@ -161,7 +181,11 @@ export const updateBed = async (
     headers: requestHeaders,
   });
 
-  return response.data;
+  return {
+    success: isApiResponseSuccess(response.data),
+    data: extractResponseData(response.data),
+    message: response.data?.message || 'Success',
+  };
 };
 
 /**
@@ -180,5 +204,8 @@ export const deleteBed = async (
     headers: requestHeaders,
   });
 
-  return response.data;
+  return {
+    success: isApiResponseSuccess(response.data),
+    message: response.data?.message || 'Success',
+  };
 };

@@ -190,7 +190,7 @@ export const VisitorFormModal: React.FC<VisitorFormModalProps> = ({
         params: { countryCode: 'IN' },
       });
       if (response.data.success) {
-        const statesData = response.data.data;
+        const statesData = response.data.data || [];
         setStates(statesData);
       }
     } catch (error) {
@@ -207,7 +207,7 @@ export const VisitorFormModal: React.FC<VisitorFormModalProps> = ({
         params: { stateCode },
       });
       if (response.data.success) {
-        const citiesData = response.data.data;
+        const citiesData = response.data.data || [];
         setCities(citiesData);
       }
     } catch (error) {

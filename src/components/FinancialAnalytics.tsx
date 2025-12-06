@@ -28,6 +28,12 @@ interface FinancialAnalyticsData {
     name: string;
   };
   monthlyData: MonthlyFinancialData[];
+  totals: {
+    revenue: number;
+    expenses: number;
+    profit: number;
+    profitPercentage: string;
+  };
 }
 
 interface FinancialAnalyticsProps {
@@ -48,7 +54,7 @@ export const FinancialAnalytics = memo<FinancialAnalyticsProps>(({
 
   // Set initial selected month when data loads
   React.useEffect(() => {
-    if (data && data.monthlyData.length > 0 && !selectedMonth) {
+    if (data && data.monthlyData && Array.isArray(data.monthlyData) && data.monthlyData.length > 0 && !selectedMonth) {
       setSelectedMonth(data.monthlyData[data.monthlyData.length - 1]);
     }
   }, [data]);
@@ -108,13 +114,13 @@ export const FinancialAnalytics = memo<FinancialAnalyticsProps>(({
                 zIndex: 1000,
               }}>
                 <ScrollView style={{ maxHeight: 200 }}>
-                  {data.monthlyData.map((monthData, index) => (
+                  {data && data.monthlyData && Array.isArray(data.monthlyData) && data.monthlyData.map((monthData, index) => (
                     <TouchableOpacity
                       key={index}
                       onPress={() => handleMonthSelect(monthData)}
                       style={{
                         padding: 12,
-                        borderBottomWidth: index < data.monthlyData.length - 1 ? 1 : 0,
+                        borderBottomWidth: index < (data.monthlyData?.length || 0) - 1 ? 1 : 0,
                         borderBottomColor: '#F3F4F6',
                         backgroundColor: selectedMonth?.month === monthData.month ? '#F0F9FF' : 'white',
                       }}
@@ -127,7 +133,7 @@ export const FinancialAnalytics = memo<FinancialAnalyticsProps>(({
                         {monthData.month}
                       </Text>
                     </TouchableOpacity>
-                  ))}
+                  )) || null}
                 </ScrollView>
               </View>
             )}
@@ -238,6 +244,51 @@ export const FinancialAnalytics = memo<FinancialAnalyticsProps>(({
                   </View>
                 </Card>
               </View>
+
+              {/* Totals Summary Card */}
+              <Card style={{ 
+                padding: 16, 
+                backgroundColor: '#F9FAFB',
+                borderRadius: 12,
+                marginTop: 12,
+                borderTopWidth: 2,
+                borderTopColor: '#3B82F6'
+              }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#6B7280', marginBottom: 12, textTransform: 'uppercase' }}>
+                  📊 {selectedMonths}-Month Summary
+                </Text>
+                
+                <View style={{ gap: 8 }}>
+                  {/* Total Revenue */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '600' }}>Total Revenue</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: '#10B981' }}>
+                      ₹{data.totals.revenue.toLocaleString('en-IN')}
+                    </Text>
+                  </View>
+
+                  {/* Total Expenses */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                    <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '600' }}>Total Expenses</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: '#EF4444' }}>
+                      ₹{data.totals.expenses.toLocaleString('en-IN')}
+                    </Text>
+                  </View>
+
+                  {/* Total Profit */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8 }}>
+                    <Text style={{ fontSize: 13, color: '#1F2937', fontWeight: '700' }}>Total Profit</Text>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={{ fontSize: 16, fontWeight: '900', color: data.totals.profit >= 0 ? '#10B981' : '#EF4444' }}>
+                        {data.totals.profit >= 0 ? '+' : ''}₹{Math.abs(data.totals.profit).toLocaleString('en-IN')}
+                      </Text>
+                      <Text style={{ fontSize: 10, color: '#6B7280', marginTop: 2 }}>
+                        {data.totals.profitPercentage}% margin
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </Card>
             </View>
           )}
         </View>

@@ -159,7 +159,7 @@ export const AddEmployeeScreen: React.FC<AddEmployeeScreenProps> = ({ navigation
         params: { countryCode: 'IN' },
       });
       if (response.data.success) {
-        setStateData(response.data.data);
+        setStateData(response.data.data || []);
       }
     } catch (error) {
       console.error('Error fetching states:', error);
@@ -175,7 +175,7 @@ export const AddEmployeeScreen: React.FC<AddEmployeeScreenProps> = ({ navigation
         params: { stateCode },
       });
       if (response.data.success) {
-        setCityData(response.data.data);
+        setCityData(response.data.data || []);
       }
     } catch (error) {
       console.error('Error fetching cities:', error);
@@ -192,8 +192,8 @@ export const AddEmployeeScreen: React.FC<AddEmployeeScreenProps> = ({ navigation
       console.log('✅ Roles response:', response.data);
       
       if (response.data.success) {
-        setRoleData(response.data.data);
-        console.log('📋 Roles loaded:', response.data.data.length);
+        setRoleData(response.data.data || []);
+        console.log('📋 Roles loaded:', (response.data.data || []).length);
       }
     } catch (error: any) {
       console.error('❌ Error fetching roles:', error);
@@ -209,7 +209,7 @@ export const AddEmployeeScreen: React.FC<AddEmployeeScreenProps> = ({ navigation
     try {
       const response = await axiosInstance.get('/pg-locations');
       if (response.data.success) {
-        setPGLocations(response.data.data);
+        setPGLocations(response.data.data || []);
       }
     } catch (error) {
       console.error('Error fetching PG locations:', error);

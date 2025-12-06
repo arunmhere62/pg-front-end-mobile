@@ -1,3 +1,4 @@
+import { Alert } from 'react-native';
 import { openNetworkLogger } from '../components/NetworkLoggerModal';
 import { AxiosError } from 'axios';
 
@@ -10,6 +11,46 @@ export interface ErrorInfo {
   statusCode?: number;
   originalError: any;
 }
+
+/**
+ * Show error alert from backend response
+ */
+export const showErrorAlert = (error: any, title: string = 'Error'): void => {
+  let errorMessage = '';
+  
+  try {
+    // Try to extract message from response data
+    if (error?.response?.data) {
+      const data = error.response.data;
+      
+      if (typeof data === 'string') {
+        errorMessage = data;
+      } else if (data?.message) {
+        errorMessage = data.message;
+      } else if (data?.error) {
+        errorMessage = data.error;
+      } else if (data?.errors) {
+        if (Array.isArray(data.errors)) {
+          errorMessage = data.errors[0]?.message || data.errors[0] || '';
+        } else {
+          errorMessage = data.errors;
+        }
+      }
+    }
+    
+    // Fallback to error message
+    if (!errorMessage && error?.message) {
+      errorMessage = error.message;
+    }
+    
+    if (errorMessage) {
+      Alert.alert(title, errorMessage);
+    }
+  } catch (e) {
+    console.error('Error in showErrorAlert:', e);
+    Alert.alert(title, 'An error occurred. Please try again.');
+  }
+};
 
 /**
  * Categorize error type

@@ -28,6 +28,17 @@ export const TenantHeader: React.FC<TenantHeaderProps> = ({
   onAddRefund,
   onAddCurrentBill,
 }) => {
+  // Defensive checks for tenant data
+  if (!tenant || !tenant.name) {
+    return (
+      <Card style={{ marginHorizontal: 16, marginVertical: 12, paddingHorizontal: 16, paddingVertical: 16 }}>
+        <Text style={{ color: Theme.colors.text.secondary, textAlign: 'center' }}>
+          Loading tenant information...
+        </Text>
+      </Card>
+    );
+  }
+
   const tenantImage =
     tenant.images && Array.isArray(tenant.images) && tenant.images.length > 0
       ? tenant.images[0]
@@ -81,7 +92,7 @@ export const TenantHeader: React.FC<TenantHeaderProps> = ({
             />
           ) : (
             <Text style={{ color: '#fff', fontSize: 32, fontWeight: 'bold' }}>
-              {tenant.name.charAt(0).toUpperCase()}
+              {tenant.name?.charAt(0)?.toUpperCase() || '?'}
             </Text>
           )}
         </View>
@@ -96,7 +107,7 @@ export const TenantHeader: React.FC<TenantHeaderProps> = ({
               marginBottom: 4,
             }}
           >
-            {tenant.name}
+            {tenant.name || 'N/A'}
           </Text>
           <View
             style={{
@@ -115,7 +126,7 @@ export const TenantHeader: React.FC<TenantHeaderProps> = ({
                 color: tenant.status === 'ACTIVE' ? '#10B981' : '#EF4444',
               }}
             >
-              {tenant.status}
+              {tenant.status || 'UNKNOWN'}
             </Text>
           </View>
         </View>

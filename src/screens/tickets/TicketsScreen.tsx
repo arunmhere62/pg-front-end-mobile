@@ -15,6 +15,7 @@ import { AppDispatch, RootState } from '../../store';
 import { fetchTickets, deleteTicket } from '../../store/slices/ticketSlice';
 import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
+import { showErrorAlert } from '../../utils/errorHandler';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { Ionicons } from '@expo/vector-icons';
@@ -128,7 +129,7 @@ export const TicketsScreen: React.FC<TicketsScreenProps> = ({ navigation }) => {
               await dispatch(deleteTicket(ticketId)).unwrap();
               Alert.alert('Success', 'Ticket deleted successfully');
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to delete ticket');
+              showErrorAlert(error, 'Delete Error');
             }
           },
         },
