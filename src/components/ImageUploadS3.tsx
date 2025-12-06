@@ -121,7 +121,7 @@ export const ImageUploadS3: React.FC<ImageUploadS3Props> = ({
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsMultipleSelection: true,
-        quality: 0.8,
+        quality: 0.5,
         base64: true,
       });
 
@@ -192,7 +192,7 @@ export const ImageUploadS3: React.FC<ImageUploadS3Props> = ({
     try {
       setUploading(true);
       const result = await ImagePicker.launchCameraAsync({
-        quality: 0.8,
+        quality: 0.5,
         base64: true,
       });
 
@@ -246,29 +246,7 @@ export const ImageUploadS3: React.FC<ImageUploadS3Props> = ({
           onPress: async () => {
             const imageToRemove = images[index];
             console.log('Removing image at index:', index, 'URI:', imageToRemove);
-            
-            // If auto-save is enabled, delete from S3 immediately
-            // If auto-save is disabled, S3 cleanup will happen on manual save
-            if (autoSave && useS3 && imageToRemove && imageToRemove.includes('amazonaws.com')) {
-              try {
-                const key = S3Utils.extractKeyFromUrl(imageToRemove);
-                if (key) {
-                  console.log('Deleting from S3 (auto-save enabled):', key);
-                  const deleteResult = await awsS3Service.deleteFile(key);
-                  console.log('S3 deletion result:', deleteResult);
-                  if (!deleteResult.success) {
-                    throw new Error(deleteResult.error || 'S3 deletion failed');
-                  }
-                  console.log('S3 deletion successful');
-                }
-              } catch (error) {
-                console.error('Failed to delete image from S3:', error);
-                Alert.alert('Warning', 'Failed to delete image from cloud storage, but will remove from room.');
-                // Continue with removal from local state even if S3 deletion fails
-              }
-            } else if (!autoSave && useS3 && imageToRemove && imageToRemove.includes('amazonaws.com')) {
-              console.log('Image marked for removal (will be deleted from S3 on save):', imageToRemove);
-            }
+            console.log('Image marked for removal (will be deleted from S3 on backend save):', imageToRemove);
 
             // Remove the image and clean up the array
             console.log('Before removal - images array:', images);
@@ -280,21 +258,21 @@ export const ImageUploadS3: React.FC<ImageUploadS3Props> = ({
             console.log('After removal - filtered images:', filteredImages);
             console.log('After cleanup - final images:', newImages);
             
-            // Update local state - this will update the room payload
+            // Update local state - this will update the room payload immediately
             onImagesChange([...newImages]);
+            console.log('Images updated in room payload (local state):', newImages);
             
             // Auto-save to database if enabled (for existing rooms)
+            // Backend will handle S3 deletion when images are updated
             if (autoSave && onAutoSave) {
               try {
                 console.log('Auto-saving images to database...', newImages);
                 await onAutoSave([...newImages]);
-                console.log('Auto-save successful - room payload updated in database with images:', newImages);
+                console.log('Auto-save successful - backend will delete removed images from S3');
               } catch (saveError) {
                 console.error('Auto-save failed:', saveError);
                 Alert.alert('Save Error', 'Failed to update room in database. Please save manually.');
               }
-            } else {
-              console.log('Images updated in room payload (local state):', newImages);
             }
           },
         },
@@ -471,10 +449,6 @@ const styles = StyleSheet.create({
   imageContainer: {
     position: 'relative',
     marginRight: 12,
-    paddingTop: 12,
-    paddingRight: 12,
-    paddingBottom: 12,
-    paddingLeft: 12,
   },
   image: {
     width: 100,

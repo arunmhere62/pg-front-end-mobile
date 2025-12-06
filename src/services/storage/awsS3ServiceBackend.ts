@@ -4,7 +4,6 @@
  * This service uploads to S3 via your backend API which handles:
  * - AWS authentication
  * - Presigned URL generation
- * - Direct S3 uploads
  */
 
 import axiosInstance from '../core/axiosInstance';
@@ -83,6 +82,15 @@ class AWSS3ServiceBackend {
       }
 
       console.log('Uploading to S3 via backend:', { key, contentType: actualContentType });
+
+      // Validate file size before uploading (max 5MB for safety)
+      const maxSizeMB = 5;
+      if (!S3Utils.validateFileSize(file, maxSizeMB)) {
+        return {
+          success: false,
+          error: `File size exceeds ${maxSizeMB}MB limit. Please use a smaller image or reduce quality.`,
+        };
+      }
 
       // Upload via backend API
       const response = await axiosInstance.post('/s3/upload', {

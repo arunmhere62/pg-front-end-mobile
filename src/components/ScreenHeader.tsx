@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StatusBar, Platform, Animated } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../theme';
 import { PGLocationSelector } from './PGLocationSelector';
 
@@ -83,8 +84,8 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   }, [backgroundColor, statusBarStyle, syncMobileHeaderBg, notificationBarColor]);
 
   return (
-    <View style={{ backgroundColor, padding: 16, paddingTop: 0, paddingBottom: 12 }}>
-      <View style={{ marginBottom: (children || showPGSelector) ? 8 : 0 }}>
+    <View style={{ backgroundColor, padding: 8, paddingTop: 0, paddingBottom: 14 }}>
+      <View style={{ marginBottom: (children || showPGSelector) ? 4 : 0 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {/* Back Button */}
           {showBackButton && onBackPress && (
@@ -98,24 +99,13 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
                   marginRight: 12,
                   width: 36,
                   height: 36,
-                  borderRadius: 8, // iPhone-style rounded corners instead of circular
-                  backgroundColor: Theme.withOpacity('#000000', 0.15), // Lighter background like iOS
+                  borderRadius: 8,
+                  backgroundColor: Theme.withOpacity('#000000', 0.4),
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ 
-                  color: textColor, 
-                  fontSize: 20, 
-                  fontWeight: '500', 
-                  textAlign: 'center',
-                  marginBottom : 6,
-                  textAlignVertical: 'center',
-                  includeFontPadding: false,
-                  lineHeight: undefined
-                }}>
-                  ←
-                </Text>
+                <Ionicons name="chevron-back" size={18} color={textColor} />
               </TouchableOpacity>
             </Animated.View>
           )}

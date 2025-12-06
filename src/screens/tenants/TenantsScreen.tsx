@@ -864,7 +864,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
 
 
   return (
-    <ScreenLayout backgroundColor={Theme.colors.background.blue}>
+    <ScreenLayout backgroundColor={Theme.colors.background.blue} >
       <ScreenHeader title="Tenants" subtitle={`${pagination?.total || 0} total`} />
     {/* Search & Filter Bar */}
       <View style={{  padding: 12, borderBottomWidth: 1, borderBottomColor: Theme.colors.border }}>
@@ -1348,7 +1348,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
           data={tenants}
           renderItem={renderTenantCard}
           keyExtractor={(item) => item.s_no.toString()}
-          contentContainerStyle={{ padding: 16, paddingBottom: 0 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -1393,7 +1393,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
         style={{
           position: 'absolute',
           right: 20,
-          bottom: 80,
+          bottom: 95,
           width: 60,
           height: 60,
           borderRadius: 30,

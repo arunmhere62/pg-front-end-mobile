@@ -6,6 +6,7 @@ export interface Bed {
   room_id: number;
   pg_id?: number;
   is_occupied: boolean;
+  bed_price?: number;
   images?: any;
   created_at?: string;
   updated_at?: string;
@@ -29,6 +30,7 @@ export interface CreateBedDto {
   room_id: number;
   bed_no: string;
   pg_id?: number;
+  bed_price?: number;
   images?: any;
 }
 

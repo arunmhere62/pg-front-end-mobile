@@ -352,8 +352,8 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
         check_in_date: formData.check_in_date,
         city_id: formData.city_id || undefined,
         state_id: formData.state_id || undefined,
-        images: tenantImages.length > 0 ? tenantImages : undefined,
-        proof_documents: proofDocuments.length > 0 ? proofDocuments : undefined,
+        images: tenantImages, // Always send array, even if empty, so backend can clear removed images
+        proof_documents: proofDocuments, // Always send array, even if empty, so backend can clear removed documents
         status: formData.status as 'ACTIVE' | 'INACTIVE',
       };
 

@@ -13,14 +13,13 @@ import { useSelector } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
 import { RootState } from '../../store';
 import { getAllRooms, deleteRoom, Room, getRoomById } from '../../services/rooms/roomService';
-import { awsS3ServiceBackend as awsS3Service, S3Utils } from '../../services/storage/awsS3ServiceBackend';
 import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
-import { EditRoomModal } from './EditRoomModal';
-import { CONTENT_COLOR } from '@/constant';
+import { RoomFormModal } from './CreateEditRoomModal';
 import { CurrentBillModal } from './CurrentBillModal';
+import { CONTENT_COLOR } from '@/constant';
 
 interface RoomsScreenProps {
   navigation: any;
@@ -161,30 +160,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
                 user_id: user?.s_no,
               });
 
-              // Delete S3 images if they exist
-              if (roomResponse.data.images && Array.isArray(roomResponse.data.images)) {
-                console.log('Deleting S3 images for room:', roomResponse.data.images);
-                
-                const s3DeletePromises = roomResponse.data.images
-                  .filter(imageUrl => imageUrl && imageUrl.includes('amazonaws.com'))
-                  .map(async (imageUrl) => {
-                    try {
-                      const key = S3Utils.extractKeyFromUrl(imageUrl);
-                      if (key) {
-                        console.log('Deleting S3 image:', key);
-                        await awsS3Service.deleteFile(key);
-                      }
-                    } catch (s3Error) {
-                      console.warn('Failed to delete S3 image:', imageUrl, s3Error);
-                      // Continue with room deletion even if S3 deletion fails
-                    }
-                  });
-
-                await Promise.all(s3DeletePromises);
-                console.log('S3 images deleted successfully');
-              }
-
-              // Delete room from database
+              // Delete room from database (backend will handle S3 image deletion)
               await deleteRoom(roomId, {
                 pg_id: selectedPGLocationId || undefined,
                 organization_id: user?.organization_id,
@@ -195,7 +171,11 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
               loadRooms();
             } catch (error: any) {
               console.error('Delete room error:', error);
-              Alert.alert('Error', error?.response?.data?.message || error.message || 'Failed to delete room');
+              const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message;
+              
+              if (errorMessage) {
+                Alert.alert('Error', errorMessage);
+              }
             }
           },
         },
@@ -278,14 +258,14 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
                 padding: 12,
                 borderRadius: 8,
                 borderLeftWidth: 3,
-                borderLeftColor: '#10B981',
+                borderLeftColor: '#3B82F6',
               }}
             >
-              <Text style={{ fontSize: 10, color: '#059669', fontWeight: '600', marginBottom: 4 }}>
-                MONTHLY RENT
+              <Text style={{ fontSize: 10, color: '#2563EB', fontWeight: '600', marginBottom: 4 }}>
+                BEDS
               </Text>
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#047857' }}>
-                ₹{item.rent_price || 0}
+                {item.beds?.length || 0}
               </Text>
             </View>
           </View>
@@ -421,8 +401,8 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
         <Text style={{ color: '#fff', fontSize: 32, fontWeight: '300' }}>+</Text>
       </TouchableOpacity>
 
-      {/* Edit Room Modal */}
-      <EditRoomModal
+      {/* Room Form Modal */}
+      <RoomFormModal
         visible={editModalVisible}
         roomId={editingRoomId}
         onClose={handleCloseEditModal}

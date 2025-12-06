@@ -19,6 +19,7 @@ import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { BedFormModal } from '../../components/BedFormModal';
+import { RoomFormModal } from './CreateEditRoomModal';
 import { Ionicons } from '@expo/vector-icons';
 import { CONTENT_COLOR } from '@/constant';
 
@@ -38,6 +39,7 @@ export const RoomDetailsScreen: React.FC<RoomDetailsScreenProps> = ({ navigation
   const [refreshing, setRefreshing] = useState(false);
   const [bedModalVisible, setBedModalVisible] = useState(false);
   const [selectedBed, setSelectedBed] = useState<Bed | null>(null);
+  const [roomEditModalVisible, setRoomEditModalVisible] = useState(false);
 
   useEffect(() => {
     loadRoomDetails();
@@ -125,7 +127,12 @@ export const RoomDetailsScreen: React.FC<RoomDetailsScreenProps> = ({ navigation
   };
 
   const handleEdit = () => {
-    navigation.navigate('EditRoom', { roomId });
+    setRoomEditModalVisible(true);
+  };
+
+  const handleRoomEditSuccess = async () => {
+    setRoomEditModalVisible(false);
+    await loadRoomDetails();
   };
 
   const handleDelete = () => {
@@ -252,7 +259,7 @@ export const RoomDetailsScreen: React.FC<RoomDetailsScreenProps> = ({ navigation
                 alignItems: 'center',
               }}
             >
-              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>✏️ Edit Room</Text>
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Edit Room</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleDelete}
@@ -264,7 +271,7 @@ export const RoomDetailsScreen: React.FC<RoomDetailsScreenProps> = ({ navigation
                 alignItems: 'center',
               }}
             >
-              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>🗑️ Delete</Text>
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Delete</Text>
             </TouchableOpacity>
           </View>
         </Card>
@@ -282,11 +289,21 @@ export const RoomDetailsScreen: React.FC<RoomDetailsScreenProps> = ({ navigation
             >
               📷 Room Images ({room.images.length})
             </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={true}
+              scrollEventThrottle={16}
+              decelerationRate="fast"
+              snapToInterval={212}
+              snapToAlignment="start"
+              contentContainerStyle={{ paddingRight: 16 }}
+            >
               {room.images.map((imageUri: string, index: number) => (
                 <View
                   key={index}
                   style={{
+                    width: 200,
+                    height: 150,
                     marginRight: 12,
                     borderRadius: 12,
                     overflow: 'hidden',
@@ -296,8 +313,8 @@ export const RoomDetailsScreen: React.FC<RoomDetailsScreenProps> = ({ navigation
                   <Image
                     source={{ uri: imageUri }}
                     style={{
-                      width: 200,
-                      height: 150,
+                      width: '100%',
+                      height: '100%',
                       borderRadius: 12,
                     }}
                     resizeMode="cover"
@@ -335,10 +352,10 @@ export const RoomDetailsScreen: React.FC<RoomDetailsScreenProps> = ({ navigation
             }}
           >
             <Text style={{ fontSize: 11, color: '#059669', fontWeight: '600', marginBottom: 4 }}>
-              MONTHLY RENT
+              BEDS
             </Text>
             <Text style={{ fontSize: 20, fontWeight: '700', color: '#047857' }}>
-              ₹{room.rent_price || 0}
+              {room.beds?.length || 0}
             </Text>
           </Card>
 
@@ -484,9 +501,18 @@ export const RoomDetailsScreen: React.FC<RoomDetailsScreenProps> = ({ navigation
                       <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary }}>
                         {bed.bed_no}
                       </Text>
+                      {bed.bed_price ? (
+                        <Text style={{ fontSize: 12, color: Theme.colors.primary, fontWeight: '600', marginTop: 2 }}>
+                          ₹{bed.bed_price.toLocaleString('en-IN')}
+                        </Text>
+                      ) : (
+                        <Text style={{ fontSize: 11, color: Theme.colors.text.tertiary, marginTop: 2 }}>
+                          No price set
+                        </Text>
+                      )}
                       {bed.is_occupied && bed.tenants && bed.tenants.length > 0 ? (
                         <View>
-                          <Text style={{ fontSize: 11, color: '#DC2626', fontWeight: '600' }}>
+                          <Text style={{ fontSize: 11, color: '#DC2626', fontWeight: '600', marginTop: 2 }}>
                             🔴 Occupied
                           </Text>
                           <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, marginTop: 2 }}>
@@ -494,7 +520,7 @@ export const RoomDetailsScreen: React.FC<RoomDetailsScreenProps> = ({ navigation
                           </Text>
                         </View>
                       ) : (
-                        <Text style={{ fontSize: 11, color: '#059669', fontWeight: '600' }}>
+                        <Text style={{ fontSize: 11, color: '#059669', fontWeight: '600', marginTop: 2 }}>
                           🟢 Available
                         </Text>
                       )}
@@ -550,6 +576,14 @@ export const RoomDetailsScreen: React.FC<RoomDetailsScreenProps> = ({ navigation
         pgId={selectedPGLocationId || undefined}
         organizationId={user?.organization_id}
         userId={user?.s_no}
+      />
+
+      {/* Room Form Modal */}
+      <RoomFormModal
+        visible={roomEditModalVisible}
+        roomId={roomId}
+        onClose={() => setRoomEditModalVisible(false)}
+        onSuccess={handleRoomEditSuccess}
       />
     </ScreenLayout>
   );

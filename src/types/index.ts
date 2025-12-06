@@ -65,11 +65,11 @@ export interface Tenant {
   rooms?: {
     s_no: number;
     room_no: string;
-    rent_price: string | number;
   };
   beds?: {
     s_no: number;
     bed_no: string;
+    bed_price?: string | number;
   };
   city?: {
     s_no: number;
@@ -120,13 +120,13 @@ export interface Room {
   room_id?: string;
   pg_id?: number;
   room_no?: string;
-  rent_price?: number;
   images?: any;
 }
 
 export interface Bed {
   s_no: number;
   bed_no: string;
+  bed_price?: number;
   room_id?: number;
   pg_id?: number;
   images?: any;

@@ -14,20 +14,18 @@ import {
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { getRoomById, updateRoom, createRoom, Room } from '../../services/rooms/roomService';
-import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ImageUploadS3 } from '../../components/ImageUploadS3';
 import { getFolderConfig } from '../../config/aws.config';
-import { awsS3ServiceBackend as awsS3Service, S3Utils } from '../../services/storage/awsS3ServiceBackend';
 
-interface EditRoomModalProps {
+interface RoomModalProps {
   visible: boolean;
   roomId: number | null;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export const EditRoomModal: React.FC<EditRoomModalProps> = ({
+export const RoomModal: React.FC<RoomModalProps> = ({
   visible,
   roomId,
   onClose,
@@ -40,7 +38,6 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
   const [loadingData, setLoadingData] = useState(false);
   const [formData, setFormData] = useState({
     room_no: 'RM',
-    rent_price: '',
     images: [] as string[],
   });
   const [originalImages, setOriginalImages] = useState<string[]>([]); // Track original images for cleanup
@@ -66,7 +63,6 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
       const roomImages = response.data.images || [];
       setFormData({
         room_no: response.data.room_no,
-        rent_price: response.data.rent_price?.toString() || '',
         images: roomImages,
       });
       setOriginalImages([...roomImages]); // Store original images for comparison
@@ -78,7 +74,7 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
     }
   };
 
-  const updateField = (field: string, value: string) => {
+  const updateField = (field: string, value: string): void => {
     // Special handling for room_no to maintain RM prefix
     if (field === 'room_no') {
       // If user tries to delete RM prefix, restore it
@@ -91,9 +87,9 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
       }
     }
 
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev: typeof formData) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors((prev) => {
+      setErrors((prev: Record<string, string>) => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
@@ -101,23 +97,20 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
     }
   };
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.room_no.trim() || formData.room_no.trim() === 'RM') {
       newErrors.room_no = 'Room number is required (e.g., RM101, RM-A1)';
     }
 
-    if (formData.rent_price && isNaN(Number(formData.rent_price))) {
-      newErrors.rent_price = 'Rent price must be a valid number';
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   // Auto-save images to database when they change
-  const handleAutoSaveImages = async (images: string[]) => {
+  const handleAutoSaveImages = async (images: string[]): Promise<void> => {
     if (!roomId || !selectedPGLocationId) {
       throw new Error('Room ID or PG Location ID not available');
     }
@@ -125,7 +118,6 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
     const roomData = {
       pg_id: selectedPGLocationId,
       room_no: formData.room_no.trim(),
-      rent_price: formData.rent_price ? parseFloat(formData.rent_price) : undefined,
       images: images, // Always send the images array, even if empty
     };
 
@@ -136,62 +128,8 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
     });
   };
 
-  // Cleanup orphaned S3 images (images that were uploaded but not saved)
-  const cleanupOrphanedImages = async () => {
-    if (!roomId) {
-      // For new rooms, cleanup all uploaded images if not saved
-      const orphanedImages = formData.images.filter(imageUrl => 
-        imageUrl && imageUrl.includes('amazonaws.com')
-      );
-      
-      if (orphanedImages.length > 0) {
-        console.log('Cleaning up orphaned S3 images for new room:', orphanedImages);
-        
-        const cleanupPromises = orphanedImages.map(async (imageUrl) => {
-          try {
-            const key = S3Utils.extractKeyFromUrl(imageUrl);
-            if (key) {
-              console.log('Deleting orphaned S3 image:', key);
-              await awsS3Service.deleteFile(key);
-            }
-          } catch (error) {
-            console.warn('Failed to cleanup orphaned image:', imageUrl, error);
-          }
-        });
-        
-        await Promise.all(cleanupPromises);
-        console.log('Orphaned images cleanup completed');
-      }
-    } else {
-      // For existing rooms, cleanup newly uploaded images that weren't saved
-      const newlyUploadedImages = formData.images.filter(currentUrl => 
-        currentUrl && 
-        currentUrl.includes('amazonaws.com') && 
-        !originalImages.includes(currentUrl)
-      );
-      
-      if (newlyUploadedImages.length > 0) {
-        console.log('Cleaning up newly uploaded S3 images (not saved):', newlyUploadedImages);
-        
-        const cleanupPromises = newlyUploadedImages.map(async (imageUrl) => {
-          try {
-            const key = S3Utils.extractKeyFromUrl(imageUrl);
-            if (key) {
-              console.log('Deleting newly uploaded S3 image:', key);
-              await awsS3Service.deleteFile(key);
-            }
-          } catch (error) {
-            console.warn('Failed to cleanup newly uploaded image:', imageUrl, error);
-          }
-        });
-        
-        await Promise.all(cleanupPromises);
-        console.log('Newly uploaded images cleanup completed');
-      }
-    }
-  };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     if (!validateForm()) {
       Alert.alert('Validation Error', 'Please fill in all required fields correctly');
       return;
@@ -205,38 +143,9 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
     try {
       setLoading(true);
 
-      // First, cleanup removed S3 images before saving
-      if (roomId) {
-        const removedImages = originalImages.filter(originalUrl => 
-          originalUrl && 
-          originalUrl.includes('amazonaws.com') && 
-          !formData.images.includes(originalUrl)
-        );
-        
-        if (removedImages.length > 0) {
-          console.log('Cleaning up removed S3 images before save:', removedImages);
-          
-          const cleanupPromises = removedImages.map(async (imageUrl) => {
-            try {
-              const key = S3Utils.extractKeyFromUrl(imageUrl);
-              if (key) {
-                console.log('Deleting removed S3 image:', key);
-                await awsS3Service.deleteFile(key);
-              }
-            } catch (error) {
-              console.warn('Failed to cleanup removed image:', imageUrl, error);
-            }
-          });
-          
-          await Promise.all(cleanupPromises);
-          console.log('Removed images cleanup completed');
-        }
-      }
-
       const roomData = {
         pg_id: selectedPGLocationId,
         room_no: formData.room_no.trim(),
-        rent_price: formData.rent_price ? parseFloat(formData.rent_price) : undefined,
         images: formData.images, // Always send the images array, even if empty
       };
 
@@ -259,23 +168,19 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
       onSuccess();
       onClose();
     } catch (error: any) {
-      Alert.alert('Error', error.message || (roomId ? 'Failed to update room' : 'Failed to create room'));
+      const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message;
+      
+      if (errorMessage) {
+        Alert.alert('Error', errorMessage);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleClose = async () => {
-    // Cleanup orphaned S3 images if user cancels without saving
-    try {
-      await cleanupOrphanedImages();
-    } catch (error) {
-      console.warn('Failed to cleanup orphaned images on close:', error);
-    }
-    
+  const handleClose = async (): Promise<void> => {
     setFormData({
       room_no: 'RM',
-      rent_price: '',
       images: [],
     });
     setOriginalImages([]);
@@ -303,14 +208,14 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
           activeOpacity={1}
           onPress={handleClose}
         >
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
+          <View
             style={{
               backgroundColor: 'white',
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               maxHeight: '90%',
+              flex: 1,
+              flexDirection: 'column',
               shadowColor: '#000',
               shadowOffset: { width: 0, height: -4 },
               shadowOpacity: 0.1,
@@ -318,6 +223,11 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
               elevation: 20,
             }}
           >
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+              style={{ flex: 1, flexDirection: 'column' }}
+            >
             {/* Modal Header */}
             <View
               style={{
@@ -374,8 +284,8 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
               </View>
             ) : (
               <ScrollView
-                style={{ maxHeight: '75%' }}
-                contentContainerStyle={{ padding: 20 }}
+                style={{ flex: 1 }}
+                contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
               >
@@ -432,42 +342,6 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
                   )}
                   <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, marginTop: 4 }}>
                     Room number will be: {formData.room_no || 'RM___'}
-                  </Text>
-                </View>
-
-                {/* Rent Price */}
-                <View style={{ marginBottom: 16 }}>
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: '600',
-                      color: Theme.colors.text.primary,
-                      marginBottom: 6,
-                    }}
-                  >
-                    Monthly Rent (₹)
-                  </Text>
-                  <TextInput
-                    value={formData.rent_price}
-                    onChangeText={(value) => updateField('rent_price', value)}
-                    placeholder="e.g., 5000"
-                    keyboardType="numeric"
-                    style={{
-                      borderWidth: 1,
-                      borderColor: errors.rent_price ? '#EF4444' : '#E5E7EB',
-                      borderRadius: 8,
-                      padding: 12,
-                      fontSize: 14,
-                      backgroundColor: '#fff',
-                    }}
-                  />
-                  {errors.rent_price && (
-                    <Text style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>
-                      {errors.rent_price}
-                    </Text>
-                  )}
-                  <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, marginTop: 4 }}>
-                    Optional: Set the monthly rent for this room
                   </Text>
                 </View>
 
@@ -566,9 +440,14 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
                 </TouchableOpacity>
               </View>
             )}
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
         </TouchableOpacity>
       </KeyboardAvoidingView>
     </Modal>
   );
 };
+
+// Export aliases for backward compatibility
+export const EditRoomModal = RoomModal;
+export const RoomFormModal = RoomModal;

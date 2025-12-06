@@ -21,10 +21,10 @@ interface TabConfig {
 
 // User tabs (Admin/Employee) - Super Admin will use separate web app
 const userTabs: TabConfig[] = [
-  { name: 'Dashboard', label: 'Home', icon: 'home-outline', permission: Permission.VIEW_DASHBOARD },
-  { name: 'Tenants', label: 'Tenants', icon: 'people-outline', permission: Permission.VIEW_TENANTS },
-  { name: 'Payments', label: 'Payments', icon: 'card-outline', permission: Permission.VIEW_PAYMENTS },
-  { name: 'Settings', label: 'Settings', icon: 'settings-outline', permission: Permission.VIEW_SETTINGS },
+  { name: 'Dashboard', label: 'Home', icon: 'home', permission: Permission.VIEW_DASHBOARD },
+  { name: 'Tenants', label: 'Tenants', icon: 'people', permission: Permission.VIEW_TENANTS },
+  { name: 'Payments', label: 'Payments', icon: 'card', permission: Permission.VIEW_PAYMENTS },
+  { name: 'Settings', label: 'Settings', icon: 'settings', permission: Permission.VIEW_SETTINGS },
 ];
 
 export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, currentRoute }) => {
@@ -51,15 +51,14 @@ export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, cur
           >
             <View style={styles.tabContainer}>
               <View style={styles.tabContent}>
-                {isActive && <View style={styles.activeIndicator} />}
                 <Ionicons 
                   name={tab.icon as any} 
                   size={20} 
-                  color={isActive ? Theme.colors.text.inverse : Theme.colors.text.tertiary}
+                  color={isActive ? Theme.colors.primary : Theme.colors.text.tertiary}
                 />
                 <Text style={[
                   styles.label,
-                  { color: isActive ? Theme.colors.text.inverse : Theme.colors.text.tertiary }
+                  { color: isActive ? Theme.colors.primary : Theme.colors.text.tertiary }
                 ]}>
                   {tab.label}
                 </Text>
@@ -128,6 +127,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
     paddingHorizontal: 6,
-    paddingVertical: 8,
+    paddingVertical: 3,
   },
 });

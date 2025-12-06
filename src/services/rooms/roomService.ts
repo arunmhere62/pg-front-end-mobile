@@ -5,7 +5,6 @@ export interface Room {
   room_id?: string;
   pg_id: number;
   room_no: string;
-  rent_price?: number;
   images?: any;
   created_at?: string;
   updated_at?: string;
@@ -17,6 +16,7 @@ export interface Room {
   beds?: Array<{
     s_no: number;
     bed_no: string;
+    bed_price?: number;
   }>;
   total_beds?: number;
 }
@@ -24,7 +24,6 @@ export interface Room {
 export interface CreateRoomDto {
   pg_id: number;
   room_no: string;
-  rent_price?: number;
   images?: any;
 }
 

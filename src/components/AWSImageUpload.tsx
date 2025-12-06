@@ -195,7 +195,7 @@ export const AWSImageUpload: React.FC<AWSImageUploadProps> = ({
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsMultipleSelection: true,
-        quality: 0.8,
+        quality: 0.5,
         base64: true,
       });
 
@@ -260,7 +260,7 @@ export const AWSImageUpload: React.FC<AWSImageUploadProps> = ({
     try {
       setUploading(true);
       const result = await ImagePicker.launchCameraAsync({
-        quality: 0.8,
+        quality: 0.5,
         base64: true,
       });
 
@@ -298,44 +298,10 @@ export const AWSImageUpload: React.FC<AWSImageUploadProps> = ({
         {
           text: 'Remove',
           style: 'destructive',
-          onPress: async () => {
-            // Remove from local state first for better UX
+          onPress: () => {
+            // Remove from local state - backend will handle S3 deletion
             const newImages = images.filter((_, i) => i !== index);
             onImagesChange(newImages);
-            
-            try {
-              // Extract S3 key from URL and delete from S3
-              const key = S3Utils.extractKeyFromUrl(imageUrl);
-              if (key) {
-                const result = await awsS3ServiceBackend.deleteFile(key);
-                if (!result.success) {
-                  console.warn('S3 deletion failed:', result.error);
-                  // Show warning but don't revert the UI change
-                  Alert.alert(
-                    'Warning',
-                    'Image removed from form but may still exist in storage. Please contact support if this persists.',
-                    [{ text: 'OK' }]
-                  );
-                }
-              }
-            } catch (error: any) {
-              console.error('Error deleting from S3:', error);
-              
-              // Check if it's a permissions error
-              if (error.message?.includes('not authorized') || error.message?.includes('DeleteObject')) {
-                Alert.alert(
-                  'Storage Warning',
-                  'Image removed from form but could not be deleted from storage due to permissions. The file will be cleaned up later.',
-                  [{ text: 'OK' }]
-                );
-              } else {
-                Alert.alert(
-                  'Warning',
-                  'Image removed from form but there was an issue with storage cleanup. Please try again later.',
-                  [{ text: 'OK' }]
-                );
-              }
-            }
           },
         },
       ]

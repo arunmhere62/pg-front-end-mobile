@@ -95,7 +95,7 @@ export const TicketDetailsScreen: React.FC<TicketDetailsScreenProps> = ({ naviga
         ticketId,
         data: {
           comment: commentText.trim(),
-          attachments: commentImages.length > 0 ? commentImages : undefined,
+          attachments: commentImages, // Always send array, even if empty
         },
       })).unwrap();
       setCommentText('');

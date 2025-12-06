@@ -283,8 +283,8 @@ export const AddEmployeeScreen: React.FC<AddEmployeeScreenProps> = ({ navigation
         state_id: formData.state_id || undefined,
         pincode: formData.pincode.trim() || undefined,
         country: formData.country.trim() || undefined,
-        profile_images: profileImages.length > 0 ? profileImages : undefined,
-        proof_documents: proofDocuments.length > 0 ? proofDocuments : undefined,
+        profile_images: profileImages, // Always send array, even if empty, so backend can clear removed images
+        proof_documents: proofDocuments, // Always send array, even if empty, so backend can clear removed documents
       };
 
       if (isEditMode) {

@@ -353,7 +353,6 @@ export const DashboardScreen: React.FC = () => {
     <ScreenLayout backgroundColor={Theme.colors.background.blue}>
       <ScreenHeader 
         title="Dashboard" 
-        subtitle={`Welcome back, ${user?.name}`} 
         showPGSelector={true}
       />
       <View style={{ flex: 1, backgroundColor: Theme.colors.background.secondary }}>
