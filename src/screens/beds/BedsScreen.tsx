@@ -20,10 +20,12 @@ import { RootState } from '../../store';
 import { getAllBeds, getBedsByRoomId, deleteBed, Bed } from '../../services/rooms/bedService';
 import { getAllRooms, Room } from '../../services/rooms/roomService';
 import { Card } from '../../components/Card';
+import { ActionButtons } from '../../components/ActionButtons';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
-import { BedFormModal } from '../../components/BedFormModal';
+import { BedFormModal } from './BedFormModal';
+import { showDeleteConfirmation } from '../../components/DeleteConfirmationDialog';
 import { Ionicons } from '@expo/vector-icons';
 import { showErrorAlert } from '../../utils/errorHandler';
 import { CONTENT_COLOR } from '@/constant';
@@ -194,26 +196,24 @@ export const BedsScreen: React.FC<BedsScreenProps> = ({ navigation }) => {
   };
 
   const handleDeleteBed = (bedId: number, bedNo: string) => {
-    Alert.alert('Delete Bed', `Are you sure you want to delete Bed ${bedNo}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteBed(bedId, {
-              pg_id: selectedPGLocationId || undefined,
-              organization_id: user?.organization_id,
-              user_id: user?.s_no,
-            });
-            Alert.alert('Success', 'Bed deleted successfully');
-            loadBeds();
-          } catch (error: any) {
-            showErrorAlert(error, 'Delete Error');
-          }
-        },
+    showDeleteConfirmation({
+      title: 'Delete Bed',
+      message: 'Are you sure you want to delete',
+      itemName: bedNo,
+      onConfirm: async () => {
+        try {
+          await deleteBed(bedId, {
+            pg_id: selectedPGLocationId || undefined,
+            organization_id: user?.organization_id,
+            user_id: user?.s_no,
+          });
+          Alert.alert('Success', 'Bed deleted successfully');
+          loadBeds();
+        } catch (error: any) {
+          showErrorAlert(error, 'Delete Error');
+        }
       },
-    ]);
+    });
   };
 
   const handleBedFormSuccess = async () => {
@@ -267,7 +267,7 @@ export const BedsScreen: React.FC<BedsScreenProps> = ({ navigation }) => {
           </View>
         </View>
 
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
           {!item.is_occupied && (
             <TouchableOpacity
               onPress={() => navigation.navigate('AddTenant', { 
@@ -284,28 +284,13 @@ export const BedsScreen: React.FC<BedsScreenProps> = ({ navigation }) => {
               <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>+ Tenant</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity
-            onPress={() => handleEditBed(item)}
-            style={{
-              backgroundColor: Theme.colors.primary,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 6,
-            }}
-          >
-            <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => handleDeleteBed(item.s_no, item.bed_no)}
-            style={{
-              backgroundColor: Theme.colors.danger,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 6,
-            }}
-          >
-            <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>Delete</Text>
-          </TouchableOpacity>
+          <ActionButtons
+            onEdit={() => handleEditBed(item)}
+            onDelete={() => handleDeleteBed(item.s_no, item.bed_no)}
+            showEdit={true}
+            showDelete={true}
+            showView={false}
+          />
         </View>
       </View>
 

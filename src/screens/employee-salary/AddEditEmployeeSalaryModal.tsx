@@ -12,11 +12,12 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Theme } from '../theme';
-import employeeSalaryService, { EmployeeSalary, PaymentMethod } from '../services/employees/employeeSalaryService';
-import userService from '../services/userService';
-import { DatePicker } from './DatePicker';
-import { SearchableDropdown } from './SearchableDropdown';
+import { Theme } from '../../theme';
+import employeeSalaryService, { EmployeeSalary, PaymentMethod } from '../../services/employees/employeeSalaryService';
+import userService from '../../services/userService';
+import { DatePicker } from '../../components/DatePicker';
+import { SearchableDropdown } from '../../components/SearchableDropdown';
+import { OptionSelector } from '../../components/OptionSelector';
 
 interface AddEditEmployeeSalaryModalProps {
   visible: boolean;
@@ -77,7 +78,7 @@ export const AddEditEmployeeSalaryModal: React.FC<AddEditEmployeeSalaryModalProp
       const response = await userService.getUsers();
       
       if (response.success) {
-        setEmployees(response.data || []);
+        setEmployees(response.data?.data || []);
       } else if (Array.isArray(response)) {
         setEmployees(response);
       }
@@ -215,11 +216,11 @@ export const AddEditEmployeeSalaryModal: React.FC<AddEditEmployeeSalaryModalProp
             >
               {/* Employee Selection */}
               {salary ? (
-                <View style={{ marginBottom: 16 }}>
+                <View style={{ marginBottom: 24 }}>
                   <Text
                     style={{
                       fontSize: 14,
-                      fontWeight: '500',
+                      fontWeight: '600',
                       color: Theme.colors.text.primary,
                       marginBottom: 8,
                     }}
@@ -245,28 +246,30 @@ export const AddEditEmployeeSalaryModal: React.FC<AddEditEmployeeSalaryModalProp
                   </View>
                 </View>
               ) : (
-                <SearchableDropdown
-                  label="Employee"
-                  placeholder="Select an employee"
-                  items={employees.map(emp => ({
-                    id: emp.s_no,
-                    label: emp.name,
-                    value: emp.s_no,
-                  }))}
-                  selectedValue={selectedEmployeeId}
-                  onSelect={(item) => setSelectedEmployeeId(item.id)}
-                  loading={loadingEmployees}
-                  error={errors.employee}
-                  required
-                />
+                <View style={{ marginBottom: 24 }}>
+                  <SearchableDropdown
+                    label="Employee"
+                    placeholder="Select an employee"
+                    items={employees.map(emp => ({
+                      id: emp.s_no,
+                      label: emp.name,
+                      value: emp.s_no,
+                    }))}
+                    selectedValue={selectedEmployeeId}
+                    onSelect={(item) => setSelectedEmployeeId(item.id)}
+                    loading={loadingEmployees}
+                    error={errors.employee}
+                    required
+                  />
+                </View>
               )}
 
               {/* Salary Amount */}
-              <View style={{ marginBottom: 16 }}>
+              <View style={{ marginBottom: 24 }}>
                 <Text
                   style={{
                     fontSize: 14,
-                    fontWeight: '500',
+                    fontWeight: '600',
                     color: Theme.colors.text.primary,
                     marginBottom: 8,
                   }}
@@ -308,85 +311,63 @@ export const AddEditEmployeeSalaryModal: React.FC<AddEditEmployeeSalaryModalProp
               </View>
 
               {/* Month */}
-              <DatePicker
-                label="Month"
-                value={month}
-                onChange={setMonth}
-                error={errors.month}
-                required
-                maximumDate={new Date()}
-                disabled={!!salary}
-              />
-              {salary && (
-                <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary, marginTop: -12, marginBottom: 16 }}>
-                  Cannot change month in edit mode
-                </Text>
-              )}
+              <View style={{ marginBottom: 24 }}>
+                <DatePicker
+                  label="Month"
+                  value={month}
+                  onChange={setMonth}
+                  error={errors.month}
+                  required
+                  maximumDate={new Date()}
+                  disabled={!!salary}
+                />
+                {salary && (
+                  <Text style={{ fontSize: 12, color: Theme.colors.text.tertiary, marginTop: 4, marginBottom: 0 }}>
+                    Cannot change month in edit mode
+                  </Text>
+                )}
+              </View>
 
               {/* Paid Date */}
-              <DatePicker
-                label="Paid Date (Optional)"
-                value={paidDate}
-                onChange={setPaidDate}
-                maximumDate={new Date()}
-              />
+              <View style={{ marginBottom: 24 }}>
+                <DatePicker
+                  label="Paid Date (Optional)"
+                  value={paidDate}
+                  onChange={setPaidDate}
+                  maximumDate={new Date()}
+                />
+              </View>
 
               {/* Payment Method */}
-              <View style={{ marginBottom: 16 }}>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: '500',
-                    color: Theme.colors.text.primary,
-                    marginBottom: 8,
-                  }}
-                >
-                  Payment Method (Optional)
-                </Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {PAYMENT_METHODS.map((method) => (
-                    <TouchableOpacity
-                      key={method.value}
-                      onPress={() => setPaymentMethod(method.value)}
-                      style={{
-                        flex: 1,
-                        minWidth: '45%',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 12,
-                        paddingHorizontal: 12,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: paymentMethod === method.value ? method.color : Theme.colors.border,
-                        backgroundColor: paymentMethod === method.value ? `${method.color}15` : Theme.colors.canvas,
-                      }}
-                    >
-                      <Ionicons
-                        name={method.icon as any}
-                        size={20}
-                        color={paymentMethod === method.value ? method.color : Theme.colors.text.secondary}
-                      />
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontWeight: paymentMethod === method.value ? '600' : '400',
-                          color: paymentMethod === method.value ? method.color : Theme.colors.text.primary,
-                          marginLeft: 8,
-                        }}
-                      >
-                        {method.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+              <View style={{ marginBottom: 24 }}>
+                <OptionSelector
+                  label="Payment Method (Optional)"
+                  options={PAYMENT_METHODS.map((method) => {
+                    const iconMap: { [key: string]: string } = {
+                      'GPay': '💰',
+                      'PhonePe': '📱',
+                      'Cash': '💵',
+                      'Bank Transfer': '🏦',
+                    };
+                    return {
+                      label: method.label,
+                      value: method.value,
+                      icon: iconMap[method.label] || '💳',
+                    };
+                  })}
+                  selectedValue={paymentMethod}
+                  onSelect={(value) => setPaymentMethod(value as PaymentMethod)}
+                  disabled={loading}
+                  containerStyle={{ marginBottom: 0 }}
+                />
               </View>
 
               {/* Remarks */}
-              <View style={{ marginBottom: 16 }}>
+              <View style={{ marginBottom: 24 }}>
                 <Text
                   style={{
                     fontSize: 14,
-                    fontWeight: '500',
+                    fontWeight: '600',
                     color: Theme.colors.text.primary,
                     marginBottom: 8,
                   }}

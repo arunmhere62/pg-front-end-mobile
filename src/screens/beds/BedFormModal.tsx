@@ -5,12 +5,12 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { Theme } from '../theme';
-import { ImageUploadS3 } from './ImageUploadS3';
-import { SlideBottomModal } from './SlideBottomModal';
-import { getFolderConfig } from '../config/aws.config';
-import { awsS3ServiceBackend as awsS3Service } from '../services/storage/awsS3ServiceBackend';
-import { createBed, updateBed, Bed } from '../services/rooms/bedService';
+import { Theme } from '../../theme';
+import { ImageUploadS3 } from '../../components/ImageUploadS3';
+import { SlideBottomModal } from '../../components/SlideBottomModal';
+import { getFolderConfig } from '../../config/aws.config';
+import { awsS3ServiceBackend as awsS3Service } from '../../services/storage/awsS3ServiceBackend';
+import { createBed, updateBed, Bed } from '../../services/rooms/bedService';
 
 interface BedFormModalProps {
   visible: boolean;
@@ -100,10 +100,12 @@ export const BedFormModal: React.FC<BedFormModalProps> = ({
       newErrors.bed_no = 'Bed number is required (e.g., BED1, BED2)';
     }
 
-    if (formData.bed_price && formData.bed_price.trim()) {
+    if (!formData.bed_price || !formData.bed_price.trim()) {
+      newErrors.bed_price = 'Bed price is required';
+    } else {
       const price = parseFloat(formData.bed_price);
-      if (isNaN(price) || price < 0) {
-        newErrors.bed_price = 'Please enter a valid price (minimum 0)';
+      if (isNaN(price) || price <= 0) {
+        newErrors.bed_price = 'Please enter a valid price (must be greater than 0)';
       }
     }
 
@@ -127,7 +129,7 @@ export const BedFormModal: React.FC<BedFormModalProps> = ({
         room_id: roomId,
         bed_no: formData.bed_no.trim(),
         pg_id: pgId,
-        bed_price: formData.bed_price ? parseFloat(formData.bed_price) : undefined,
+        bed_price: parseFloat(formData.bed_price),
         images: formData.images, // Always send images array, even if empty, so backend can clear removed images
       };
 
@@ -261,7 +263,7 @@ export const BedFormModal: React.FC<BedFormModalProps> = ({
             marginBottom: 8,
           }}
         >
-          Bed Price (Optional)
+          Bed Price <Text style={{ color: Theme.colors.danger }}>*</Text>
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View

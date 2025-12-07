@@ -2,28 +2,20 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   TextInput,
-  Modal,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Dimensions,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
-import { Card } from './Card';
 import { Theme } from '../theme';
 import { SearchableDropdown } from './SearchableDropdown';
 import { DatePicker } from './DatePicker';
+import { SlideBottomModal } from './SlideBottomModal';
 import visitorService from '../services/visitors/visitorService';
 import { getAllRooms } from '../services/rooms/roomService';
 import { getAllBeds } from '../services/rooms/bedService';
 import axiosInstance from '../services/core/axiosInstance';
-import { Ionicons } from '@expo/vector-icons';
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface VisitorFormModalProps {
   visible: boolean;
@@ -113,7 +105,17 @@ export const VisitorFormModal: React.FC<VisitorFormModalProps> = ({
       setCities([]);
       setSelectedCityId(null);
     }
-  }, [selectedStateId, states]);
+  }, [selectedStateId]);
+
+  const handleStateChange = (stateId: number) => {
+    const selectedState = states.find(s => s.s_no === stateId);
+    if (selectedState) {
+      setSelectedStateId(stateId);
+      setSelectedCityId(null);
+      setCities([]);
+      fetchCities(selectedState.iso_code);
+    }
+  };
 
   const resetForm = () => {
     setVisitorName('');
@@ -261,89 +263,26 @@ export const VisitorFormModal: React.FC<VisitorFormModalProps> = ({
     }
   };
 
-return (
-    <Modal
+  return (
+    <SlideBottomModal
       visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
+      onClose={onClose}
+      title={isEditMode ? 'Edit Visitor' : 'Add Visitor'}
+      subtitle={isEditMode ? 'Update visitor information' : 'Enter visitor details'}
+      onSubmit={handleSubmit}
+      onCancel={onClose}
+      submitLabel={isEditMode ? 'Update Visitor' : 'Add Visitor'}
+      cancelLabel="Cancel"
+      isLoading={loading}
     >
-      <View style={{
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-end',
-      }}>
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: '80%',
-            backgroundColor: 'transparent',
-          }}
-          onPress={onClose}
-          activeOpacity={1}
-        />
-        
-        <View style={{
-          backgroundColor: '#fff',
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          maxHeight: SCREEN_HEIGHT * 0.95,
-          minHeight: SCREEN_HEIGHT * 0.7,
-        }}>
-          {/* Header */}
-          <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: 20,
-            borderBottomWidth: 1,
-            borderBottomColor: Theme.colors.border,
-          }}>
-            <View>
-              <Text style={{ fontSize: 20, fontWeight: '700', color: Theme.colors.text.primary }}>
-                {isEditMode ? 'Edit Visitor' : 'Add Visitor'}
-              </Text>
-              <Text style={{ fontSize: 13, color: Theme.colors.text.secondary, marginTop: 2 }}>
-                {isEditMode ? 'Update visitor information' : 'Enter visitor details'}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={onClose}
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: Theme.colors.background.secondary,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Ionicons name="close" size={18} color={Theme.colors.text.primary} />
-            </TouchableOpacity>
-          </View>
-
-          {loadingData ? (
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-              <ActivityIndicator size="large" color={Theme.colors.primary} />
-              <Text style={{ marginTop: 16, color: Theme.colors.text.secondary }}>Loading visitor data...</Text>
-            </View>
-          ) : (
-            <KeyboardAvoidingView
-              style={{ flex: 1 }}
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 80}
-            >
-              <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={{ paddingBottom: 20 }}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-              >
-                <View style={{ padding: 20 }}>
-                  {/* Basic Information */}
+      {loadingData ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+          <ActivityIndicator size="large" color={Theme.colors.primary} />
+          <Text style={{ marginTop: 16, color: Theme.colors.text.secondary }}>Loading visitor data...</Text>
+        </View>
+      ) : (
+        <>
+          {/* Basic Information */}
                   <View style={{ marginBottom: 24 }}>
                     <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary, marginBottom: 16 }}>
                       👤 Basic Information
@@ -490,7 +429,15 @@ return (
                         value: state.iso_code,
                       }))}
                       selectedValue={selectedStateId}
-                      onSelect={(item) => setSelectedStateId(item.id)}
+                      onSelect={(item) => {
+                        if (item.id === 0 || !item.id) {
+                          setSelectedStateId(null);
+                          setSelectedCityId(null);
+                          setCities([]);
+                        } else {
+                          handleStateChange(item.id);
+                        }
+                      }}
                       loading={loadingStates}
                       required={false}
                     />
@@ -505,7 +452,13 @@ return (
                           value: city.s_no,
                         }))}
                         selectedValue={selectedCityId}
-                        onSelect={(item) => setSelectedCityId(item.id)}
+                        onSelect={(item) => {
+                          if (item.id === 0 || !item.id) {
+                            setSelectedCityId(null);
+                          } else {
+                            setSelectedCityId(item.id);
+                          }
+                        }}
                         loading={loadingCities}
                         disabled={!selectedStateId}
                         required={false}
@@ -574,33 +527,8 @@ return (
                       </TouchableOpacity>
                     </View>
                   </View>
-
-                  {/* Submit Button */}
-                  <TouchableOpacity
-                    onPress={handleSubmit}
-                    disabled={loading}
-                    style={{
-                      backgroundColor: loading ? Theme.colors.border : Theme.colors.primary,
-                      borderRadius: 8,
-                      paddingVertical: 16,
-                      alignItems: 'center',
-                      marginBottom: 20,
-                    }}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
-                        {isEditMode ? 'Update Visitor' : 'Add Visitor'}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            </KeyboardAvoidingView>
-          )}
-        </View>
-      </View>
-    </Modal>
+                </>
+              )}
+    </SlideBottomModal>
   );
 };

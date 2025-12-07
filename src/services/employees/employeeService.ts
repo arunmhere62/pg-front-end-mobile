@@ -1,4 +1,5 @@
 import axiosInstance from '../core/axiosInstance';
+import { extractResponseData, isApiResponseSuccess } from '../../utils/apiResponseHandler';
 
 export enum UserGender {
   MALE = 'MALE',
@@ -97,7 +98,12 @@ const employeeService = {
     const response = await axiosInstance.get('/employees', {
       params: { page, limit, pg_id, role_id, search },
     });
-    return response.data;
+    const data = extractResponseData(response.data) as any;
+    return {
+      success: isApiResponseSuccess(response.data),
+      data: Array.isArray(data) ? data : (data?.data || []),
+      pagination: data?.pagination || { total: 0, page, limit, totalPages: 0, hasMore: false },
+    };
   },
 
   /**
@@ -105,7 +111,7 @@ const employeeService = {
    */
   async getEmployeeById(id: number): Promise<any> {
     const response = await axiosInstance.get(`/employees/${id}`);
-    return response.data;
+    return response.data.data;
   },
 
   /**

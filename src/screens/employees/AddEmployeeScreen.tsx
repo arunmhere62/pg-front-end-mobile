@@ -16,10 +16,15 @@ import { Card } from '../../components/Card';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
-import { ImageUpload } from '../../components/ImageUpload';
 import { SearchableDropdown } from '../../components/SearchableDropdown';
+import { ImageUploadS3 } from '../../components/ImageUploadS3';
+import { OptionSelector } from '../../components/OptionSelector';
+import { CountryPhoneSelector } from '../../components/CountryPhoneSelector';
 import axiosInstance from '../../services/core/axiosInstance';
 import employeeService, { UserGender } from '../../services/employees/employeeService';
+import { locationService } from '../../services/location/locationService';
+import { rolesService } from '../../services/roles/rolesService';
+import { getFolderConfig } from '../../config/aws.config';
 import { CONTENT_COLOR } from '@/constant';
 
 interface AddEmployeeScreenProps {
@@ -62,6 +67,7 @@ export const AddEmployeeScreen: React.FC<AddEmployeeScreenProps> = ({ navigation
   const [cityData, setCityData] = useState<CityData[]>([]);
   const [roleData, setRoleData] = useState<RoleData[]>([]);
   const [pgLocations, setPGLocations] = useState<PGLocationData[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<any>({ code: 'IN', name: 'India', flag: '🇮🇳', phoneCode: '+91', phoneLength: 10 });
 
   // Form state
   const [formData, setFormData] = useState({
@@ -119,7 +125,7 @@ export const AddEmployeeScreen: React.FC<AddEmployeeScreenProps> = ({ navigation
     try {
       setInitialLoading(true);
       const response = await employeeService.getEmployeeById(employeeId);
-      const employee = response.data;
+      const employee = response;
       
       setFormData({
         name: employee.name || '',
@@ -135,6 +141,14 @@ export const AddEmployeeScreen: React.FC<AddEmployeeScreenProps> = ({ navigation
         pincode: employee.pincode || '',
         country: employee.country || 'India',
       });
+      
+      // Load cities if state is set
+      if (employee.state_id && stateData.length > 0) {
+        const selectedState = stateData.find(s => s.s_no === employee.state_id);
+        if (selectedState) {
+          await fetchCities(selectedState.iso_code);
+        }
+      }
       
       if (employee.profile_images) {
         setProfileImages(Array.isArray(employee.profile_images) ? employee.profile_images : 
@@ -155,11 +169,9 @@ export const AddEmployeeScreen: React.FC<AddEmployeeScreenProps> = ({ navigation
   const fetchStates = async () => {
     setLoadingStates(true);
     try {
-      const response = await axiosInstance.get('/location/states', {
-        params: { countryCode: 'IN' },
-      });
-      if (response.data.success) {
-        setStateData(response.data.data || []);
+      const response = await locationService.getStates('IN');
+      if (response.success) {
+        setStateData(response.data);
       }
     } catch (error) {
       console.error('Error fetching states:', error);
@@ -171,11 +183,9 @@ export const AddEmployeeScreen: React.FC<AddEmployeeScreenProps> = ({ navigation
   const fetchCities = async (stateCode: string) => {
     setLoadingCities(true);
     try {
-      const response = await axiosInstance.get('/location/cities', {
-        params: { stateCode },
-      });
-      if (response.data.success) {
-        setCityData(response.data.data || []);
+      const response = await locationService.getCities(stateCode);
+      if (response.success) {
+        setCityData(response.data);
       }
     } catch (error) {
       console.error('Error fetching cities:', error);
@@ -187,18 +197,15 @@ export const AddEmployeeScreen: React.FC<AddEmployeeScreenProps> = ({ navigation
   const fetchRoles = async () => {
     setLoadingRoles(true);
     try {
-      console.log('🔄 Fetching roles from /auth/roles');
-      const response = await axiosInstance.get('/auth/roles');
-      console.log('✅ Roles response:', response.data);
-      
-      if (response.data.success) {
-        setRoleData(response.data.data || []);
-        console.log('📋 Roles loaded:', (response.data.data || []).length);
+      const response = await rolesService.getRoles();
+      if (response.success) {
+        setRoleData(response.data);
+      } else {
+        Alert.alert('Error', response.message || 'Failed to load roles');
       }
     } catch (error: any) {
-      console.error('❌ Error fetching roles:', error);
-      console.error('Error response:', error.response?.data);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to load roles');
+      console.error('Error fetching roles:', error);
+      Alert.alert('Error', 'Failed to load roles');
     } finally {
       setLoadingRoles(false);
     }
@@ -444,20 +451,12 @@ export const AddEmployeeScreen: React.FC<AddEmployeeScreenProps> = ({ navigation
                   <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 6 }}>
                     Phone Number
                   </Text>
-                  <TextInput
-                    value={formData.phone}
-                    onChangeText={(value) => updateField('phone', value)}
-                    placeholder="Enter 10-digit phone number"
-                    keyboardType="phone-pad"
-                    maxLength={10}
-                    style={{
-                      borderWidth: 1,
-                      borderColor: errors.phone ? '#EF4444' : Theme.colors.border,
-                      borderRadius: 8,
-                      padding: 12,
-                      fontSize: 14,
-                      backgroundColor: '#fff',
-                    }}
+                  <CountryPhoneSelector
+                    selectedCountry={selectedCountry}
+                    onSelectCountry={setSelectedCountry}
+                    phoneValue={formData.phone}
+                    onPhoneChange={(value) => updateField('phone', value)}
+                    size="medium"
                   />
                   {errors.phone && (
                     <Text style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{errors.phone}</Text>
@@ -465,16 +464,16 @@ export const AddEmployeeScreen: React.FC<AddEmployeeScreenProps> = ({ navigation
                 </View>
 
                 {/* Gender */}
-                <SearchableDropdown
+                <OptionSelector
                   label="Gender"
-                  placeholder="Select gender"
-                  items={[
-                    { id: 1, label: 'Male', value: 'MALE' },
-                    { id: 2, label: 'Female', value: 'FEMALE' },
+                  options={[
+                    { label: 'Male', value: 'MALE', icon: '👨' },
+                    { label: 'Female', value: 'FEMALE', icon: '👩' },
                   ]}
-                  selectedValue={formData.gender === 'MALE' ? 1 : formData.gender === 'FEMALE' ? 2 : null}
-                  onSelect={(item) => updateField('gender', item.value as UserGender)}
+                  selectedValue={formData.gender || null}
+                  onSelect={(value) => updateField('gender', value as UserGender)}
                   required={false}
+                  containerStyle={{ marginBottom: 16 }}
                 />
               </Card>
 
@@ -602,13 +601,18 @@ export const AddEmployeeScreen: React.FC<AddEmployeeScreenProps> = ({ navigation
               {/* Profile Images */}
               <Card style={{ padding: 16, marginBottom: 16 }}>
                 <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary, marginBottom: 16 }}>
-                  📷 Profile Images
+                  📷 Profile Image
                 </Text>
-                <ImageUpload
+                <ImageUploadS3
                   images={profileImages}
                   onImagesChange={setProfileImages}
-                  maxImages={3}
-                  label="Profile Photos"
+                  maxImages={1}
+                  label="Profile Photo"
+                  disabled={loading}
+                  folder={getFolderConfig().employees.images}
+                  useS3={true}
+                  entityId={employeeId?.toString()}
+                  autoSave={false}
                 />
               </Card>
 
@@ -617,14 +621,19 @@ export const AddEmployeeScreen: React.FC<AddEmployeeScreenProps> = ({ navigation
                 <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary, marginBottom: 16 }}>
                   📄 Proof Documents
                 </Text>
-                <ImageUpload
+                <ImageUploadS3
                   images={proofDocuments}
                   onImagesChange={setProofDocuments}
-                  maxImages={5}
+                  maxImages={3}
                   label="ID Proof / Documents"
+                  disabled={loading}
+                  folder={getFolderConfig().employees.documents}
+                  useS3={true}
+                  entityId={employeeId?.toString()}
+                  autoSave={false}
                 />
                 <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, marginTop: 8 }}>
-                  Upload Aadhaar, PAN, Driving License, or other ID proofs
+                  Upload Aadhaar, PAN, Driving License, or other ID proofs (max 3 documents)
                 </Text>
               </Card>
 

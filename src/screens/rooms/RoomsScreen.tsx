@@ -14,11 +14,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import { RootState } from '../../store';
 import { getAllRooms, deleteRoom, Room, getRoomById } from '../../services/rooms/roomService';
 import { Card } from '../../components/Card';
+import { ActionButtons } from '../../components/ActionButtons';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { RoomFormModal } from './CreateEditRoomModal';
 import { CurrentBillModal } from './CurrentBillModal';
+import { showDeleteConfirmation } from '../../components/DeleteConfirmationDialog';
 import { showErrorAlert } from '../../utils/errorHandler';
 import { CONTENT_COLOR } from '@/constant';
 
@@ -152,32 +154,26 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
   };
 
   const handleDeleteRoom = (roomId: number, roomNo: string) => {
-    Alert.alert(
-      'Delete Room',
-      `Are you sure you want to delete Room ${roomNo}? This will also delete all associated images from cloud storage.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Delete room from database (backend will handle S3 image deletion)
-              await deleteRoom(roomId, {
-                pg_id: selectedPGLocationId || undefined,
-                organization_id: user?.organization_id,
-                user_id: user?.s_no,
-              });
-              
-              Alert.alert('Success', 'Room and all associated images deleted successfully');
-              loadRooms();
-            } catch (error: any) {
-              showErrorAlert(error, 'Delete Error');
-            }
-          },
-        },
-      ]
-    );
+    showDeleteConfirmation({
+      title: 'Delete Room',
+      message: 'Are you sure you want to delete Room',
+      itemName: roomNo,
+      onConfirm: async () => {
+        try {
+          // Delete room from database (backend will handle S3 image deletion)
+          await deleteRoom(roomId, {
+            pg_id: selectedPGLocationId || undefined,
+            organization_id: user?.organization_id,
+            user_id: user?.s_no,
+          });
+          
+          Alert.alert('Success', 'Room and all associated images deleted successfully');
+          loadRooms();
+        } catch (error: any) {
+          showErrorAlert(error, 'Delete Error');
+        }
+      },
+    });
   };
 
   const renderRoomCard = ({ item }: { item: Room }) => (
@@ -210,7 +206,7 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
             </View>
           </View>
 
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <TouchableOpacity
               onPress={() => handleOpenBillModal(item)}
               style={{
@@ -222,28 +218,13 @@ export const RoomsScreen: React.FC<RoomsScreenProps> = ({ navigation }) => {
             >
               <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>Bill</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => handleOpenEditModal(item.s_no)}
-              style={{
-                backgroundColor: '#3B82F6',
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 6,
-              }}
-            >
-              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>Edit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => handleDeleteRoom(item.s_no, item.room_no)}
-              style={{
-                backgroundColor: '#EF4444',
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 6,
-              }}
-            >
-              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>Delete</Text>
-            </TouchableOpacity>
+            <ActionButtons
+              onEdit={() => handleOpenEditModal(item.s_no)}
+              onDelete={() => handleDeleteRoom(item.s_no, item.room_no)}
+              showEdit={true}
+              showDelete={true}
+              showView={false}
+            />
           </View>
         </View>
 

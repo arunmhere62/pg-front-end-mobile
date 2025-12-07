@@ -12,7 +12,7 @@
 export interface UploadStrategy {
   name: string;
   upload(file: string, options: UploadOptions): Promise<UploadResult>;
-  delete(key: string): Promise<boolean>;
+  delete?(key: string): Promise<boolean>;
   isAvailable(): Promise<boolean>;
 }
 

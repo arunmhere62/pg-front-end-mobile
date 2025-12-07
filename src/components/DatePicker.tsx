@@ -111,9 +111,18 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         {value && !disabled && (
           <TouchableOpacity
             onPress={() => onChange('')}
-            style={styles.clearButton}
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 12,
+              backgroundColor: '#FEE2E2',
+              borderWidth: 1,
+              borderColor: '#FECACA',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
           >
-            <Text style={styles.clearButtonText}>✕</Text>
+            <Text style={{ fontSize: 20, color: '#DC2626', fontWeight: '700' }}>✕</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -189,11 +198,11 @@ const styles = StyleSheet.create({
   dateButton: {
     borderWidth: 1,
     borderColor: Theme.colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     backgroundColor: '#fff',
-    minHeight: 36,
+    minHeight: 30,
   },
   dateButtonError: {
     borderColor: '#EF4444',
@@ -259,20 +268,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Theme.colors.primary,
-  },
-  clearButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Theme.colors.background.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-  },
-  clearButtonText: {
-    fontSize: 12,
-    color: Theme.colors.text.secondary,
-    fontWeight: '600',
   },
 });

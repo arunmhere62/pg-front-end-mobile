@@ -138,16 +138,25 @@ class ImageUploadService {
 
       console.log('Deleting image:', key);
 
-      // Try to delete from all strategies
-      const s3Strategy = new S3BackendStrategy();
+      // Try to delete from strategies that support it
       const directStrategy = new DirectBackendStrategy();
       const localStrategy = new LocalCacheStrategy();
 
-      const results = await Promise.allSettled([
-        s3Strategy.delete(key),
-        directStrategy.delete(key),
-        localStrategy.delete(key),
-      ]);
+      const deletePromises = [];
+      
+      if (directStrategy.delete) {
+        deletePromises.push(directStrategy.delete(key));
+      }
+      if (localStrategy.delete) {
+        deletePromises.push(localStrategy.delete(key));
+      }
+
+      if (deletePromises.length === 0) {
+        console.log('No deletion strategies available');
+        return true; // Consider it success if no deletion needed
+      }
+
+      const results = await Promise.allSettled(deletePromises);
 
       // Return true if at least one deletion succeeded
       return results.some(r => r.status === 'fulfilled' && r.value === true);

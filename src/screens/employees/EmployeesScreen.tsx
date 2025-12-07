@@ -12,9 +12,11 @@ import {
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { Card } from '../../components/Card';
+import { ActionButtons } from '../../components/ActionButtons';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
+import { showDeleteConfirmation } from '../../components/DeleteConfirmationDialog';
 import { Ionicons } from '@expo/vector-icons';
 import employeeService, { Employee } from '../../services/employees/employeeService';
 import { CONTENT_COLOR } from '@/constant';
@@ -80,26 +82,20 @@ export const EmployeesScreen: React.FC<EmployeesScreenProps> = ({ navigation }) 
   };
 
   const handleDelete = (employee: Employee) => {
-    Alert.alert(
-      'Delete Employee',
-      `Are you sure you want to delete ${employee.name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await employeeService.deleteEmployee(employee.s_no);
-              Alert.alert('Success', 'Employee deleted successfully');
-              loadEmployees(1, false);
-            } catch (error: any) {
-              Alert.alert('Error', error?.response?.data?.message || 'Failed to delete employee');
-            }
-          },
-        },
-      ]
-    );
+    showDeleteConfirmation({
+      title: 'Delete Employee',
+      message: 'Are you sure you want to delete',
+      itemName: employee.name,
+      onConfirm: async () => {
+        try {
+          await employeeService.deleteEmployee(employee.s_no);
+          Alert.alert('Success', 'Employee deleted successfully');
+          loadEmployees(1, false);
+        } catch (error: any) {
+          Alert.alert('Error', error?.response?.data?.message || 'Failed to delete employee');
+        }
+      },
+    });
   };
 
   const renderEmployeeCard = (employee: Employee) => (
@@ -114,8 +110,9 @@ export const EmployeesScreen: React.FC<EmployeesScreenProps> = ({ navigation }) 
               style={{
                 backgroundColor: employee.status === 'ACTIVE' ? '#DCFCE7' : '#FEE2E2',
                 paddingHorizontal: 8,
-                paddingVertical: 4,
+                paddingVertical: 6,
                 borderRadius: 6,
+                marginRight: 8,
               }}
             >
               <Text
@@ -156,29 +153,13 @@ export const EmployeesScreen: React.FC<EmployeesScreenProps> = ({ navigation }) 
           )}
         </View>
 
-        <View style={{ flexDirection: 'row', marginLeft: 12 }}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('AddEmployee', { employeeId: employee.s_no })}
-            style={{
-              padding: 8,
-              backgroundColor: '#EEF2FF',
-              borderRadius: 8,
-              marginRight: 8,
-            }}
-          >
-            <Ionicons name="create-outline" size={18} color={Theme.colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => handleDelete(employee)}
-            style={{
-              padding: 8,
-              backgroundColor: '#FEE2E2',
-              borderRadius: 8,
-            }}
-          >
-            <Ionicons name="trash-outline" size={18} color="#DC2626" />
-          </TouchableOpacity>
-        </View>
+        <ActionButtons
+          onEdit={() => navigation.navigate('AddEmployee', { employeeId: employee.s_no })}
+          onDelete={() => handleDelete(employee)}
+          showEdit={true}
+          showDelete={true}
+          showView={false}
+        />
       </View>
     </Card>
   );

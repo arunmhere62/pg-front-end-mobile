@@ -100,21 +100,6 @@ export class S3BackendStrategy implements UploadStrategy {
     }
   }
 
-  async delete(key: string): Promise<boolean> {
-    try {
-      console.log(`[S3Backend] Deleting: ${key}`);
-      
-      const response = await axiosInstance.delete('/s3/delete', {
-        data: { key, bucket: this.bucketName }
-      });
-
-      return response.data.success === true;
-    } catch (error: any) {
-      console.error('[S3Backend] Delete error:', error);
-      return false;
-    }
-  }
-
   private getPublicUrl(key: string): string {
     return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
   }

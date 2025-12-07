@@ -17,7 +17,7 @@ import { ScreenLayout } from '../../components/ScreenLayout';
 import { Ionicons } from '@expo/vector-icons';
 import { CONTENT_COLOR } from '@/constant';
 import employeeSalaryService, { EmployeeSalary, PaymentMethod } from '../../services/employees/employeeSalaryService';
-import { AddEditEmployeeSalaryModal } from '@/components/AddEditEmployeeSalaryModal';
+import { AddEditEmployeeSalaryModal } from '@/screens/employee-salary/AddEditEmployeeSalaryModal';
 
 interface EmployeeSalaryScreenProps {
   navigation: any;
@@ -47,8 +47,8 @@ export const EmployeeSalaryScreen: React.FC<EmployeeSalaryScreenProps> = ({ navi
       const response = await employeeSalaryService.getSalaries(1, 50);
       
       if (response.success) {
-        setSalaries(response.data);
-        setTotalSalaries(response.pagination.total);
+        setSalaries(response.data.data || []);
+        setTotalSalaries(response.data.pagination?.total || 0);
       }
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to load salaries');

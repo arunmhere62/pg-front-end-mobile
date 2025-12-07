@@ -2,19 +2,16 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  Modal,
   TouchableOpacity,
   TextInput,
-  ScrollView,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Theme } from '../theme';
-import expenseService, { Expense, PaymentMethod } from '../services/expenses/expenseService';
-import { DatePicker } from './DatePicker';
+import { Theme } from '../../theme';
+import expenseService, { Expense, PaymentMethod } from '../../services/expenses/expenseService';
+import { DatePicker } from '../../components/DatePicker';
+import { SlideBottomModal } from '../../components/SlideBottomModal';
+import { OptionSelector } from '../../components/OptionSelector';
 
 interface AddEditExpenseModalProps {
   visible: boolean;
@@ -160,68 +157,25 @@ export const AddEditExpenseModal: React.FC<AddEditExpenseModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            justifyContent: 'flex-end',
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: Theme.colors.canvas,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              maxHeight: '90%',
-              flex: 1,
-              flexDirection: 'column',
-            }}
-          >
-            {/* Header */}
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: 20,
-                borderBottomWidth: 1,
-                borderBottomColor: Theme.colors.border,
-              }}
-            >
-              <View>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: Theme.colors.text.primary }}>
-                  {expense ? 'Edit Expense' : 'Add Expense'}
-                </Text>
-                <Text style={{ fontSize: 14, color: Theme.colors.text.secondary, marginTop: 4 }}>
-                  {expense ? 'Update expense details' : 'Record a new expense'}
-                </Text>
-              </View>
-              <TouchableOpacity onPress={handleClose} disabled={loading}>
-                <Ionicons name="close" size={24} color={Theme.colors.text.primary} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Form */}
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{ padding: 20, paddingBottom: 20 }}
-              showsVerticalScrollIndicator={true}
-              keyboardShouldPersistTaps="handled"
-              bounces={true}
-            >
+    <SlideBottomModal
+      visible={visible}
+      onClose={handleClose}
+      title={expense ? 'Edit Expense' : 'Add Expense'}
+      subtitle={expense ? 'Update expense details' : 'Record a new expense'}
+      onSubmit={handleSave}
+      onCancel={handleClose}
+      submitLabel={expense ? 'Update Expense' : 'Add Expense'}
+      cancelLabel="Cancel"
+      isLoading={loading}
+    >
               {/* Expense Type */}
-              <View style={{ marginBottom: 16 }}>
+              <View style={{ marginBottom: 24 }}>
                 <Text
                   style={{
                     fontSize: 14,
-                    fontWeight: '500',
+                    fontWeight: '600',
                     color: Theme.colors.text.primary,
-                    marginBottom: 8,
+                    marginBottom: 12,
                   }}
                 >
                   Expense Type <Text style={{ color: Theme.colors.danger }}>*</Text>
@@ -337,11 +291,11 @@ export const AddEditExpenseModal: React.FC<AddEditExpenseModalProps> = ({
               </View>
 
               {/* Amount */}
-              <View style={{ marginBottom: 16 }}>
+              <View style={{ marginBottom: 24 }}>
                 <Text
                   style={{
                     fontSize: 14,
-                    fontWeight: '500',
+                    fontWeight: '600',
                     color: Theme.colors.text.primary,
                     marginBottom: 8,
                   }}
@@ -383,11 +337,11 @@ export const AddEditExpenseModal: React.FC<AddEditExpenseModalProps> = ({
               </View>
 
               {/* Paid To */}
-              <View style={{ marginBottom: 16 }}>
+              <View style={{ marginBottom: 24 }}>
                 <Text
                   style={{
                     fontSize: 14,
-                    fontWeight: '500',
+                    fontWeight: '600',
                     color: Theme.colors.text.primary,
                     marginBottom: 8,
                   }}
@@ -428,63 +382,41 @@ export const AddEditExpenseModal: React.FC<AddEditExpenseModalProps> = ({
               </View>
 
               {/* Date */}
-              <DatePicker
-                label="Date"
-                value={paidDate}
-                onChange={setPaidDate}
-                error={errors.paidDate}
-                required
-                maximumDate={new Date()}
-              />
+              <View style={{ marginBottom: 24 }}>
+                <DatePicker
+                  label="Date"
+                  value={paidDate}
+                  onChange={setPaidDate}
+                  error={errors.paidDate}
+                  required
+                  maximumDate={new Date()}
+                />
+              </View>
 
               {/* Payment Method */}
-              <View style={{ marginBottom: 16 }}>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: '500',
-                    color: Theme.colors.text.primary,
-                    marginBottom: 8,
-                  }}
-                >
-                  Payment Method <Text style={{ color: Theme.colors.danger }}>*</Text>
-                </Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {PAYMENT_METHODS.map((method) => (
-                    <TouchableOpacity
-                      key={method.value}
-                      onPress={() => setPaymentMethod(method.value)}
-                      style={{
-                        flex: 1,
-                        minWidth: '45%',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 12,
-                        paddingHorizontal: 12,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: paymentMethod === method.value ? method.color : Theme.colors.border,
-                        backgroundColor: paymentMethod === method.value ? `${method.color}15` : Theme.colors.canvas,
-                      }}
-                    >
-                      <Ionicons
-                        name={method.icon as any}
-                        size={20}
-                        color={paymentMethod === method.value ? method.color : Theme.colors.text.secondary}
-                      />
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontWeight: paymentMethod === method.value ? '600' : '400',
-                          color: paymentMethod === method.value ? method.color : Theme.colors.text.primary,
-                          marginLeft: 8,
-                        }}
-                      >
-                        {method.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+              <View style={{ marginBottom: 24 }}>
+                <OptionSelector
+                  label="Payment Method"
+                  description="Select how the expense was paid"
+                options={PAYMENT_METHODS.map((method) => {
+                  const iconMap: { [key: string]: string } = {
+                    'GPay': '💰',
+                    'PhonePe': '📱',
+                    'Cash': '💵',
+                    'Bank Transfer': '🏦',
+                  };
+                  return {
+                    label: method.label,
+                    value: method.value,
+                    icon: iconMap[method.label] || '💳',
+                  };
+                })}
+                selectedValue={paymentMethod}
+                onSelect={(value) => setPaymentMethod(value as PaymentMethod)}
+                required={true}
+                disabled={loading}
+                containerStyle={{ marginBottom: 0 }}
+              />
               </View>
 
               {/* Remarks */}
@@ -492,7 +424,7 @@ export const AddEditExpenseModal: React.FC<AddEditExpenseModalProps> = ({
                 <Text
                   style={{
                     fontSize: 14,
-                    fontWeight: '500',
+                    fontWeight: '600',
                     color: Theme.colors.text.primary,
                     marginBottom: 8,
                   }}
@@ -520,58 +452,6 @@ export const AddEditExpenseModal: React.FC<AddEditExpenseModalProps> = ({
                   onChangeText={setRemarks}
                 />
               </View>
-            </ScrollView>
-
-            {/* Footer */}
-            <View
-              style={{
-                flexDirection: 'row',
-                gap: 12,
-                padding: 20,
-                borderTopWidth: 1,
-                borderTopColor: Theme.colors.border,
-                backgroundColor: Theme.colors.canvas,
-              }}
-            >
-              <TouchableOpacity
-                onPress={handleClose}
-                disabled={loading}
-                style={{
-                  flex: 1,
-                  paddingVertical: 14,
-                  borderRadius: 12,
-                  backgroundColor: Theme.colors.light,
-                  alignItems: 'center',
-                }}
-              >
-                <Text style={{ fontSize: 16, fontWeight: '600', color: Theme.colors.text.primary }}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleSave}
-                disabled={loading}
-                style={{
-                  flex: 1,
-                  paddingVertical: 14,
-                  borderRadius: 12,
-                  backgroundColor: loading ? Theme.colors.light : Theme.colors.primary,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>
-                    {expense ? 'Update' : 'Add'} Expense
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+    </SlideBottomModal>
   );
 };

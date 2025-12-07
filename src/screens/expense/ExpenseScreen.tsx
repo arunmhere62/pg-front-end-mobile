@@ -21,7 +21,7 @@ import { ScreenLayout } from '../../components/ScreenLayout';
 import { Ionicons } from '@expo/vector-icons';
 import { CONTENT_COLOR } from '@/constant';
 import expenseService, { Expense, PaymentMethod } from '../../services/expenses/expenseService';
-import { AddEditExpenseModal } from '@/components/AddEditExpenseModal';
+import { AddEditExpenseModal } from '@/screens/expense/AddEditExpenseModal';
 import { DatePicker } from '@/components/DatePicker';
 
 interface ExpenseScreenProps {
@@ -63,7 +63,7 @@ export const ExpenseScreen: React.FC<ExpenseScreenProps> = ({ navigation }) => {
       const response = await expenseService.getExpenses(pageNum, 10);
       
       // Apply client-side filters for now
-      let filteredData = response.data;
+      let filteredData = response.data.data || [];
       
       if (startDate) {
         filteredData = filteredData.filter((exp: Expense) => 
@@ -95,8 +95,8 @@ export const ExpenseScreen: React.FC<ExpenseScreenProps> = ({ navigation }) => {
         } else {
           setExpenses(filteredData);
         }
-        setHasMore(response.pagination.hasMore);
-        setTotalExpenses(filteredData.length);
+        setHasMore(response.data.pagination?.hasMore || false);
+        setTotalExpenses(response.data.pagination?.total || filteredData.length);
       }
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to load expenses');

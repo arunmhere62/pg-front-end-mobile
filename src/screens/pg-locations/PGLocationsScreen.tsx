@@ -19,11 +19,15 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import { Card } from '../../components/Card';
 import { AnimatedButton } from '../../components/AnimatedButton';
+import { ActionButtons } from '../../components/ActionButtons';
 import { SearchableDropdown } from '../../components/SearchableDropdown';
 import { SlideBottomModal } from '../../components/SlideBottomModal';
 import { ImageUploadS3 } from '../../components/ImageUploadS3';
+import { OptionSelector } from '../../components/OptionSelector';
+import { showDeleteConfirmation } from '../../components/DeleteConfirmationDialog';
 import { getFolderConfig } from '../../config/aws.config';
 import { showErrorAlert } from '../../utils/errorHandler';
+import { locationService } from '../../services/location/locationService';
 import axiosInstance from '../../services/core/axiosInstance';
 
 interface PGLocationsScreenProps {
@@ -128,28 +132,9 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
   const loadStates = async () => {
     setLoadingStates(true);
     try {
-      const response = await axiosInstance.get('/location/states', {
-        params: { countryCode: 'IN' },
-      });
-      console.log('📍 Raw States Response:', response.data);
-      
-      if (response.data.success) {
-        // Extract from nested structure: response.data.data.data
-        let statesData: any[] = [];
-        
-        if (response.data.data && typeof response.data.data === 'object') {
-          // Check if response.data.data has a data property (nested structure)
-          if (Array.isArray(response.data.data.data)) {
-            statesData = response.data.data.data;
-          } else if (Array.isArray(response.data.data)) {
-            statesData = response.data.data;
-          }
-        } else if (Array.isArray(response.data.data)) {
-          statesData = response.data.data;
-        }
-        
-        console.log('📍 States extracted:', statesData);
-        setStates(statesData);
+      const response = await locationService.getStates('IN');
+      if (response.success) {
+        setStates(response.data);
       }
     } catch (error) {
       console.error('Error loading states:', error);
@@ -161,28 +146,9 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
   const loadCities = async (stateCode: string) => {
     setLoadingCities(true);
     try {
-      const response = await axiosInstance.get('/location/cities', {
-        params: { stateCode },
-      });
-      console.log('🏙️ Raw Cities Response:', response.data);
-      
-      if (response.data.success) {
-        // Extract from nested structure: response.data.data.data
-        let citiesData: any[] = [];
-        
-        if (response.data.data && typeof response.data.data === 'object') {
-          // Check if response.data.data has a data property (nested structure)
-          if (Array.isArray(response.data.data.data)) {
-            citiesData = response.data.data.data;
-          } else if (Array.isArray(response.data.data)) {
-            citiesData = response.data.data;
-          }
-        } else if (Array.isArray(response.data.data)) {
-          citiesData = response.data.data;
-        }
-        
-        console.log('🏙️ Cities extracted:', citiesData);
-        setCities(citiesData);
+      const response = await locationService.getCities(stateCode);
+      if (response.success) {
+        setCities(response.data);
       }
     } catch (error) {
       console.error('Error loading cities:', error);
@@ -352,51 +318,45 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
   };
 
   const handleDelete = (pg: PGLocation) => {
-    Alert.alert(
-      'Confirm Delete',
-      `Are you sure you want to delete "${pg.location_name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await axiosInstance.delete(
-                `/pg-locations/${pg.s_no}`
-              );
-              if (response.data.success) {
-                // Check if deleted PG was the selected one
-                const wasSelected = selectedPGLocationId === pg.s_no;
-                
-                // Refresh Redux store first and wait for it
-                const result = await dispatch(fetchPGLocations());
-                
-                // Refresh local state
-                await loadPGLocations();
-                
-                // If deleted PG was selected, the Redux slice will auto-select another one
-                // But we can also explicitly handle it here for immediate feedback
-                if (wasSelected && result.payload) {
-                  const updatedLocations = result.payload as PGLocation[];
-                  if (updatedLocations.length > 0) {
-                    // Select the first available PG
-                    dispatch(setSelectedPGLocation(updatedLocations[0].s_no));
-                  } else {
-                    // No PG locations left
-                    dispatch(setSelectedPGLocation(null));
-                  }
-                }
-                
-                Alert.alert('Success', 'PG location deleted successfully');
+    showDeleteConfirmation({
+      title: 'Confirm Delete',
+      message: 'Are you sure you want to delete',
+      itemName: pg.location_name,
+      onConfirm: async () => {
+        try {
+          const response = await axiosInstance.delete(
+            `/pg-locations/${pg.s_no}`
+          );
+          if (response.data.success) {
+            // Check if deleted PG was the selected one
+            const wasSelected = selectedPGLocationId === pg.s_no;
+            
+            // Refresh Redux store first and wait for it
+            const result = await dispatch(fetchPGLocations());
+            
+            // Refresh local state
+            await loadPGLocations();
+            
+            // If deleted PG was selected, the Redux slice will auto-select another one
+            // But we can also explicitly handle it here for immediate feedback
+            if (wasSelected && result.payload) {
+              const updatedLocations = result.payload as PGLocation[];
+              if (updatedLocations.length > 0) {
+                // Select the first available PG
+                dispatch(setSelectedPGLocation(updatedLocations[0].s_no));
+              } else {
+                // No PG locations left
+                dispatch(setSelectedPGLocation(null));
               }
-            } catch (error: any) {
-              showErrorAlert(error, 'Delete Error');
             }
-          },
-        },
-      ]
-    );
+            
+            Alert.alert('Success', 'PG location deleted successfully');
+          }
+        } catch (error: any) {
+          showErrorAlert(error, 'Delete Error');
+        }
+      },
+    });
   };
 
   const renderPGCard = (pg: PGLocation) => (
@@ -463,38 +423,14 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
           </View>
         </View>
 
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <AnimatedButton
-            onPress={() => navigation.navigate('PGDetails', { pgId: pg.s_no })}
-            style={{
-              backgroundColor: '#F0F9FF',
-              padding: 8,
-              borderRadius: 8,
-            }}
-          >
-            <Ionicons name="eye" size={18} color={Theme.colors.primary} />
-          </AnimatedButton>
-          <AnimatedButton
-            onPress={() => openEditModal(pg)}
-            style={{
-              backgroundColor: '#EEF2FF',
-              padding: 8,
-              borderRadius: 8,
-            }}
-          >
-            <Ionicons name="pencil" size={18} color={Theme.colors.primary} />
-          </AnimatedButton>
-          <AnimatedButton
-            onPress={() => handleDelete(pg)}
-            style={{
-              backgroundColor: '#FEE2E2',
-              padding: 8,
-              borderRadius: 8,
-            }}
-          >
-            <Ionicons name="trash" size={18} color="#EF4444" />
-          </AnimatedButton>
-        </View>
+        <ActionButtons
+          onView={() => navigation.navigate('PGDetails', { pgId: pg.s_no })}
+          onEdit={() => openEditModal(pg)}
+          onDelete={() => handleDelete(pg)}
+          showView={true}
+          showEdit={true}
+          showDelete={true}
+        />
       </View>
     </Card>
   );
@@ -786,44 +722,20 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
         )}
 
         {/* PG Type */}
-        <View style={{ marginBottom: 16 }}>
-          <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 6 }}>
-            PG Type <Text style={{ color: '#EF4444' }}>*</Text>
-          </Text>
-          <Text style={{ fontSize: 11, color: Theme.colors.text.secondary, marginBottom: 12 }}>
-            Type of accommodation
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            {(['COLIVING', 'MENS', 'WOMENS'] as const).map((type) => (
-              <TouchableOpacity
-                key={type}
-                onPress={() => setFormData({ ...formData, pgType: type })}
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  paddingHorizontal: 10,
-                  borderRadius: 8,
-                  borderWidth: 1.5,
-                  borderColor: formData.pgType === type ? Theme.colors.primary : '#E5E7EB',
-                  backgroundColor: formData.pgType === type ? '#EFF6FF' : 'white',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                disabled={submitting}
-              >
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: '600',
-                    color: formData.pgType === type ? Theme.colors.primary : Theme.colors.text.secondary,
-                  }}
-                >
-                  {type === 'COLIVING' ? '👥' : type === 'MENS' ? '👨' : '👩'} {type}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+        <OptionSelector
+          label="PG Type"
+          description="Type of accommodation"
+          options={[
+            { label: 'COLIVING', value: 'COLIVING', icon: '👥' },
+            { label: 'MENS', value: 'MENS', icon: '👨' },
+            { label: 'WOMENS', value: 'WOMENS', icon: '👩' },
+          ]}
+          selectedValue={formData.pgType}
+          onSelect={(value) => setFormData({ ...formData, pgType: value as 'COLIVING' | 'MENS' | 'WOMENS' })}
+          required={true}
+          disabled={submitting}
+          containerStyle={{ marginBottom: 16 }}
+        />
 
         {/* Images */}
         <View style={{ marginBottom: 16 }}>
