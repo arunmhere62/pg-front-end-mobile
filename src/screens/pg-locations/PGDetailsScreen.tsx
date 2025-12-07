@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Image,
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,23 +22,27 @@ interface PGDetailsScreenProps {
   navigation: any;
 }
 
-interface PGSummary {
-  pgLocation: {
-    id: number;
+interface PGDetails {
+  s_no: number;
+  location_name: string;
+  address: string;
+  pincode: string;
+  status: string;
+  rent_cycle_type: string;
+  rent_cycle_start: string | null;
+  rent_cycle_end: string | null;
+  pg_type: string;
+  images: string[];
+  city: {
+    s_no: number;
     name: string;
-    address: string;
-    city: string;
-    state: string;
   };
-  statistics: {
-    totalTenants: number;
-    activeTenants: number;
-    totalRooms: number;
-    occupiedRooms: number;
-    totalBeds: number;
-    occupiedBeds: number;
-    totalEmployees: number;
+  state: {
+    s_no: number;
+    name: string;
   };
+  created_at: string;
+  updated_at: string;
 }
 
 const StatCard = ({ label, value }: { label: string; value: number }) => (
@@ -57,7 +62,7 @@ export const PGDetailsScreen: React.FC<PGDetailsScreenProps> = ({ navigation }) 
 
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [pgDetails, setPgDetails] = useState<PGSummary | null>(null);
+  const [pgDetails, setPgDetails] = useState<PGDetails | null>(null);
 
   useEffect(() => {
     loadPGDetails();
@@ -66,35 +71,15 @@ export const PGDetailsScreen: React.FC<PGDetailsScreenProps> = ({ navigation }) 
   const loadPGDetails = async () => {
     setLoading(true);
     try {
-      const response = await pgLocationService.getSummary(pgId);
+      const response = await pgLocationService.getDetails(pgId);
       
       console.log('PG Details Response:', response);
       
       if (response.success && response.data) {
         console.log('PG Details Data:', response.data);
-        
-        // Transform API response to match component expectations
-        const apiData = response.data;
-        const transformedData: PGSummary = {
-          pgLocation: {
-            id: apiData.pgLocation?.id || 0,
-            name: apiData.pgLocation?.name || 'N/A',
-            address: apiData.pgLocation?.address || 'N/A',
-            city: apiData.pgLocation?.city || 'N/A',
-            state: apiData.pgLocation?.state || 'N/A',
-          },
-          statistics: {
-            totalTenants: apiData.tenants?.total || 0,
-            activeTenants: apiData.tenants?.active || 0,
-            totalRooms: apiData.rooms?.total || 0,
-            occupiedRooms: apiData.rooms?.occupied || 0,
-            totalBeds: apiData.beds?.total || 0,
-            occupiedBeds: apiData.beds?.occupied || 0,
-            totalEmployees: apiData.employees?.total || 0,
-          },
-        };
-        
-        setPgDetails(transformedData);
+        // Handle nested response structure
+        const pgData = response.data?.data || response.data;
+        setPgDetails(pgData);
       } else {
         Alert.alert('Error', 'Failed to load PG details');
       }
@@ -133,51 +118,134 @@ export const PGDetailsScreen: React.FC<PGDetailsScreenProps> = ({ navigation }) 
             contentContainerStyle={{ padding: 16, paddingBottom: 20 }}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           >
+            {/* Image Gallery */}
+            {pgDetails.images && pgDetails.images.length > 0 && (
+              <View style={{ marginBottom: 16 }}>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={true}
+                  pagingEnabled
+                  style={{ borderRadius: 12, overflow: 'hidden' }}
+                >
+                  {pgDetails.images.map((image, index) => (
+                    <Card 
+                      key={index} 
+                      style={{
+                        width: 300,
+                        height: 200,
+                        marginRight: 10,
+                        overflow: 'hidden',
+                        backgroundColor: '#fff',
+                        borderRadius: 12,
+                      }}
+                    >
+                      <Image
+                        source={{ uri: image }}
+                        style={{ 
+                          width: '100%', 
+                          height: '100%',
+                          resizeMode: 'cover',
+                          borderTopLeftRadius: 12,
+                          borderTopRightRadius: 12,
+                          borderBottomLeftRadius: 12,
+                          borderBottomRightRadius: 12,
+                        }}
+                      />
+                    </Card>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
             {/* PG Location Header */}
-            <Card style={{ padding: 16, marginBottom: 20, backgroundColor: '#fff' }}>
-              <Text style={{ fontSize: 20, fontWeight: '700', color: Theme.colors.text.primary, marginBottom: 12 }}>
-                {pgDetails.pgLocation.name}
-              </Text>
-              <View style={{ marginBottom: 10 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <Ionicons name="location" size={16} color={Theme.colors.text.secondary} style={{ marginRight: 8 }} />
-                  <Text style={{ fontSize: 13, color: Theme.colors.text.primary }}>
-                    {pgDetails.pgLocation.city}, {pgDetails.pgLocation.state}
+            <Card style={{ padding: 16, marginBottom: 16, backgroundColor: '#fff' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 20, fontWeight: '700', color: Theme.colors.text.primary, marginBottom: 4 }}>
+                    {pgDetails.location_name}
                   </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                    <View style={{
+                      backgroundColor: pgDetails.status === 'ACTIVE' ? '#DCFCE7' : '#FEE2E2',
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 4,
+                    }}>
+                      <Text style={{
+                        fontSize: 11,
+                        fontWeight: '600',
+                        color: pgDetails.status === 'ACTIVE' ? '#166534' : '#991B1B',
+                      }}>
+                        {pgDetails.status}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
+              </View>
+
+              {/* Location Info */}
+              <View style={{ marginBottom: 12 }}>
+                {pgDetails.city && pgDetails.state && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                    <Ionicons name="location" size={16} color={Theme.colors.primary} style={{ marginRight: 8 }} />
+                    <Text style={{ fontSize: 13, color: Theme.colors.text.primary, fontWeight: '500' }}>
+                      {pgDetails.city.name}, {pgDetails.state.name}
+                    </Text>
+                  </View>
+                )}
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                  <Ionicons name="home" size={16} color={Theme.colors.text.secondary} style={{ marginRight: 8, marginTop: 2 }} />
+                  <Ionicons name="home" size={16} color={Theme.colors.primary} style={{ marginRight: 8, marginTop: 2 }} />
                   <Text style={{ fontSize: 13, color: Theme.colors.text.primary, flex: 1 }}>
-                    {pgDetails.pgLocation.address}
+                    {pgDetails.address}
                   </Text>
                 </View>
+                {pgDetails.pincode && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                    <Ionicons name="pin" size={16} color={Theme.colors.primary} style={{ marginRight: 8 }} />
+                    <Text style={{ fontSize: 13, color: Theme.colors.text.primary }}>
+                      {pgDetails.pincode}
+                    </Text>
+                  </View>
+                )}
               </View>
             </Card>
 
-            {/* Statistics Grid */}
-            <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.secondary, marginBottom: 12, marginTop: 8 }}>
-              Statistics
-            </Text>
-
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-              <StatCard label="Total Tenants" value={pgDetails.statistics.totalTenants} />
-              <StatCard label="Active Tenants" value={pgDetails.statistics.activeTenants} />
-            </View>
-
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-              <StatCard label="Total Rooms" value={pgDetails.statistics.totalRooms} />
-              <StatCard label="Occupied Rooms" value={pgDetails.statistics.occupiedRooms} />
-            </View>
-
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-              <StatCard label="Total Beds" value={pgDetails.statistics.totalBeds} />
-              <StatCard label="Occupied Beds" value={pgDetails.statistics.occupiedBeds} />
-            </View>
-
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
-              <StatCard label="Total Employees" value={pgDetails.statistics.totalEmployees} />
-              <View style={{ flex: 1 }} />
-            </View>
+            {/* PG Details */}
+            <Card style={{ padding: 16, marginBottom: 16, backgroundColor: '#fff' }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 12 }}>
+                PG Information
+              </Text>
+              <View style={{ gap: 10 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+                  <Text style={{ fontSize: 13, color: Theme.colors.text.secondary }}>PG Type</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary }}>
+                    {pgDetails.pg_type === 'COLIVING' ? '👥 Co-living' : pgDetails.pg_type === 'MENS' ? '👨 Mens' : '👩 Womens'}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+                  <Text style={{ fontSize: 13, color: Theme.colors.text.secondary }}>Rent Cycle</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary }}>
+                    {pgDetails.rent_cycle_type}
+                  </Text>
+                </View>
+                {pgDetails.rent_cycle_type === 'MIDMONTH' && (
+                  <>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+                      <Text style={{ fontSize: 13, color: Theme.colors.text.secondary }}>Cycle Start</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary }}>
+                        {pgDetails.rent_cycle_start || 'N/A'}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={{ fontSize: 13, color: Theme.colors.text.secondary }}>Cycle End</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary }}>
+                        {pgDetails.rent_cycle_end || 'N/A'}
+                      </Text>
+                    </View>
+                  </>
+                )}
+              </View>
+            </Card>
 
             {/* Quick Actions */}
             <View style={{ flexDirection: 'row', gap: 10 }}>

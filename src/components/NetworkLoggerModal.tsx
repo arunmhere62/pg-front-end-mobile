@@ -61,14 +61,11 @@ export const NetworkLoggerModal: React.FC = () => {
   // Register global open function
   useEffect(() => {
     globalOpenLogger = () => {
-      console.log('🔍 globalOpenLogger called, opening modal');
       const currentLogs = networkLogger.getLogs();
       setLogs(currentLogs);
       setVisible(true);
     };
-    console.log('✅ globalOpenLogger registered');
     return () => {
-      console.log('⚠️ globalOpenLogger cleanup');
       // Don't set to null - keep it available
       // globalOpenLogger = null;
     };
@@ -94,14 +91,12 @@ export const NetworkLoggerModal: React.FC = () => {
         const { status } = await Accelerometer.requestPermissionsAsync();
         
         if (status !== 'granted') {
-          console.log('Accelerometer permission not granted');
           return;
         }
 
         const isAvailable = await Accelerometer.isAvailableAsync();
         
         if (!isAvailable) {
-          console.log('Accelerometer not available on this device');
           return;
         }
 
@@ -113,19 +108,16 @@ export const NetworkLoggerModal: React.FC = () => {
 
           const acceleration = Math.sqrt(x * x + y * y + z * z);
           
-          // Only log when shake is detected (not every frame)
+          // Only trigger when shake is detected (not every frame)
           if (acceleration > SHAKE_THRESHOLD) {
             lastUpdate = currentTime;
-            console.log('✅ Shake detected! Acceleration:', acceleration.toFixed(2));
             const currentLogs = networkLogger.getLogs();
             setLogs(currentLogs);
             setVisible(true);
           }
         });
-
-        console.log('📱 Network Logger: Shake to open (threshold:', SHAKE_THRESHOLD, ')');
       } catch (error) {
-        console.error('Error setting up accelerometer:', error);
+        // Accelerometer setup failed silently
       }
     };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, Alert, TouchableOpacity, ScrollView } from 'react-native';
 import { Theme } from '../../theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { verifyOtp, resendOtp } from '../../store/slices/authSlice';
@@ -7,9 +7,11 @@ import { AppDispatch, RootState } from '../../store';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { OTPInput } from '../../components/OTPInput';
-import { KeyboardAvoidingWrapper } from '../../components/KeyboardAvoidingWrapper';
+import { ScreenLayout } from '../../components/ScreenLayout';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import notificationService from '../../services/notifications/notificationService';
 import { FEATURES } from '../../config/env.config';
+import { CONTENT_COLOR } from '@/constant';
 
 interface OTPVerificationScreenProps {
   navigation: any;
@@ -93,115 +95,93 @@ export const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ na
   };
 
   return (
-    <KeyboardAvoidingWrapper
-      style={{ backgroundColor: Theme.colors.background.primary }}
-      contentContainerStyle={{ 
-        justifyContent: 'center', 
-        padding: Theme.spacing.lg,
-        paddingBottom: Theme.spacing.xxxl 
-      }}
-    >
-      <View style={{ position: 'absolute', top: Theme.spacing.lg, left: Theme.spacing.lg, zIndex: 10 }}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={{ fontSize: 28, color: Theme.colors.primary }}>←</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <View style={{ marginBottom: Theme.spacing.xl }}>
-        <Text style={{ 
-          fontSize: Theme.typography.fontSize['3xl'], 
-          fontWeight: Theme.typography.fontWeight.bold, 
-          color: Theme.colors.primary, 
-          textAlign: 'center', 
-          marginBottom: Theme.spacing.sm 
-        }}>
-          Verify OTP
-        </Text>
-        <Text style={{ 
-          fontSize: Theme.typography.fontSize.base, 
-          color: Theme.colors.text.secondary, 
-          textAlign: 'center' 
-        }}>
-          Enter the 4-digit code sent to
-        </Text>
-        <Text style={{ 
-          fontSize: Theme.typography.fontSize.base, 
-          fontWeight: Theme.typography.fontWeight.semibold, 
-          color: Theme.colors.text.primary, 
-          textAlign: 'center' 
-        }}>
-          {phone}
-        </Text>
-      </View>
-
-      <Card className='shadow-none' style={{ padding: Theme.spacing.lg, marginBottom: Theme.spacing.lg }}>
-        <Text style={{
-          fontSize: Theme.typography.fontSize.base,
-          fontWeight: Theme.typography.fontWeight.semibold,
-          color: Theme.colors.text.primary,
-          marginBottom: Theme.spacing.md,
-          textAlign: 'center',
-        }}>
-          Enter OTP
-        </Text>
-
-        <OTPInput
-          length={4}
-          value={otp}
-          onChangeText={(text) => {
-            setOtp(text);
-            setOtpError('');
-          }}
-          error={!!otpError}
-        />
-
-        {otpError ? (
+    <ScreenLayout contentBackgroundColor={CONTENT_COLOR}>
+      <ScreenHeader
+        title="Verify OTP"
+        subtitle={`Enter the 4-digit code sent to ${phone}`}
+        showBackButton={true}
+        onBackPress={() => navigation.goBack()}
+        backgroundColor={Theme.colors.background.blue}
+        syncMobileHeaderBg={true}
+      />
+      <ScrollView 
+        contentContainerStyle={{ 
+          flexGrow: 1,
+          justifyContent: 'center', 
+          padding: Theme.spacing.lg,
+          paddingBottom: Theme.spacing.xxxl 
+        }}
+        style={{ backgroundColor: CONTENT_COLOR }}
+      >
+        <Card style={{ padding: Theme.spacing.lg, marginBottom: Theme.spacing.lg }}>
           <Text style={{
-            color: Theme.colors.danger,
-            fontSize: Theme.typography.fontSize.sm,
-            marginTop: Theme.spacing.sm,
+            fontSize: Theme.typography.fontSize.base,
+            fontWeight: Theme.typography.fontWeight.semibold,
+            color: Theme.colors.text.primary,
+            marginBottom: Theme.spacing.md,
             textAlign: 'center',
           }}>
-            {otpError}
+            Enter OTP
           </Text>
-        ) : null}
 
-        <View style={{ marginTop: Theme.spacing.lg }}>
-          <Button
-            title="Verify OTP"
-            onPress={handleVerifyOtp}
-            loading={loading}
-            variant="primary"
-            size="lg"
+          <OTPInput
+            length={4}
+            value={otp}
+            onChangeText={(text) => {
+              setOtp(text);
+              setOtpError('');
+            }}
+            error={!!otpError}
           />
-        </View>
 
-        <View style={{ marginTop: Theme.spacing.lg, alignItems: 'center' }}>
-          {canResend ? (
-            <TouchableOpacity onPress={handleResendOtp}>
-              <Text style={{ 
-                color: Theme.colors.primary, 
-                fontWeight: Theme.typography.fontWeight.semibold 
-              }}>
-                Resend OTP
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <Text style={{ color: Theme.colors.text.secondary }}>
-              Resend OTP in {resendTimer}s
+          {otpError ? (
+            <Text style={{
+              color: Theme.colors.danger,
+              fontSize: Theme.typography.fontSize.sm,
+              marginTop: Theme.spacing.sm,
+              textAlign: 'center',
+            }}>
+              {otpError}
             </Text>
-          )}
-        </View>
+          ) : null}
 
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={{ marginTop: Theme.spacing.md }}
-        >
-          <Text style={{ color: Theme.colors.text.secondary, textAlign: 'center' }}>
-            Change Phone Number
-          </Text>
-        </TouchableOpacity>
-      </Card>
-    </KeyboardAvoidingWrapper>
+          <View style={{ marginTop: Theme.spacing.lg }}>
+            <Button
+              title="Verify OTP"
+              onPress={handleVerifyOtp}
+              loading={loading}
+              variant="primary"
+              size="lg"
+            />
+          </View>
+
+          <View style={{ marginTop: Theme.spacing.lg, alignItems: 'center' }}>
+            {canResend ? (
+              <TouchableOpacity onPress={handleResendOtp}>
+                <Text style={{ 
+                  color: Theme.colors.primary, 
+                  fontWeight: Theme.typography.fontWeight.semibold 
+                }}>
+                  Resend OTP
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={{ color: Theme.colors.text.secondary }}>
+                Resend OTP in {resendTimer}s
+              </Text>
+            )}
+          </View>
+
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{ marginTop: Theme.spacing.md }}
+          >
+            <Text style={{ color: Theme.colors.text.secondary, textAlign: 'center' }}>
+              Change Phone Number
+            </Text>
+          </TouchableOpacity>
+        </Card>
+      </ScrollView>
+    </ScreenLayout>
   );
 };

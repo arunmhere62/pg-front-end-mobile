@@ -14,7 +14,7 @@ const { createBottomTabNavigator } = require('@react-navigation/bottom-tabs');
 // Auth Screens
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { OTPVerificationScreen } from '../screens/auth/OTPVerificationScreen';
-import { SignupScreen } from '../screens/auth/SignupScreen';
+import { SignupScreenNew } from '../screens/auth/SignupScreenNew';
 
 // Main Screens
 import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
@@ -44,7 +44,6 @@ import { SubscriptionPlansScreen } from '@/screens/subscription/SubscriptionPlan
 import { SubscriptionHistoryScreen } from '@/screens/subscription/SubscriptionHistoryScreen';
 import { PaymentOptionsScreen } from '@/screens/subscription/PaymentOptionsScreen';
 import { PaymentWebViewScreen } from '@/screens/subscription/PaymentWebViewScreen';
-import { NetworkLoggerModal } from '../components/NetworkLoggerModal';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -146,7 +145,7 @@ export const AppNavigator = () => {
         {!isAuthenticated ? (
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="Signup" component={SignupScreenNew} />
             <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
           </>
         ) : (
@@ -177,7 +176,6 @@ export const AppNavigator = () => {
           </>
         )}
       </Stack.Navigator>
-      <NetworkLoggerModal />
     </NavigationContainer>
   );
 };

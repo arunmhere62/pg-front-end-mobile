@@ -90,6 +90,12 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     closeModal();
   };
 
+  const handleClearSelection = () => {
+    setSearchQuery('');
+    onSelect({ id: 0, label: '', value: null });
+    closeModal();
+  };
+
   const renderItem = ({ item }: { item: DropdownItem }) => {
     const isSelected = item.id === selectedValue;
     return (
@@ -124,33 +130,55 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       </Text>
 
       {/* Dropdown Button */}
-      <TouchableOpacity
-        style={[
-          styles.dropdownButton,
-          error && styles.dropdownButtonError,
-          disabled && styles.dropdownButtonDisabled,
-        ]}
-        onPress={openModal}
-        disabled={disabled || loading}
-        activeOpacity={0.7}
-      >
-        {loading ? (
-          <ActivityIndicator size="small" color={Theme.colors.primary} />
-        ) : (
-          <>
-            <Text
-              style={[
-                styles.dropdownButtonText,
-                !selectedItem && styles.placeholderText,
-              ]}
-              numberOfLines={1}
-            >
-              {selectedItem ? selectedItem.label : placeholder}
-            </Text>
-            <Text style={styles.dropdownIcon}>▼</Text>
-          </>
+      <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+        <TouchableOpacity
+          style={[
+            styles.dropdownButton,
+            error && styles.dropdownButtonError,
+            disabled && styles.dropdownButtonDisabled,
+            { flex: 1 },
+          ]}
+          onPress={openModal}
+          disabled={disabled || loading}
+          activeOpacity={0.7}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={Theme.colors.primary} />
+          ) : (
+            <>
+              <Text
+                style={[
+                  styles.dropdownButtonText,
+                  !selectedItem && styles.placeholderText,
+                ]}
+                numberOfLines={1}
+              >
+                {selectedItem ? selectedItem.label : placeholder}
+              </Text>
+              <Text style={styles.dropdownIcon}>▼</Text>
+            </>
+          )}
+        </TouchableOpacity>
+        {selectedItem && (
+          <TouchableOpacity
+            onPress={() => {
+              onSelect({ id: 0, label: '', value: null });
+            }}
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 12,
+              backgroundColor: '#FEE2E2',
+              borderWidth: 1,
+              borderColor: '#FECACA',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ fontSize: 20, color: '#DC2626', fontWeight: '700' }}>✕</Text>
+          </TouchableOpacity>
         )}
-      </TouchableOpacity>
+      </View>
 
       {/* Error Message */}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -179,9 +207,16 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
             {/* Modal Header */}
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{label}</Text>
-              <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {selectedValue && (
+                  <TouchableOpacity onPress={handleClearSelection} style={styles.clearSelectionButton}>
+                    <Text style={styles.clearSelectionButtonText}>Clear</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
+                  <Text style={styles.closeButtonText}>✕</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Search Input */}
@@ -249,15 +284,15 @@ const styles = StyleSheet.create({
   },
   dropdownButton: {
     backgroundColor: 'white',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderWidth: 1,
     borderColor: '#E5E7EB',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 42,
+    minHeight: 48,
   },
   dropdownButtonError: {
     borderColor: '#EF4444',
@@ -334,6 +369,21 @@ const styles = StyleSheet.create({
   closeButtonText: {
     fontSize: 18,
     color: Theme.colors.text.secondary,
+    fontWeight: '600',
+  },
+  clearSelectionButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clearSelectionButtonText: {
+    fontSize: 13,
+    color: '#DC2626',
     fontWeight: '600',
   },
   searchContainer: {

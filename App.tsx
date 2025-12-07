@@ -3,7 +3,7 @@ import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { store, persistor } from './src/store';
-import { ActivityIndicator, View, StatusBar, Text, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, View, StatusBar, Text, TouchableOpacity, Platform } from 'react-native';
 import { NetworkLoggerModal } from './src/components/NetworkLoggerModal';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { NetworkStatusProvider } from './src/providers/NetworkStatusProvider';
@@ -96,10 +96,18 @@ export default function App() {
 function AppContent() {
   const { error, clearError } = useError();
 
+  // Set default status bar configuration
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      StatusBar.setBackgroundColor(Theme.colors.background.primary, true);
+      StatusBar.setTranslucent(false);
+    }
+    StatusBar.setBarStyle('dark-content', true);
+  }, []);
+
   return (
     <NetworkStatusProvider>
       <ErrorAlert error={error} onDismiss={clearError} />
-      <StatusBar translucent backgroundColor="transparent" />
       <AppNavigator />
       <NetworkLoggerModal />
     </NetworkStatusProvider>

@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
-import { View, Text, Alert } from 'react-native';
+import { View, Text, Alert, KeyboardAvoidingView, TouchableOpacity } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
+import { Theme } from '../../theme';
 import { sendOtp } from '../../store/slices/authSlice';
-import { AppDispatch, RootState } from '../../store';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
-import { KeyboardAvoidingWrapper } from '../../components/KeyboardAvoidingWrapper';
-import { Theme } from '../../theme';
+import { CountryPhoneSelector } from '../../components/CountryPhoneSelector';
+import { RootState, AppDispatch } from '../../store';
+
+interface Country {
+  code: string;
+  name: string;
+  flag: string;
+  phoneCode: string;
+  phoneLength: number;
+}
 
 interface LoginScreenProps {
   navigation: any;
@@ -16,6 +25,13 @@ interface LoginScreenProps {
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [phone, setPhone] = useState('');
   const [phoneError, setPhoneError] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState<Country>({
+    code: 'IN',
+    name: 'India',
+    flag: '🇮🇳',
+    phoneCode: '+91',
+    phoneLength: 10,
+  });
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.auth);
 
@@ -39,22 +55,26 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     }
 
     try {
-      await dispatch(sendOtp(phone)).unwrap();
+      // Send phone with country code
+      const fullPhone = selectedCountry.phoneCode + phone;
+      await dispatch(sendOtp(fullPhone)).unwrap();
       Alert.alert('Success', 'OTP sent successfully to your phone number');
-      navigation.navigate('OTPVerification', { phone });
+      navigation.navigate('OTPVerification', { phone: fullPhone });
     } catch (err: any) {
       Alert.alert('Error', err || 'Failed to send OTP');
     }
   };
 
   return (
-    <KeyboardAvoidingWrapper
-      style={{ backgroundColor: Theme.colors.background.primary }}
-      contentContainerStyle={{ 
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: Theme.colors.background.primary }}
+      behavior="padding"
+    >
+      <View style={{ 
+        flex: 1,
         justifyContent: 'center', 
         padding: Theme.spacing.lg 
-      }}
-    >
+      }}>
       <View style={{ marginBottom: Theme.spacing.xl }}>
         <Text style={{ 
           fontSize: Theme.typography.fontSize['4xl'], 
@@ -77,18 +97,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       <Card className="mb-6 shadow-none">
         <Text className="text-2xl font-semibold text-dark mb-6">Login</Text>
         
-        <Input
-          label="Phone Number"
-          placeholder="Enter your 10-digit phone number"
-          value={phone}
-          onChangeText={(text) => {
+        {/* Country + Phone in Single Row */}
+        <CountryPhoneSelector
+          selectedCountry={selectedCountry}
+          onSelectCountry={setSelectedCountry}
+          size="large"
+          phoneValue={phone}
+          onPhoneChange={(text) => {
             setPhone(text);
             setPhoneError('');
           }}
-          keyboardType="phone-pad"
-          maxLength={10}
-          error={phoneError}
         />
+
+        {/* Error Message */}
+        {phoneError && (
+          <Text style={{ fontSize: 12, color: '#EF4444', marginBottom: 12, marginLeft: 4 }}>
+            {phoneError}
+          </Text>
+        )}
 
         <Button
           title="Send OTP"
@@ -116,6 +142,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           />
         </View>
       </Card>
-    </KeyboardAvoidingWrapper>
+      </View>
+    </KeyboardAvoidingView>
   );
 };

@@ -5,9 +5,9 @@ import { Theme } from '../theme';
 
 interface ScreenLayoutProps {
   children: React.ReactNode;
-  /** Background color for the entire screen (status bar area) */
+  /** Background color for the SafeAreaView */
   backgroundColor?: string;
-  /** Background color for the content area (optional, if different from main bg) */
+  /** Background color for the content area */
   contentBackgroundColor?: string;
   style?: ViewStyle;
 }
@@ -15,21 +15,17 @@ interface ScreenLayoutProps {
 export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   children,
   backgroundColor = Theme.colors.background.primary,
-  contentBackgroundColor,
+  contentBackgroundColor = Theme.colors.background.primary,
   style,
 }) => {
-  // Set status bar background color to match screen (Android only)
-  useEffect(() => {
-    if (Platform.OS === 'android') {
-      StatusBar.setBackgroundColor(backgroundColor, true);
-    }
-  }, [backgroundColor]);
-
   return (
-    <View style={{ flex: 1, backgroundColor  }}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: backgroundColor, }} edges={['top']}>
+    <SafeAreaView 
+      style={{ flex: 1,  }} 
+      edges={['left', 'right', ]}
+    >
+      <View style={{ flex: 1, backgroundColor: contentBackgroundColor }}>
         {children}
-      </SafeAreaView>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 };

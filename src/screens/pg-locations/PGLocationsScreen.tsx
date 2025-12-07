@@ -69,6 +69,10 @@ interface FormData {
   stateId: number | null;
   cityId: number | null;
   images: string[];
+  rentCycleStart: number | null;
+  rentCycleEnd: number | null;
+  rentCycleType: 'CALENDAR' | 'MIDMONTH';
+  pgType: 'COLIVING' | 'MENS' | 'WOMENS';
 }
 
 export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation }) => {
@@ -90,6 +94,10 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
     stateId: null,
     cityId: null,
     images: [],
+    rentCycleStart: null,
+    rentCycleEnd: null,
+    rentCycleType: 'CALENDAR',
+    pgType: 'COLIVING',
   });
 
   // Dropdown data
@@ -208,6 +216,10 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
       stateId: null,
       cityId: null,
       images: [],
+      rentCycleStart: null,
+      rentCycleEnd: null,
+      rentCycleType: 'CALENDAR',
+      pgType: 'COLIVING',
     });
     setCities([]);
     setModalVisible(true);
@@ -223,6 +235,10 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
       stateId: pg.state_id || null,
       cityId: pg.city_id || null,
       images: pg.images || [],
+      rentCycleStart: (pg as any).rent_cycle_start || null,
+      rentCycleEnd: (pg as any).rent_cycle_end || null,
+      rentCycleType: ((pg as any).rent_cycle_type || 'CALENDAR') as 'CALENDAR' | 'MIDMONTH',
+      pgType: ((pg as any).pg_type || 'COLIVING') as 'COLIVING' | 'MENS' | 'WOMENS',
     });
     
     // Load cities for the selected state
@@ -242,6 +258,10 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
       stateId: null,
       cityId: null,
       images: [],
+      rentCycleStart: null,
+      rentCycleEnd: null,
+      rentCycleType: 'CALENDAR',
+      pgType: 'COLIVING',
     });
     setCities([]);
   };
@@ -277,11 +297,23 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
         stateId: formData.stateId!,
         cityId: formData.cityId!,
         images: formData.images,
+        rentCycleType: formData.rentCycleType,
+        pgType: formData.pgType,
       };
 
       // Only include pincode if it has a value
       if (formData.pincode && formData.pincode.trim()) {
         payload.pincode = formData.pincode.trim();
+      }
+
+      // Only include rent cycle dates if rent cycle type is MIDMONTH
+      if (formData.rentCycleType === 'MIDMONTH') {
+        if (formData.rentCycleStart !== null) {
+          payload.rentCycleStart = formData.rentCycleStart;
+        }
+        if (formData.rentCycleEnd !== null) {
+          payload.rentCycleEnd = formData.rentCycleEnd;
+        }
       }
 
       if (editMode && selectedPG) {
@@ -597,7 +629,13 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
               value: state.iso_code,
             }))}
             selectedValue={formData.stateId}
-            onSelect={(item) => handleStateChange(item.id)}
+            onSelect={(item) => {
+              if (item.id === 0 || !item.id) {
+                setFormData({ ...formData, stateId: null, cityId: null });
+              } else {
+                handleStateChange(item.id);
+              }
+            }}
             loading={loadingStates}
             required
           />
@@ -615,7 +653,13 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
                 value: city.s_no,
               }))}
               selectedValue={formData.cityId}
-              onSelect={(item) => setFormData({ ...formData, cityId: item.id })}
+              onSelect={(item) => {
+                if (item.id === 0 || !item.id) {
+                  setFormData({ ...formData, cityId: null });
+                } else {
+                  setFormData({ ...formData, cityId: item.id });
+                }
+              }}
               loading={loadingCities}
               required
             />
@@ -642,6 +686,143 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
             keyboardType="numeric"
             editable={!submitting}
           />
+        </View>
+
+        {/* Rent Cycle Type Selection */}
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 6 }}>
+            Rent Cycle Type <Text style={{ color: '#EF4444' }}>*</Text>
+          </Text>
+          <Text style={{ fontSize: 11, color: Theme.colors.text.secondary, marginBottom: 12 }}>
+            Select how your PG's rent cycle works. This determines when rent is due each month.
+          </Text>
+
+          {/* Calendar Month Cycle Option */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={{
+              backgroundColor: formData.rentCycleType === 'CALENDAR' ? '#EFF6FF' : 'white',
+              borderRadius: 8,
+              padding: 12,
+              marginBottom: 10,
+              borderWidth: 2,
+              borderColor: formData.rentCycleType === 'CALENDAR' ? Theme.colors.primary : '#E5E7EB',
+            }}
+            onPress={() => setFormData(prev => ({
+              ...prev,
+              rentCycleType: 'CALENDAR',
+              rentCycleStart: 1,
+              rentCycleEnd: 30,
+            }))}
+            disabled={submitting}
+          >
+            <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 4 }}>
+              📅 Calendar Month Cycle (Most Common)
+            </Text>
+            <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, marginBottom: 6 }}>
+              Rent Period: 1st to 30th/31st of every month
+            </Text>
+            <Text style={{ fontSize: 11, color: Theme.colors.text.secondary }}>
+              Example: Jan 1 - Jan 31, Feb 1 - Feb 28, etc. Rent due on 1st of next month.
+            </Text>
+          </TouchableOpacity>
+
+          {/* Mid-Month Cycle Option */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={{
+              backgroundColor: formData.rentCycleType === 'MIDMONTH' ? '#EFF6FF' : 'white',
+              borderRadius: 8,
+              padding: 12,
+              borderWidth: 2,
+              borderColor: formData.rentCycleType === 'MIDMONTH' ? Theme.colors.primary : '#E5E7EB',
+            }}
+            onPress={() => setFormData(prev => ({
+              ...prev,
+              rentCycleType: 'MIDMONTH',
+              rentCycleStart: 1,
+              rentCycleEnd: 30,
+            }))}
+            disabled={submitting}
+          >
+            <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 4 }}>
+              🔄 Custom Cycle (Mid-Month)
+            </Text>
+            <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, marginBottom: 6 }}>
+              Rent Period: Custom dates (e.g., 10th to 9th of next month)
+            </Text>
+            <Text style={{ fontSize: 11, color: Theme.colors.text.secondary }}>
+              Example: If tenant checks in on 10th, rent cycle is 10th to 9th every month.
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Conditional Info Box for MIDMONTH */}
+        {formData.rentCycleType === 'MIDMONTH' && (
+          <View style={{ marginBottom: 16, backgroundColor: '#F0F9FF', borderLeftWidth: 4, borderLeftColor: Theme.colors.primary, borderRadius: 8, padding: 12 }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 8 }}>
+              ℹ️ How Mid-Month Cycle Works
+            </Text>
+            <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, lineHeight: 18, marginBottom: 8 }}>
+              The rent cycle will be automatically set based on each tenant's check-in date.
+            </Text>
+            <Text style={{ fontSize: 12, color: Theme.colors.text.secondary, lineHeight: 18, marginBottom: 8 }}>
+              <Text style={{ fontWeight: '600' }}>Example:</Text> If a tenant checks in on the 23rd, their rent cycle will be:
+            </Text>
+            <View style={{ backgroundColor: 'white', borderRadius: 6, padding: 10, marginBottom: 8 }}>
+              <Text style={{ fontSize: 11, color: Theme.colors.text.primary, marginBottom: 4 }}>
+                • <Text style={{ fontWeight: '600' }}>Start Date:</Text> 23rd of every month
+              </Text>
+              <Text style={{ fontSize: 11, color: Theme.colors.text.primary }}>
+                • <Text style={{ fontWeight: '600' }}>End Date:</Text> 22nd of next month
+              </Text>
+            </View>
+            <Text style={{ fontSize: 11, color: Theme.colors.text.secondary, fontStyle: 'italic' }}>
+              No manual configuration needed - the system will handle this automatically for each tenant.
+            </Text>
+          </View>
+        )}
+
+        {/* PG Type */}
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 6 }}>
+            PG Type <Text style={{ color: '#EF4444' }}>*</Text>
+          </Text>
+          <Text style={{ fontSize: 11, color: Theme.colors.text.secondary, marginBottom: 12 }}>
+            Type of accommodation
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {(['COLIVING', 'MENS', 'WOMENS'] as const).map((type) => (
+              <TouchableOpacity
+                key={type}
+                onPress={() => setFormData({ ...formData, pgType: type })}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  paddingHorizontal: 10,
+                  borderRadius: 8,
+                  borderWidth: 1.5,
+                  borderColor: formData.pgType === type ? Theme.colors.primary : '#E5E7EB',
+                  backgroundColor: formData.pgType === type ? '#EFF6FF' : 'white',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                disabled={submitting}
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: '600',
+                    color: formData.pgType === type ? Theme.colors.primary : Theme.colors.text.secondary,
+                  }}
+                >
+                  {type === 'COLIVING' ? '👥' : type === 'MENS' ? '👨' : '👩'} {type}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* Images */}

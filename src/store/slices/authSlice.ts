@@ -30,7 +30,9 @@ export const verifyOtp = createAsyncThunk(
       const response = await authService.verifyOtp(phone, otp);
       return response;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to verify OTP');
+      // Handle both Error objects and axios error responses
+      const errorMessage = error.message || error.response?.data?.message || 'Failed to verify OTP';
+      return rejectWithValue(errorMessage);
     }
   }
 );

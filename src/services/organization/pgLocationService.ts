@@ -3,6 +3,12 @@ import { API_ENDPOINTS } from '../../config/api.config';
 import { PGLocation } from '../../types';
 import { extractResponseData, isApiResponseSuccess } from '../../utils/apiResponseHandler';
 
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message: string;
+}
+
 export const pgLocationService = {
   getPGLocations: async () => {
     // Add timestamp to prevent caching
@@ -44,9 +50,21 @@ export const pgLocationService = {
     };
   },
 
+  getDetails: async (pgId: number): Promise<ApiResponse<any>> => {
+    const response = await axiosInstance.get(
+      API_ENDPOINTS.PG_LOCATIONS.DETAILS(pgId)
+    );
+    
+    return {
+      success: isApiResponseSuccess(response.data),
+      data: extractResponseData(response.data),
+      message: response.data?.message || 'Success',
+    };
+  },
+
   getSummary: async (pgId: number) => {
     const response = await axiosInstance.get(
-      `${API_ENDPOINTS.PG_LOCATIONS.BASE}/${pgId}/summary?_t=${Date.now()}`
+      API_ENDPOINTS.PG_LOCATIONS.SUMMARY(pgId)
     );
     
     // Extract the nested data structure

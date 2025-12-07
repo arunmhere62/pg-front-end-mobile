@@ -73,7 +73,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
     StatusBar.setBarStyle(style === 'light' ? 'light-content' : 'dark-content', true);
     
     // Set notification bar background color (Android only)
-    // Priority: notificationBarColor > syncMobileHeaderBg > ScreenLayout default
+    // Priority: notificationBarColor > syncMobileHeaderBg > default
     if (Platform.OS === 'android') {
       if (notificationBarColor) {
         StatusBar.setBackgroundColor(notificationBarColor, true);
@@ -84,7 +84,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   }, [backgroundColor, statusBarStyle, syncMobileHeaderBg, notificationBarColor]);
 
   return (
-    <View style={{ backgroundColor, padding: 8, paddingTop: 0, paddingBottom: 14 }}>
+    <View style={{ backgroundColor, padding: 14, paddingTop: 60, paddingBottom: 14 }}>
       <View style={{ marginBottom: (children || showPGSelector) ? 4 : 0 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {/* Back Button */}

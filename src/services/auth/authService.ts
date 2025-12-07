@@ -10,10 +10,16 @@ export const authService = {
   },
 
   verifyOtp: async (phone: string, otp: string) => {
-    const response = await axiosInstance.post(API_ENDPOINTS.AUTH.VERIFY_OTP, { phone, otp });
-    // API response format: { success, statusCode, message, data: { user, access_token, refresh_token, ... }, timestamp, path }
-    // Extract the inner data object which contains user, tokens, etc.
-    return response.data.data || response.data;
+    try {
+      const response = await axiosInstance.post(API_ENDPOINTS.AUTH.VERIFY_OTP, { phone, otp });
+      // API response format: { success, statusCode, message, data: { user, access_token, refresh_token, ... }, timestamp, path }
+      // Extract the inner data object which contains user, tokens, etc.
+      return response.data.data || response.data;
+    } catch (error: any) {
+      // Handle error responses properly
+      const errorMessage = error.response?.data?.message || 'Failed to verify OTP';
+      throw new Error(errorMessage);
+    }
   },
 
   resendOtp: async (phone: string) => {

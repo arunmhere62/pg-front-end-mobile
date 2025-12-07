@@ -28,6 +28,8 @@ export const API_ENDPOINTS = {
     CREATE: '/pg-locations',
     UPDATE: (id: number) => `/pg-locations/${id}`,
     DELETE: (id: number) => `/pg-locations/${id}`,
+    DETAILS: (id: number) => `/pg-locations/${id}/details`,
+    SUMMARY: (id: number) => `/pg-locations/${id}/summary`,
     FINANCIAL_ANALYTICS: (id: number, months?: number) => 
       `/pg-locations/${id}/financial-analytics${months ? `?months=${months}` : ''}`,
     TENANT_RENT_STATUS: (id: number) => `/pg-locations/${id}/tenant-rent-status`,
