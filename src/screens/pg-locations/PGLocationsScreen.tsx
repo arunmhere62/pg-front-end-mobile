@@ -307,11 +307,7 @@ export const PGLocationsScreen: React.FC<PGLocationsScreenProps> = ({ navigation
         }
       }
     } catch (error: any) {
-      console.error('PG Location save error:', error);
-      const errorMessage = error.response?.data?.message 
-        || error.message 
-        || 'Failed to save PG location';
-      Alert.alert('Error', errorMessage);
+       showErrorAlert(error, 'Update Error');
     } finally {
       setSubmitting(false);
     }

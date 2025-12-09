@@ -1,9 +1,9 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
-import { Card } from '../../../components/Card';
-import { Theme } from '../../../theme';
-import { Tenant } from '../../../services/tenants/tenantService';
-import { AnimatedPressableCard } from '../../../components/AnimatedPressableCard';
+import React from "react";
+import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Tenant } from "../../../services/tenants/tenantService";
+import { AnimatedPressableCard } from "../../../components/AnimatedPressableCard";
+import { ActionButtons } from "../../../components/ActionButtons";
 
 interface TenantHeaderProps {
   tenant: Tenant;
@@ -28,304 +28,275 @@ export const TenantHeader: React.FC<TenantHeaderProps> = ({
   onAddRefund,
   onAddCurrentBill,
 }) => {
-  // Defensive checks for tenant data
-  if (!tenant || !tenant.name) {
-    return (
-      <Card style={{ marginHorizontal: 16, marginVertical: 12, paddingHorizontal: 16, paddingVertical: 16 }}>
-        <Text style={{ color: Theme.colors.text.secondary, textAlign: 'center' }}>
-          Loading tenant information...
-        </Text>
-      </Card>
-    );
-  }
-
   const tenantImage =
-    tenant.images && Array.isArray(tenant.images) && tenant.images.length > 0
-      ? tenant.images[0]
-      : null;
+    tenant.images && tenant.images.length > 0 ? tenant.images[0] : null;
 
   return (
-    <Card style={{ marginHorizontal: 16, marginVertical: 12, paddingHorizontal: 16, paddingVertical: 16, position: 'relative' }}>
-      {/* Edit Button - Top Right Corner with Animation */}
-      <AnimatedPressableCard
-        onPress={onEdit}
-        scaleValue={0.95}
-        duration={100}
-        style={{
-          position: 'absolute',
-          top: 12,
-          right: 12,
-          zIndex: 10,
-          paddingHorizontal: 14,
-          paddingVertical: 8,
-          backgroundColor: Theme.colors.primary,
-          borderRadius: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.15,
-          shadowRadius: 4,
-          elevation: 3,
-        }}
-      >
-        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Edit</Text>
-      </AnimatedPressableCard>
+    <View style={styles.card}>
+      {/* Edit button */}
+      <View style={styles.editButton}>
+        <ActionButtons
+          onEdit={onEdit}
+          showView={false}
+          showDelete={false}
+          containerStyle={{ backgroundColor: "transparent", padding: 0 }}
+        />
+      </View>
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-        {/* Tenant Image/Avatar */}
-        <View
-          style={{
-            width: 80,
-            height: 80,
-            borderRadius: 40,
-            backgroundColor: Theme.colors.primary,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: 16,
-            overflow: 'hidden',
-          }}
-        >
-          {tenantImage ? (
-            <Image
-              source={{ uri: tenantImage }}
-              style={{ width: 80, height: 80 }}
-              resizeMode="cover"
-            />
-          ) : (
-            <Text style={{ color: '#fff', fontSize: 32, fontWeight: 'bold' }}>
-              {tenant.name?.charAt(0)?.toUpperCase() || '?'}
-            </Text>
-          )}
-        </View>
-
-        {/* Name and Status */}
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{
-              fontSize: 22,
-              fontWeight: 'bold',
-              color: Theme.colors.text.primary,
-              marginBottom: 4,
-            }}
-          >
-            {tenant.name || 'N/A'}
+      {/* Profile Image */}
+      <View style={styles.avatarWrapper}>
+        {tenantImage ? (
+          <Image
+            source={{ uri: tenantImage }}
+            style={styles.avatar}
+            resizeMode="cover"
+          />
+        ) : (
+          <Text style={styles.avatarFallback}>
+            {tenant.name?.charAt(0)?.toUpperCase()}
           </Text>
-          <View
-            style={{
-              alignSelf: 'flex-start',
-              paddingHorizontal: 12,
-              paddingVertical: 4,
-              borderRadius: 12,
-              backgroundColor:
-                tenant.status === 'ACTIVE' ? '#10B98120' : '#EF444420',
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: '600',
-                color: tenant.status === 'ACTIVE' ? '#10B981' : '#EF4444',
-              }}
-            >
-              {tenant.status || 'UNKNOWN'}
-            </Text>
-          </View>
-        </View>
+        )}
       </View>
 
-      {/* Contact Actions */}
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        {tenant.phone_no && (
+      {/* Name */}
+      <Text style={styles.name}>{tenant.name}</Text>
+
+      {/* Status Badge */}
+      <View
+        style={[
+          styles.statusBadge,
+          tenant.status === "ACTIVE"
+            ? styles.statusActive
+            : styles.statusInactive,
+        ]}
+      >
+        <Text
+          style={[
+            styles.statusText,
+            tenant.status === "ACTIVE"
+              ? { color: "#16A34A" }
+              : { color: "#DC2626" },
+          ]}
+        >
+          {tenant.status}
+        </Text>
+      </View>
+
+      {/* Contact Buttons */}
+      <View style={styles.contactRow}>
+        {!!tenant.phone_no && (
           <AnimatedPressableCard
-            onPress={() => onCall(tenant.phone_no!)}
-            scaleValue={0.96}
+            onPress={() => onCall(tenant.phone_no || '')}
+            scaleValue={0.95}
             duration={100}
-            style={{ flex: 1 }}
+            style={styles.contactButton}
           >
-            <View
-              style={{
-                paddingVertical: 12,
-                backgroundColor: Theme.colors.primary,
-                borderRadius: 8,
-                alignItems: 'center',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.12,
-                shadowRadius: 3,
-                elevation: 2,
-              }}
-            >
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>📞 Call</Text>
-            </View>
+            <Ionicons name="call" size={16} color="#333" />
+            <Text style={styles.contactText}>Call</Text>
           </AnimatedPressableCard>
         )}
-        {tenant.whatsapp_number && (
+
+        {!!tenant.whatsapp_number && (
           <AnimatedPressableCard
-            onPress={() => onWhatsApp(tenant.whatsapp_number!)}
-            scaleValue={0.96}
+            onPress={() => onWhatsApp(tenant.whatsapp_number || '')}
+            scaleValue={0.95}
             duration={100}
-            style={{ flex: 1 }}
+            style={styles.contactButton}
           >
-            <View
-              style={{
-                paddingVertical: 12,
-                backgroundColor: Theme.colors.secondary,
-                borderRadius: 8,
-                alignItems: 'center',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.12,
-                shadowRadius: 3,
-                elevation: 2,
-              }}
-            >
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>💬 WhatsApp</Text>
-            </View>
-          </AnimatedPressableCard>
-        )}
-        {tenant.email && (
-          <AnimatedPressableCard
-            onPress={() => onEmail(tenant.email!)}
-            scaleValue={0.96}
-            duration={100}
-            style={{ flex: 1 }}
-          >
-            <View
-              style={{
-                paddingVertical: 12,
-                backgroundColor: Theme.colors.warning,
-                borderRadius: 8,
-                alignItems: 'center',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.12,
-                shadowRadius: 3,
-                elevation: 2,
-              }}
-            >
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>✉️ Email</Text>
-            </View>
+            <Ionicons name="logo-whatsapp" size={16} color="#333" />
+            <Text style={styles.contactText}>WhatsApp</Text>
           </AnimatedPressableCard>
         )}
       </View>
+
+      {/* Email */}
+      {!!tenant.email && (
+        <AnimatedPressableCard
+          onPress={() => onEmail(tenant.email || '')}
+          scaleValue={0.95}
+          duration={100}
+          style={{ width: "100%" }}
+        >
+          <View style={styles.emailButton}>
+            <Ionicons name="mail" size={16} color="#333" />
+            <Text style={styles.contactText}>Email</Text>
+          </View>
+        </AnimatedPressableCard>
+      )}
 
       {/* Action Buttons */}
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-        <AnimatedPressableCard
-          onPress={onAddPayment}
-          scaleValue={0.96}
-          duration={100}
-          style={{ flex: 1 }}
-        >
-          <View
-            style={{
-              paddingVertical: 12,
-              backgroundColor: Theme.colors.secondary,
-              borderRadius: 8,
-              alignItems: 'center',
-              flexDirection: 'row',
-              justifyContent: 'center',
-              gap: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.12,
-              shadowRadius: 3,
-              elevation: 2,
-            }}
-          >
-            <Text style={{ fontSize: 18 }}>💰</Text>
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>Add Payment</Text>
-          </View>
-        </AnimatedPressableCard>
-        
-        <AnimatedPressableCard
-          onPress={onAddAdvance}
-          scaleValue={0.96}
-          duration={100}
-          style={{ flex: 1 }}
-        >
-          <View
-            style={{
-              paddingVertical: 12,
-              backgroundColor: Theme.colors.primary,
-              borderRadius: 8,
-              alignItems: 'center',
-              flexDirection: 'row',
-              justifyContent: 'center',
-              gap: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.12,
-              shadowRadius: 3,
-              elevation: 2,
-            }}
-          >
-            <Text style={{ fontSize: 18 }}>🎁</Text>
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>Add Advance</Text>
-          </View>
-        </AnimatedPressableCard>
-      </View>
-      
-      {/* Refund Button */}
-      <View style={{ marginTop: 8 }}>
-        <AnimatedPressableCard
+      <View style={styles.actionGrid}>
+        <Action icon="wallet" text="Add Payment" onPress={onAddPayment} />
+        <Action icon="trending-up" text="Add Advance" onPress={onAddAdvance} />
+        <Action
+          icon="trending-down"
+          text="Add Refund"
           onPress={onAddRefund}
-          scaleValue={0.96}
-          duration={100}
-          style={{ width: '100%' }}
-        >
-          <View
-            style={{
-              paddingVertical: 12,
-              backgroundColor: Theme.colors.danger,
-              borderRadius: 8,
-              alignItems: 'center',
-              flexDirection: 'row',
-              justifyContent: 'center',
-              gap: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.12,
-              shadowRadius: 3,
-              elevation: 2,
-            }}
-          >
-            <Text style={{ fontSize: 18 }}>🔄</Text>
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>Add Refund</Text>
-          </View>
-        </AnimatedPressableCard>
-      </View>
-
-      {/* Current Bill Button */}
-      {onAddCurrentBill && (
-        <View style={{ marginTop: 8 }}>
-          <AnimatedPressableCard
+        />
+        {!!onAddCurrentBill && (
+          <Action
+            icon="document-text"
+            text="Add Bill"
             onPress={onAddCurrentBill}
-            scaleValue={0.96}
-            duration={100}
-            style={{ width: '100%' }}
-          >
-            <View
-              style={{
-                paddingVertical: 12,
-                backgroundColor: '#F59E0B',
-                borderRadius: 8,
-                alignItems: 'center',
-                flexDirection: 'row',
-                justifyContent: 'center',
-                gap: 8,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.12,
-                shadowRadius: 3,
-                elevation: 2,
-              }}
-            >
-              <Text style={{ fontSize: 18 }}>📊</Text>
-              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>Add Current Bill</Text>
-            </View>
-          </AnimatedPressableCard>
-        </View>
-      )}
-    </Card>
+          />
+        )}
+      </View>
+    </View>
   );
 };
+
+const Action = ({ icon, text, onPress }: any) => (
+  <AnimatedPressableCard
+    onPress={onPress}
+    scaleValue={0.95}
+    duration={100}
+    style={styles.actionButton}
+  >
+    <Ionicons name={icon} size={16} color="#333" />
+    <Text style={styles.actionText}>{text}</Text>
+  </AnimatedPressableCard>
+);
+
+const styles = StyleSheet.create({
+  card: {
+    marginHorizontal: 16,
+    marginVertical: 12,
+    padding: 22,
+    borderRadius: 18,
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    alignItems: "center",
+    position: "relative",
+  },
+
+  editButton: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 10,
+  },
+
+  avatarWrapper: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: "#f2f2f2",
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: "#e5e5e5",
+  },
+
+  avatar: {
+    width: "100%",
+    height: "100%",
+  },
+
+  avatarFallback: {
+    fontSize: 40,
+    fontWeight: "700",
+    color: "#444",
+  },
+
+  name: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111",
+    marginBottom: 6,
+  },
+
+  statusBadge: {
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 18,
+    borderWidth: 1,
+  },
+
+  statusActive: {
+    backgroundColor: "rgba(22, 163, 74, 0.12)",
+    borderColor: "rgba(22, 163, 74, 0.35)",
+  },
+
+  statusInactive: {
+    backgroundColor: "rgba(220, 38, 38, 0.12)",
+    borderColor: "rgba(220, 38, 38, 0.35)",
+  },
+
+  statusText: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+
+  contactRow: {
+    flexDirection: "row",
+    gap: 10,
+    width: "100%",
+    marginBottom: 16,
+  },
+
+  contactButton: {
+    flex: 1,
+    backgroundColor: "#F7F7F7",
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  emailButton: {
+    backgroundColor: "#F7F7F7",
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
+  },
+
+  contactText: {
+    marginLeft: 6,
+    color: "#333",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  actionGrid: {
+    width: "100%",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F7F7F7",
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
+    paddingVertical: 10,
+    borderRadius: 10,
+    flex: 1,
+    minWidth: "48%",
+  },
+
+  actionText: {
+    fontSize: 12,
+    marginLeft: 6,
+    fontWeight: "600",
+    color: "#333",
+  },
+});

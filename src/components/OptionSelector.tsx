@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ViewStyle } from 'react-native';
+import React from "react";
+import { View, Text, TouchableOpacity, ViewStyle } from "react-native";
 import { Theme } from '../theme';
 
 export interface Option {
@@ -13,7 +13,7 @@ export interface OptionSelectorProps {
   label: string;
   options: Option[];
   selectedValue: string | null;
-  onSelect: (value: string) => void;
+  onSelect: (value: string | null) => void;
   required?: boolean;
   disabled?: boolean;
   containerStyle?: ViewStyle;
@@ -49,18 +49,18 @@ export const OptionSelector: React.FC<OptionSelectorProps> = ({
         </Text>
       )}
 
-      <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+      <View style={{ flexDirection: 'row', columnGap : 10, rowGap : 8, flexWrap: 'wrap' }}>
         {options.map((option) => (
           <TouchableOpacity
             key={option.value}
-            onPress={() => onSelect(option.value)}
+            onPress={() => onSelect(selectedValue === option.value ? null : option.value)}
             style={{
-              paddingVertical: 12,
-              paddingHorizontal: 16,
-              borderRadius: 8,
-              borderWidth: 1.5,
-              borderColor: selectedValue === option.value ? Theme.colors.primary : '#E5E7EB',
-              backgroundColor: selectedValue === option.value ? '#EFF6FF' : 'white',
+              paddingVertical: 8,
+              paddingHorizontal: 14,
+              borderRadius: 6,
+              borderWidth: 1,
+              borderColor: selectedValue === option.value ? Theme.colors.primary : '#D1D5DB',
+              backgroundColor: selectedValue === option.value ? 'rgba(59, 130, 246, 0.1)' : '#F9FAFB',
               alignItems: 'center',
               justifyContent: 'center',
             }}
@@ -69,8 +69,8 @@ export const OptionSelector: React.FC<OptionSelectorProps> = ({
             <Text
               style={{
                 fontSize: 12,
-                fontWeight: '600',
-                color: selectedValue === option.value ? Theme.colors.primary : Theme.colors.text.secondary,
+                fontWeight: selectedValue === option.value ? '600' : '500',
+                color: selectedValue === option.value ? Theme.colors.primary : Theme.colors.text.primary,
               }}
             >
               {option.icon && `${option.icon} `}

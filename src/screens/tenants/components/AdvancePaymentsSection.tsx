@@ -2,11 +2,11 @@ import React from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressableCard } from '../../../components/AnimatedPressableCard';
+import { CollapsibleSection } from '../../../components/CollapsibleSection';
 import { Theme } from '../../../theme';
 import { AdvancePayment } from '../../../services/tenants/tenantService';
 
@@ -34,34 +34,14 @@ export const AdvancePaymentsSection: React.FC<AdvancePaymentsSectionProps> = ({
   const totalAdvance = payments?.reduce((sum: number, p: AdvancePayment) => sum + parseFloat(p.amount_paid.toString()), 0) || 0;
 
   return (
-    <View style={{ marginBottom: 8, marginHorizontal: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
-      <TouchableOpacity
-        onPress={onToggle}
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          backgroundColor: '#FFFFFF',
-          borderBottomWidth: expanded ? 1 : 0,
-          borderBottomColor: '#E5E7EB',
-        }}
-      >
-        <Text style={{ fontSize: 16, fontWeight: '700', color: '#10B981' }}>
-          💰 Advance Payments ({payments?.length || 0})
-        </Text>
-        <Text style={{ fontSize: 16, color: Theme.colors.text.secondary }}>
-          {expanded ? '▼' : '▶'}
-        </Text>
-      </TouchableOpacity>
-
-      {expanded && (
-        <ScrollView 
-          style={{ maxHeight: 600, paddingHorizontal: 0, paddingVertical: 0, backgroundColor: '#FFFFFF' }}
-          nestedScrollEnabled={true}
-          showsVerticalScrollIndicator={true}
-        >
+    <CollapsibleSection
+      title="Advance Payments"
+      icon="wallet-outline"
+      itemCount={payments?.length || 0}
+      expanded={expanded}
+      onToggle={onToggle}
+      theme="lightGreen"
+    >
           {payments && payments.length > 0 ? (
             <>
               {payments.map((payment: AdvancePayment) => (
@@ -315,8 +295,6 @@ export const AdvancePaymentsSection: React.FC<AdvancePaymentsSectionProps> = ({
               </Text>
             </View>
           )}
-        </ScrollView>
-      )}
-    </View>
+    </CollapsibleSection>
   );
 };

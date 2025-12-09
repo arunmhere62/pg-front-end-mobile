@@ -45,6 +45,9 @@ export const SlideBottomModal: React.FC<SlideBottomModalProps> = ({
 
   React.useEffect(() => {
     if (visible) {
+      // Reset panY when modal opens
+      panY.setValue(0);
+      
       Animated.parallel([
         Animated.timing(backdropOpacity, {
           toValue: 1,
@@ -71,7 +74,7 @@ export const SlideBottomModal: React.FC<SlideBottomModalProps> = ({
         }),
       ]).start();
     }
-  }, [visible, backdropOpacity, slideY]);
+  }, [visible, backdropOpacity, slideY, panY]);
 
   const headerPanResponder = React.useRef(
     PanResponder.create({

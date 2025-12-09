@@ -9,10 +9,13 @@ import {
   Alert,
   Linking,
 } from 'react-native';
+import { CollapsibleSection } from '../../components/CollapsibleSection';
+import { SlideBottomModal } from '../../components/SlideBottomModal';
+import { DatePicker } from '../../components/DatePicker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
-import { fetchTenantById } from '../../store/slices/tenantSlice';
+import { fetchTenantById, fetchTenants } from '../../store/slices/tenantSlice';
 import { TenantPayment, AdvancePayment, RefundPayment, CurrentBill, PendingPaymentMonth } from '../../services/tenants/tenantService';
 import { Card } from '../../components/Card';
 import { AnimatedPressableCard } from '../../components/AnimatedPressableCard';
@@ -21,10 +24,9 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import axiosInstance from '../../services/core/axiosInstance';
 import { CONTENT_COLOR } from '@/constant';
-import AddTenantPaymentModal from '../../components/AddTenantPaymentModal';
-import { AddAdvancePaymentModal } from '../../components/AddAdvancePaymentModal';
-import { AddRefundPaymentModal } from '../../components/AddRefundPaymentModal';
-import { EditRentPaymentModal } from '../../components/EditRentPaymentModal';
+import RentPaymentForm from '../payments/RentPaymentForm';
+import { AddAdvancePaymentModal } from '../payments/AddAdvancePaymentModal';
+import { AddRefundPaymentModal } from '../payments/AddRefundPaymentModal';
 import { EditAdvancePaymentModal } from '../../components/EditAdvancePaymentModal';
 import { EditRefundPaymentModal } from '../../components/EditRefundPaymentModal';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,7 +38,6 @@ import {
   AccommodationDetails,
   PersonalInformation,
   AddCurrentBillModal,
-  CheckoutDateModal,
   ImageViewerModal,
   ReceiptViewModal,
   RentPaymentsSection,
@@ -78,18 +79,16 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
   const [newCheckoutDate, setNewCheckoutDate] = useState('');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
-  // Payment modal state
-  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  // Rent payment form state (unified for add and edit)
+  const [rentPaymentFormVisible, setRentPaymentFormVisible] = useState(false);
+  const [rentPaymentFormMode, setRentPaymentFormMode] = useState<"add" | "edit">("add");
+  const [editingRentPayment, setEditingRentPayment] = useState<any>(null);
   
   // Advance payment modal state
   const [advancePaymentModalVisible, setAdvancePaymentModalVisible] = useState(false);
   
   // Refund payment modal state
   const [refundPaymentModalVisible, setRefundPaymentModalVisible] = useState(false);
-  
-  // Edit rent payment modal state
-  const [editRentPaymentModalVisible, setEditRentPaymentModalVisible] = useState(false);
-  const [editingRentPayment, setEditingRentPayment] = useState<any>(null);
   
   // Edit advance payment modal state
   const [editAdvancePaymentModalVisible, setEditAdvancePaymentModalVisible] = useState(false);
@@ -133,6 +132,23 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
     }
   };
 
+  const refreshTenantList = async () => {
+    try {
+      // Dispatch fetchTenants to refresh the list in Redux
+      await dispatch(
+        fetchTenants({
+          page: 1,
+          limit: 20,
+          pg_id: selectedPGLocationId || undefined,
+          organization_id: user?.organization_id || undefined,
+          user_id: user?.s_no || undefined,
+        })
+      ).unwrap();
+    } catch (error) {
+      console.error('Error refreshing tenant list:', error);
+    }
+  };
+
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections((prev) => ({
       ...prev,
@@ -157,6 +173,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
       
       Alert.alert('Success', 'Advance payment created successfully');
       loadTenantDetails(); // Reload tenant details to show new payment
+      refreshTenantList(); // Refresh tenant list
     } catch (error: any) {
       throw error; // Re-throw to let modal handle it
     }
@@ -182,6 +199,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
       
       Alert.alert('Success', 'Refund payment created successfully');
       loadTenantDetails(); // Reload tenant details to show new payment
+      refreshTenantList(); // Refresh tenant list
     } catch (error: any) {
       console.error('Error in handleSaveRefundPayment:', error);
       console.error('Error response:', error.response?.data);
@@ -189,26 +207,27 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
     }
   };
 
+  const handleAddRentPayment = () => {
+    setRentPaymentFormMode("add");
+    setEditingRentPayment(null);
+    setRentPaymentFormVisible(true);
+  };
+
   const handleEditRentPayment = (payment: any) => {
-    // Enrich payment with tenant, room, and bed info for display in modal
-    const enrichedPayment = {
-      ...payment,
-      tenants: payment.tenants || { name: currentTenant?.name },
-      rooms: payment.rooms || currentTenant?.rooms,
-      beds: payment.beds || currentTenant?.beds,
-    };
-    setEditingRentPayment(enrichedPayment);
-    setEditRentPaymentModalVisible(true);
+    setRentPaymentFormMode("edit");
+    setEditingRentPayment(payment);
+    setRentPaymentFormVisible(true);
   };
 
   const handleSaveRentPayment = async (id: number, data: any) => {
     try {
       await paymentService.updateTenantPayment(id, data);
-      setEditRentPaymentModalVisible(false);
+      setRentPaymentFormVisible(false);
       setEditingRentPayment(null);
       loadTenantDetails();
+      refreshTenantList();
     } catch (error: any) {
-      throw error; // Re-throw to let modal handle it
+      throw error;
     }
   };
 
@@ -229,6 +248,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
               await axiosInstance.delete(`/tenant-payments/${payment.s_no}`);
               Alert.alert('Success', 'Rent payment deleted successfully');
               loadTenantDetails();
+              refreshTenantList(); // Refresh tenant list
             } catch (error: any) {
               showErrorAlert(error, 'Delete Error');
             }
@@ -387,6 +407,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
       setEditAdvancePaymentModalVisible(false);
       setEditingAdvancePayment(null);
       loadTenantDetails();
+      refreshTenantList(); // Refresh tenant list
     } catch (error: any) {
       throw error; // Re-throw to let modal handle it
     }
@@ -409,6 +430,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
               await axiosInstance.delete(`/advance-payments/${payment.s_no}`);
               Alert.alert('Success', 'Advance payment deleted successfully');
               loadTenantDetails();
+              refreshTenantList(); // Refresh tenant list
             } catch (error: any) {
               showErrorAlert(error, 'Delete Error');
             }
@@ -440,6 +462,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
       setEditRefundPaymentModalVisible(false);
       setEditingRefundPayment(null);
       loadTenantDetails();
+      refreshTenantList(); // Refresh tenant list
     } catch (error: any) {
       throw error; // Re-throw to let modal handle it
     }
@@ -478,6 +501,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
       Alert.alert('Success', 'Current bill added successfully');
       setCurrentBillModalVisible(false);
       loadTenantDetails();
+      refreshTenantList(); // Refresh tenant list
     } catch (error: any) {
       // Extract error message from backend response
       const errorMessage = 
@@ -511,11 +535,17 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
       setCheckoutDateModalVisible(false);
       setNewCheckoutDate('');
       loadTenantDetails();
+      refreshTenantList(); // Refresh tenant list
     } catch (error: any) {
       Alert.alert('Error', error?.response?.data?.message || 'Failed to checkout tenant');
     } finally {
       setCheckoutLoading(false);
     }
+  };
+
+  const handleCloseCheckoutModal = () => {
+    setCheckoutDateModalVisible(false);
+    setNewCheckoutDate('');
   };
 
   const handleDeleteRefundPayment = (payment: any) => {
@@ -539,6 +569,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
               });
               Alert.alert('Success', 'Refund payment deleted successfully');
               loadTenantDetails();
+              refreshTenantList(); // Refresh tenant list
             } catch (error: any) {
               Alert.alert('Error', error.response?.data?.message || 'Failed to delete refund payment');
             }
@@ -592,6 +623,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
               });
               Alert.alert('Success', 'Checkout cleared and tenant reactivated successfully');
               loadTenantDetails();
+              refreshTenantList(); // Refresh tenant list
             } catch (error: any) {
               Alert.alert('Error', error?.response?.data?.message || 'Failed to clear checkout');
             } finally {
@@ -612,6 +644,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
       Alert.alert('Success', 'Checkout date updated successfully');
       setCheckoutDateModalVisible(false);
       loadTenantDetails();
+      refreshTenantList(); // Refresh tenant list
     } catch (error: any) {
       Alert.alert('Error', error?.response?.data?.message || 'Failed to update checkout date');
     } finally {
@@ -656,7 +689,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
           onCall={handleCall}
           onWhatsApp={handleWhatsApp}
           onEmail={handleEmail}
-          onAddPayment={() => setPaymentModalVisible(true)}
+          onAddPayment={handleAddRentPayment}
           onAddAdvance={() => setAdvancePaymentModalVisible(true)}
           onAddRefund={() => setRefundPaymentModalVisible(true)}
           onAddCurrentBill={handleAddCurrentBill}
@@ -719,149 +752,114 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
         />
 
         {/* Proof Documents */}
-        <View style={{ marginHorizontal: 16, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
-          <TouchableOpacity
-            onPress={() => toggleSection('proofDocuments')}
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: 16,
-              backgroundColor: '#FFFFFF',
-              borderBottomWidth: expandedSections.proofDocuments ? 1 : 0,
-              borderBottomColor: '#E5E7EB',
-            }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary }}>
-              📄 Proof Documents (
-              {tenant.proof_documents && Array.isArray(tenant.proof_documents)
-                ? tenant.proof_documents.length
-                : 0}
-              )
-            </Text>
-            <Text style={{ fontSize: 16, color: Theme.colors.text.secondary }}>
-              {expandedSections.proofDocuments ? '▼' : '▶'}
-            </Text>
-          </TouchableOpacity>
-
-          {expandedSections.proofDocuments && (
-            <View style={{ padding: 16, paddingTop: 12, backgroundColor: '#FFFFFF' }}>
-              {tenant.proof_documents && Array.isArray(tenant.proof_documents) && tenant.proof_documents.length > 0 ? (
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-                  {tenant.proof_documents.map((doc: string, index: number) => (
-                    <TouchableOpacity
-                      key={index}
-                      onPress={() => openImageViewer(doc)}
+        <CollapsibleSection
+          title="Proof Documents"
+          icon="document-outline"
+          itemCount={tenant.proof_documents && Array.isArray(tenant.proof_documents) ? tenant.proof_documents.length : 0}
+          expanded={expandedSections.proofDocuments}
+          onToggle={() => toggleSection('proofDocuments')}
+          theme="lightBlue"
+        >
+          {tenant.proof_documents && Array.isArray(tenant.proof_documents) && tenant.proof_documents.length > 0 ? (
+            <View style={{ padding: 16, paddingTop: 12 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                {tenant.proof_documents.map((doc: string, index: number) => (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => openImageViewer(doc)}
+                    style={{
+                      width: '48%',
+                      aspectRatio: 1,
+                      backgroundColor: '#F9FAFB',
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: '#E5E7EB',
+                      overflow: 'hidden',
+                      position: 'relative',
+                    }}
+                  >
+                    <Image
+                      source={{ uri: doc }}
+                      style={{ width: '100%', height: '100%' }}
+                      resizeMode="cover"
+                    />
+                    <View
                       style={{
-                        width: '48%',
-                        aspectRatio: 1,
-                        backgroundColor: '#F9FAFB',
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: '#E5E7EB',
-                        overflow: 'hidden',
-                        position: 'relative',
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        padding: 4,
                       }}
                     >
-                      <Image
-                        source={{ uri: doc }}
-                        style={{ width: '100%', height: '100%' }}
-                        resizeMode="cover"
-                      />
-                      <View
+                      <Text
                         style={{
-                          position: 'absolute',
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          backgroundColor: 'rgba(0,0,0,0.6)',
-                          padding: 4,
+                          fontSize: 10,
+                          color: '#fff',
+                          textAlign: 'center',
+                          fontWeight: '600',
                         }}
                       >
-                        <Text
-                          style={{
-                            fontSize: 10,
-                            color: '#fff',
-                            textAlign: 'center',
-                            fontWeight: '600',
-                          }}
-                        >
-                          Document {index + 1}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 14, color: Theme.colors.text.tertiary }}>
-                    No proof documents uploaded
-                  </Text>
-                </View>
-              )}
+                        Document {index + 1}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          ) : (
+            <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+              <Text style={{ fontSize: 14, color: Theme.colors.text.tertiary }}>
+                No proof documents uploaded
+              </Text>
             </View>
           )}
-        </View>
+        </CollapsibleSection>
 
         {/* Tenant Images */}
-        <View style={{ marginHorizontal: 16, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
-          <TouchableOpacity
-            onPress={() => toggleSection('images')}
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: 16,
-              backgroundColor: '#FFFFFF',
-              borderBottomWidth: expandedSections.images ? 1 : 0,
-              borderBottomColor: '#E5E7EB',
-            }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary }}>
-              📷 Tenant Images (
-              {tenant.images && Array.isArray(tenant.images) ? tenant.images.length : 0})
-            </Text>
-            <Text style={{ fontSize: 16, color: Theme.colors.text.secondary }}>
-              {expandedSections.images ? '▼' : '▶'}
-            </Text>
-          </TouchableOpacity>
-
-          {expandedSections.images && (
-            <View style={{ padding: 16, paddingTop: 12, backgroundColor: '#FFFFFF' }}>
-              {tenant.images && Array.isArray(tenant.images) && tenant.images.length > 0 ? (
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-                  {tenant.images.map((image: string, index: number) => (
-                    <TouchableOpacity
-                      key={index}
-                      onPress={() => openImageViewer(image)}
-                      style={{
-                        width: '48%',
-                        aspectRatio: 1,
-                        backgroundColor: '#F9FAFB',
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: '#E5E7EB',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <Image
-                        source={{ uri: image }}
-                        style={{ width: '100%', height: '100%' }}
-                        resizeMode="cover"
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 14, color: Theme.colors.text.tertiary }}>
-                    No images uploaded
-                  </Text>
-                </View>
-              )}
+        <CollapsibleSection
+          title="Tenant Images"
+          icon="image-outline"
+          itemCount={tenant.images && Array.isArray(tenant.images) ? tenant.images.length : 0}
+          expanded={expandedSections.images}
+          onToggle={() => toggleSection('images')}
+          theme="lightBlue"
+        >
+          {tenant.images && Array.isArray(tenant.images) && tenant.images.length > 0 ? (
+            <View style={{ padding: 16, paddingTop: 12 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                {tenant.images.map((image: string, index: number) => (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => openImageViewer(image)}
+                    style={{
+                      width: '48%',
+                      aspectRatio: 1,
+                      backgroundColor: '#F9FAFB',
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: '#E5E7EB',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <Image
+                      source={{ uri: image }}
+                      style={{ width: '100%', height: '100%' }}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          ) : (
+            <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+              <Text style={{ fontSize: 14, color: Theme.colors.text.tertiary }}>
+                No images uploaded
+              </Text>
             </View>
           )}
-        </View>
+        </CollapsibleSection>
 
         {/* Checkout Actions - Only show if there's an action available */}
         {(currentTenant?.status === 'ACTIVE' && !currentTenant?.check_out_date) || 
@@ -925,21 +923,31 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
         onClose={closeImageViewer}
       />
 
-      {/* Change Checkout Date Modal */}
-      <CheckoutDateModal
+      {/* Checkout Modal */}
+      <SlideBottomModal
         visible={checkoutDateModalVisible}
-        tenantName={tenant?.name || ''}
-        checkoutDate={newCheckoutDate}
-        loading={checkoutLoading}
-        onDateChange={setNewCheckoutDate}
-        onClose={() => setCheckoutDateModalVisible(false)}
-        onConfirm={confirmUpdateCheckoutDate}
-      />
+        title="Checkout Tenant"
+        subtitle={`Update checkout date for ${tenant?.name || ''}`}
+        isLoading={checkoutLoading}
+        submitLabel="Confirm Checkout"
+        cancelLabel="Cancel"
+        onClose={handleCloseCheckoutModal}
+        onSubmit={confirmUpdateCheckoutDate}
+      >
+        <View style={{ paddingVertical: 12 }}>
+          <DatePicker
+            label="Checkout Date"
+            value={newCheckoutDate}
+            onChange={setNewCheckoutDate}
+          />
+        </View>
+      </SlideBottomModal>
 
-      {/* Add Payment Modal */}
+      {/* Rent Payment Form (Add/Edit) */}
       {tenant && (
-        <AddTenantPaymentModal
-          visible={paymentModalVisible}
+        <RentPaymentForm
+          visible={rentPaymentFormVisible}
+          mode={rentPaymentFormMode}
           tenantId={tenant.s_no}
           tenantName={tenant.name}
           roomId={tenant.room_id || 0}
@@ -959,15 +967,21 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
           }
           previousPayments={
             (tenant.tenant_payments
+              ?.filter((p: TenantPayment) => p.s_no !== editingRentPayment?.s_no)
               ?.sort((a: TenantPayment, b: TenantPayment) => {
                 return new Date(b.payment_date || b.end_date || '').getTime() - new Date(a.payment_date || a.end_date || '').getTime();
               }) as any[]) || []
           }
-          onClose={() => setPaymentModalVisible(false)}
+          paymentId={editingRentPayment?.s_no}
+          existingPayment={rentPaymentFormMode === "edit" ? editingRentPayment : undefined}
+          onClose={() => {
+            setRentPaymentFormVisible(false);
+            setEditingRentPayment(null);
+          }}
           onSuccess={() => {
-            setPaymentModalVisible(false);
             loadTenantDetails();
           }}
+          onSave={handleSaveRentPayment}
         />
       )}
 
@@ -990,27 +1004,6 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
           onSave={handleSaveRefundPayment}
         />
       )}
-
-      {/* Edit Rent Payment Modal */}
-      <EditRentPaymentModal
-        visible={editRentPaymentModalVisible}
-        payment={editingRentPayment}
-        previousPayments={
-          (tenant?.tenant_payments
-            ?.filter((p: TenantPayment) => p.s_no !== editingRentPayment?.s_no)
-            ?.sort((a: TenantPayment, b: TenantPayment) => {
-              return new Date(b.payment_date || b.end_date || '').getTime() - new Date(a.payment_date || a.end_date || '').getTime();
-            }) as any[]) || []
-        }
-        onClose={() => {
-          setEditRentPaymentModalVisible(false);
-          setEditingRentPayment(null);
-        }}
-        onSave={handleSaveRentPayment}
-        onSuccess={() => {
-          loadTenantDetails();
-        }}
-      />
 
       {/* Edit Advance Payment Modal */}
       <EditAdvancePaymentModal

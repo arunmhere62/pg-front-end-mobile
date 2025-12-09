@@ -21,6 +21,7 @@ import { ScreenLayout } from '../../components/ScreenLayout';
 import { ImageUploadS3 } from '../../components/ImageUploadS3';
 import { DatePicker } from '../../components/DatePicker';
 import { SearchableDropdown } from '../../components/SearchableDropdown';
+import { CountryPhoneSelector } from '../../components/CountryPhoneSelector';
 import axiosInstance from '../../services/core/axiosInstance';
 import { getFolderConfig } from '../../config/aws.config';
 import { CONTENT_COLOR } from '@/constant';
@@ -92,6 +93,7 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
   const [loadingCities, setLoadingCities] = useState(false);
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [loadingBeds, setLoadingBeds] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState({ code: 'IN', name: 'India', flag: '🇮🇳', phoneCode: '+91', phoneLength: 10 });
 
   // Fetch tenant data if in edit mode
   useEffect(() => {
@@ -478,53 +480,35 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
             </View>
 
             {/* Phone Number */}
-            <View style={{ marginBottom: 16 }}>
+            <View style={{ marginBottom: 8 }}>
               <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 6 }}>
                 Phone Number <Text style={{ color: '#EF4444' }}>*</Text>
               </Text>
-              <TextInput
-                value={formData.phone_no}
-                onChangeText={(value) => updateField('phone_no', value)}
-                placeholder="Enter 10-digit phone number"
-                keyboardType="phone-pad"
-                maxLength={10}
-                style={{
-                  borderWidth: 1,
-                  borderColor: errors.phone_no ? '#EF4444' : Theme.colors.border,
-                  borderRadius: 8,
-                  padding: 12,
-                  fontSize: 14,
-                  backgroundColor: '#fff',
-                }}
+              <CountryPhoneSelector
+                selectedCountry={selectedCountry}
+                onSelectCountry={setSelectedCountry}
+                phoneValue={formData.phone_no}
+                onPhoneChange={(phone) => updateField('phone_no', phone)}
+                size="medium"
               />
               {errors.phone_no && (
-                <Text style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{errors.phone_no}</Text>
+                <Text style={{ fontSize: 11, color: '#EF4444', marginTop: -8, marginBottom: 8 }}>{errors.phone_no}</Text>
               )}
             </View>
 
             {/* WhatsApp Number */}
-            <View style={{ marginBottom: 16 }}>
+            <View style={{ marginBottom: 8 }}>
               <Text style={{ fontSize: 13, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 6 }}>
                 WhatsApp Number
               </Text>
-              <TextInput
-                value={formData.whatsapp_number}
-                onChangeText={(value) => updateField('whatsapp_number', value)}
-                placeholder="Enter WhatsApp number (optional)"
-                keyboardType="phone-pad"
-                maxLength={10}
-                style={{
-                  borderWidth: 1,
-                  borderColor: Theme.colors.border,
-                  borderRadius: 8,
-                  padding: 12,
-                  fontSize: 14,
-                  backgroundColor: '#fff',
-                }}
+              <CountryPhoneSelector
+                selectedCountry={selectedCountry}
+                onSelectCountry={setSelectedCountry}
+                phoneValue={formData.whatsapp_number}
+                onPhoneChange={(phone) => updateField('whatsapp_number', phone)}
+                size="medium"
               />
-              <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, marginTop: 4 }}>
-                Leave empty to use phone number
-              </Text>
+             
             </View>
 
             {/* Email */}
@@ -666,6 +650,7 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
               selectedValue={formData.room_id}
               onSelect={(item) => setFormData(prev => ({ ...prev, room_id: item.id }))}
               loading={loadingRooms}
+              disabled={!isEditMode}
               error={errors.room_id}
               required={true}
             />
@@ -682,7 +667,7 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
               selectedValue={formData.bed_id}
               onSelect={(item) => setFormData(prev => ({ ...prev, bed_id: item.id }))}
               loading={loadingBeds}
-              disabled={!formData.room_id}
+              disabled={!isEditMode || !formData.room_id}
               error={errors.bed_id}
               required={true}
             />

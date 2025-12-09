@@ -3,7 +3,6 @@ export { PendingPaymentAlert } from './PendingPaymentAlert';
 export { AccommodationDetails } from './AccommodationDetails';
 export { PersonalInformation } from './PersonalInformation';
 export { AddCurrentBillModal } from './CurrentBillModal';
-export { CheckoutDateModal } from './CheckoutDateModal';
 export { ImageViewerModal } from './ImageViewerModal';
 export { ReceiptViewModal } from './ReceiptViewModal';
 export { RentPaymentsSection } from './RentPaymentsSection';

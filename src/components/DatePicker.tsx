@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     borderColor: Theme.colors.border,
     borderRadius: 12,
     paddingHorizontal: 14,
-    paddingVertical: 11,
+    paddingVertical: 14,
     backgroundColor: '#fff',
     minHeight: 30,
   },

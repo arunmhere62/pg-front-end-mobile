@@ -129,7 +129,7 @@ export const CountryPhoneSelector: React.FC<CountryPhoneSelectorProps> = ({
       default:
         return {
           paddingHorizontal: Theme.spacing.md,
-          paddingVertical: 10,
+          paddingVertical: 13,
           fontSize: 14,
           flagSize: 14,
         };
@@ -147,19 +147,19 @@ export const CountryPhoneSelector: React.FC<CountryPhoneSelectorProps> = ({
           style={[
             styles.countryButton,
             {
-              paddingHorizontal: paddingStyles.paddingHorizontal,
+              paddingHorizontal: 6,
               paddingVertical: paddingStyles.paddingVertical,
             },
           ]}
           onPress={() => setShowModal(true)}
         >
-          <Text style={{ fontSize: paddingStyles.flagSize, marginRight: 6 }}>
+          <Text style={{ fontSize: paddingStyles.flagSize, marginRight: 2 }}>
             {selectedCountry.flag}
           </Text>
           <Text style={[styles.phoneCode, { fontSize: paddingStyles.fontSize }]}>
             {selectedCountry.phoneCode}
           </Text>
-          <Text style={[styles.dropdown, { fontSize: paddingStyles.fontSize - 2 }]}>▼</Text>
+          <Text style={[styles.dropdown, { fontSize: paddingStyles.fontSize - 2, marginLeft: 2 }]}>▼</Text>
         </TouchableOpacity>
 
         {/* Phone Input */}
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     borderColor: Theme.colors.border,
     borderRadius: 8,
     backgroundColor: 'transparent',
-    minWidth: 50,
+    minWidth: 45,
   },
   phoneCode: {
     fontSize: Theme.typography.fontSize.base,

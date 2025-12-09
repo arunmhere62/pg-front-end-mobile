@@ -159,7 +159,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
             </>
           )}
         </TouchableOpacity>
-        {selectedItem && (
+        {selectedItem && !disabled && (
           <TouchableOpacity
             onPress={() => {
               onSelect({ id: 0, label: '', value: null });
@@ -208,7 +208,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{label}</Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
-                {selectedValue && (
+                {selectedValue && !disabled && (
                   <TouchableOpacity onPress={handleClearSelection} style={styles.clearSelectionButton}>
                     <Text style={styles.clearSelectionButtonText}>Clear</Text>
                   </TouchableOpacity>

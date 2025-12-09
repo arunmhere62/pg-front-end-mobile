@@ -2,11 +2,11 @@ import React from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressableCard } from '../../../components/AnimatedPressableCard';
+import { CollapsibleSection } from '../../../components/CollapsibleSection';
 import { Theme } from '../../../theme';
 import { TenantPayment } from '../../../services/tenants/tenantService';
 
@@ -32,34 +32,14 @@ export const RentPaymentsSection: React.FC<RentPaymentsSectionProps> = ({
   onShareReceipt,
 }) => {
   return (
-    <View style={{ marginBottom: 8, marginHorizontal: 16, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
-      <TouchableOpacity
-        onPress={onToggle}
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          backgroundColor: '#FFFFFF',
-          borderBottomWidth: expanded ? 1 : 0,
-          borderBottomColor: '#E5E7EB',
-        }}
-      >
-        <Text style={{ fontSize: 16, fontWeight: '700', color: Theme.colors.text.primary }}>
-          💵 Rent Payments ({payments?.length || 0})
-        </Text>
-        <Text style={{ fontSize: 16, color: Theme.colors.text.secondary }}>
-          {expanded ? '▼' : '▶'}
-        </Text>
-      </TouchableOpacity>
-
-      {expanded && (
-        <ScrollView 
-          style={{ maxHeight: 600, paddingHorizontal: 0, paddingVertical: 10, backgroundColor: '#FFFFFF' }}
-          nestedScrollEnabled={true}
-          showsVerticalScrollIndicator={true}
-        >
+    <CollapsibleSection
+      title="Rent Payments"
+      icon="cash-outline"
+      itemCount={payments?.length || 0}
+      expanded={expanded}
+      onToggle={onToggle}
+      theme="light"
+    >
           {payments && payments.length > 0 ? (
             payments.map((payment: TenantPayment) => (
               <AnimatedPressableCard
@@ -315,8 +295,6 @@ export const RentPaymentsSection: React.FC<RentPaymentsSectionProps> = ({
               </Text>
             </View>
           )}
-        </ScrollView>
-      )}
-    </View>
+    </CollapsibleSection>
   );
 };

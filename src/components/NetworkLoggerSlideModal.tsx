@@ -8,7 +8,11 @@ import {
   Dimensions,
 } from 'react-native';
 import { SlideBottomModal } from './SlideBottomModal';
+import { ScreenLayout } from './ScreenLayout';
+import { ScreenHeader } from './ScreenHeader';
+import { RequestDetailsComponent } from './RequestDetailsComponent';
 import { networkLogger, NetworkLog } from '../utils/networkLogger';
+import { Theme } from '../theme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -105,80 +109,7 @@ export const NetworkLoggerSlideModal: React.FC<NetworkLoggerSlideModalProps> = (
 
   const renderLogDetails = () => {
     if (!selectedLog) return null;
-
-    return (
-      <ScrollView style={styles.detailsScroll}>
-        <View style={styles.detailsCard}>
-          <Text style={styles.detailsTitle}>Request Details</Text>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Method:</Text>
-            <Text style={[styles.detailValue, { color: getMethodColor(selectedLog.method) }]}>
-              {selectedLog.method}
-            </Text>
-          </View>
-
-          {selectedLog.status && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Status:</Text>
-              <Text style={[styles.detailValue, { color: getStatusColor(selectedLog.status) }]}>
-                {selectedLog.status}
-              </Text>
-            </View>
-          )}
-
-          {selectedLog.duration && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Duration:</Text>
-              <Text style={styles.detailValue}>{selectedLog.duration}ms</Text>
-            </View>
-          )}
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>URL:</Text>
-            <Text style={[styles.detailValue, { flex: 1 }]} numberOfLines={2}>
-              {selectedLog.url}
-            </Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Time:</Text>
-            <Text style={styles.detailValue}>
-              {selectedLog.timestamp.toLocaleString()}
-            </Text>
-          </View>
-
-          {selectedLog.requestData && (
-            <View style={styles.dataSection}>
-              <Text style={styles.dataTitle}>📤 Request:</Text>
-              <Text style={styles.dataText}>
-                {typeof selectedLog.requestData === 'string'
-                  ? selectedLog.requestData
-                  : JSON.stringify(selectedLog.requestData, null, 2)}
-              </Text>
-            </View>
-          )}
-
-          {selectedLog.responseData && (
-            <View style={styles.dataSection}>
-              <Text style={styles.dataTitle}>📥 Response:</Text>
-              <Text style={styles.dataText}>
-                {typeof selectedLog.responseData === 'string'
-                  ? selectedLog.responseData
-                  : JSON.stringify(selectedLog.responseData, null, 2)}
-              </Text>
-            </View>
-          )}
-
-          {selectedLog.error && (
-            <View style={styles.errorSection}>
-              <Text style={styles.errorTitle}>❌ Error:</Text>
-              <Text style={styles.errorText}>{selectedLog.error}</Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
-    );
+    return <RequestDetailsComponent log={selectedLog} onBack={() => setSelectedLog(null)} />;
   };
 
   return (
@@ -196,7 +127,17 @@ export const NetworkLoggerSlideModal: React.FC<NetworkLoggerSlideModalProps> = (
         }
       }}
     >
-      {selectedLog ? renderLogDetails() : renderLogsList()}
+      <ScreenLayout contentBackgroundColor="#fff">
+        <ScreenHeader
+          title={selectedLog ? 'Request Details' : 'Network Logs'}
+          subtitle={selectedLog ? selectedLog.url : `${logs.length} requests`}
+          showBackButton={!!selectedLog}
+          onBackPress={() => setSelectedLog(null)}
+          backgroundColor={Theme.colors.background.blue}
+          textColor={Theme.colors.text.inverse}
+        />
+        {selectedLog ? renderLogDetails() : renderLogsList()}
+      </ScreenLayout>
     </SlideBottomModal>
   );
 };
@@ -269,73 +210,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#EF4444',
     marginTop: 4,
-  },
-  detailsScroll: {
-    flex: 1,
-    maxHeight: SCREEN_HEIGHT * 0.6,
-  },
-  detailsCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-  },
-  detailsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-    alignItems: 'flex-start',
-  },
-  detailLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-    minWidth: 70,
-  },
-  detailValue: {
-    fontSize: 12,
-    color: '#333',
-    flex: 1,
-  },
-  dataSection: {
-    marginTop: 12,
-    backgroundColor: '#f9f9f9',
-    padding: 10,
-    borderRadius: 6,
-    borderLeftWidth: 3,
-    borderLeftColor: '#3B82F6',
-  },
-  dataTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 6,
-  },
-  dataText: {
-    fontSize: 11,
-    color: '#666',
-    fontFamily: 'monospace',
-  },
-  errorSection: {
-    marginTop: 12,
-    backgroundColor: '#FEE2E2',
-    padding: 10,
-    borderRadius: 6,
-    borderLeftWidth: 3,
-    borderLeftColor: '#EF4444',
-  },
-  errorTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#DC2626',
-    marginBottom: 6,
-  },
-  errorText: {
-    fontSize: 11,
-    color: '#991B1B',
   },
 });
