@@ -32,19 +32,29 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   disabled = false,
 }) => {
   const [showPicker, setShowPicker] = useState(false);
+  
+  // Helper function to parse ISO date string without timezone offset
+  const parseISODate = (dateString: string): Date => {
+    if (!dateString) return new Date();
+    
+    // Parse YYYY-MM-DD format manually to avoid timezone issues
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+  
   const [tempDate, setTempDate] = useState<Date>(
-    value ? new Date(value) : new Date()
+    value ? parseISODate(value) : new Date()
   );
 
   const formatDate = (dateString: string): string => {
     if (!dateString) return 'Select date';
     
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
+    // Parse the date string manually to avoid timezone offset issues
+    const [year, month, day] = dateString.split('-').map(Number);
+    const formattedDay = day.toString().padStart(2, '0');
+    const formattedMonth = month.toString().padStart(2, '0');
     
-    return `${day}/${month}/${year}`;
+    return `${formattedDay}/${formattedMonth}/${year}`;
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
@@ -69,7 +79,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const handleCancel = () => {
-    setTempDate(value ? new Date(value) : new Date());
+    setTempDate(value ? parseISODate(value) : new Date());
     setShowPicker(false);
   };
 

@@ -69,15 +69,68 @@ export const BedsScreen: React.FC<BedsScreenProps> = ({ navigation }) => {
     loadBeds();
   }, [selectedRoomId, occupancyFilter]);
 
-  // Only reload beds when PG location changes, not on every focus
+  // Refetch beds when screen is focused (navigating back from another screen)
   useFocusEffect(
     React.useCallback(() => {
-      // Don't reload on focus - only load on PG location or filter change
+      // Refetch beds to get latest data when returning to this screen
+      loadBedsWithComparison();
+      
       return () => {
         // Cleanup if needed
       };
-    }, [])
+    }, [selectedRoomId, occupancyFilter, selectedPGLocationId])
   );
+
+  // Helper function to load beds and compare with existing data for performance
+  const loadBedsWithComparison = async () => {
+    if (!selectedPGLocationId) return;
+
+    try {
+      setLoading(true);
+
+      let response;
+      if (selectedRoomId) {
+        response = await getBedsByRoomId(selectedRoomId, {
+          pg_id: selectedPGLocationId,
+          organization_id: user?.organization_id,
+          user_id: user?.s_no,
+        });
+      } else {
+        response = await getAllBeds(
+          {
+            limit: 100,
+          },
+          {
+            pg_id: selectedPGLocationId,
+            organization_id: user?.organization_id,
+            user_id: user?.s_no,
+          }
+        );
+      }
+
+      let filteredBeds = response.data;
+
+      // Apply occupancy filter
+      if (occupancyFilter === 'occupied') {
+        filteredBeds = filteredBeds.filter((bed) => bed.is_occupied);
+      } else if (occupancyFilter === 'available') {
+        filteredBeds = filteredBeds.filter((bed) => !bed.is_occupied);
+      }
+
+      // Compare with existing data to avoid unnecessary re-renders
+      const hasDataChanged = JSON.stringify(beds) !== JSON.stringify(filteredBeds);
+      
+      if (hasDataChanged) {
+        setBeds(filteredBeds);
+      }
+      
+      setPagination(response.pagination);
+    } catch (error: any) {
+      console.error('Error loading beds:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadRooms = async () => {
     if (!selectedPGLocationId) return;

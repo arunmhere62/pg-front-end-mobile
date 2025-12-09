@@ -111,14 +111,13 @@ export const calculateNextRentCycleDates = (
     nextEndDate.setMonth(nextEndDate.getMonth() + 1);
     nextEndDate.setDate(nextEndDate.getDate() - 1);
   } else {
-    // For MIDMONTH: Calculate based on endDay
-    nextEndDate = new Date(nextStartDate);
-    nextEndDate.setDate(endDay);
-    // If end day is before start day in same month, move to next month
-    if (nextEndDate <= nextStartDate) {
-      nextEndDate.setMonth(nextEndDate.getMonth() + 1);
-      nextEndDate.setDate(endDay);
-    }
+    // For MIDMONTH: Same day next month - 1
+    // Get the day of the start date
+    const startDay = nextStartDate.getDate();
+    // Create date with same day in next month
+    nextEndDate = new Date(nextStartDate.getFullYear(), nextStartDate.getMonth() + 1, startDay);
+    // Subtract 1 day to get the end date
+    nextEndDate.setDate(nextEndDate.getDate() - 1);
   }
 
   const formatDate = (date: Date): string => {
