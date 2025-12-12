@@ -47,6 +47,9 @@ import { SubscriptionHistoryScreen } from '@/screens/subscription/SubscriptionHi
 import { PaymentOptionsScreen } from '@/screens/subscription/PaymentOptionsScreen';
 import { PaymentWebViewScreen } from '@/screens/subscription/PaymentWebViewScreen';
 import { PaymentsScreen } from '@/screens/payments/PaymentsScreen';
+import { TenantRentPaymentsScreen } from '@/screens/tenants/TenantRentPaymentsScreen';
+import { TenantRefundPaymentsScreen } from '@/screens/tenants/TenantRefundPaymentsScreen';
+import { TenantAdvancePaymentsScreen } from '@/screens/tenants/TenantAdvancePaymentsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -179,7 +182,11 @@ export const AppNavigator = () => {
             <Stack.Screen name="SubscriptionHistory" component={SubscriptionHistoryScreen} />
             <Stack.Screen name="PaymentOptions" component={PaymentOptionsScreen} />
             <Stack.Screen name="PaymentWebView" component={PaymentWebViewScreen} />
+            <Stack.Screen name="TenantRentPaymentsScreen" component={TenantRentPaymentsScreen} />
+            <Stack.Screen name="TenantAdvancePaymentsScreen" component={TenantAdvancePaymentsScreen} />
+            <Stack.Screen name="TenantRefundPaymentsScreen" component={TenantRefundPaymentsScreen} />
           </>
+
         )}
       </Stack.Navigator>
     </NavigationContainer>

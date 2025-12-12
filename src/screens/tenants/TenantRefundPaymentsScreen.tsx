@@ -31,7 +31,7 @@ interface RefundPayment {
   remarks?: string;
 }
 
-export const RefundPaymentsScreen: React.FC = () => {
+export const TenantRefundPaymentsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { user } = useSelector((state: RootState) => state.auth);

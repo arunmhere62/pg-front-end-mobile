@@ -16,51 +16,49 @@ import { Card } from '../../components/Card';
 import { AnimatedPressableCard } from '../../components/AnimatedPressableCard';
 import { ActionButtons } from '../../components/ActionButtons';
 import { CONTENT_COLOR } from '@/constant';
-import advancePaymentService from '@/services/payments/advancePaymentService';
+import { paymentService } from '@/services/payments/paymentService';
 import { showErrorAlert } from '@/utils/errorHandler';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState, AppDispatch } from '../../store';
-import { fetchTenants } from '../../store/slices/tenantSlice';
 import { CompactReceiptGenerator } from '@/services/receipt/compactReceiptGenerator';
-import { ReceiptViewModal } from '../tenants/components';
+import { ReceiptViewModal } from './components';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
+import RentPaymentForm from '../payments/RentPaymentForm';
 
-interface AdvancePayment {
+interface RentPayment {
   s_no: number;
   payment_date: string;
   amount_paid: number;
   actual_rent_amount: number;
+  start_date: string;
+  end_date: string;
   payment_method: string;
   status: string;
   remarks?: string;
 }
 
-export const AdvancePaymentsScreen: React.FC = () => {
+export const TenantRentPaymentsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   const { selectedPGLocationId } = useSelector((state: RootState) => state.pgLocations);
 
-  const payments: AdvancePayment[] = route.params?.payments || [];
+  const payments: RentPayment[] = route.params?.payments || [];
   const tenantName = route.params?.tenantName || 'Tenant';
   const tenantId = route.params?.tenantId || 0;
-  const pgId = route.params?.pgId || 0;
-  const tenantJoinedDate = route.params?.tenantJoinedDate || undefined;
   const tenantPhone = route.params?.tenantPhone || '';
   const pgName = route.params?.pgName || 'PG';
 
   const [loading, setLoading] = useState(false);
-  const [advancePaymentFormVisible, setAdvancePaymentFormVisible] = useState(false);
-  const [advancePaymentFormMode, setAdvancePaymentFormMode] = useState<"add" | "edit">("add");
-  const [editingAdvancePayment, setEditingAdvancePayment] = useState<any>(null);
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
+  const [editingPayment, setEditingPayment] = useState<RentPayment | null>(null);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const receiptRef = useRef<any>(null);
 
-  const handleDeletePayment = (payment: AdvancePayment) => {
+  const handleDeletePayment = (payment: RentPayment) => {
     Alert.alert(
-      'Delete Advance Payment',
-      `Are you sure you want to delete this advance payment?\n\nAmount: ₹${payment.amount_paid}\nDate: ${new Date(payment.payment_date).toLocaleDateString('en-IN')}`,
+      'Delete Payment',
+      `Are you sure you want to delete this payment?\n\nAmount: ₹${payment.amount_paid}\nDate: ${new Date(payment.payment_date).toLocaleDateString('en-IN')}`,
       [
         {
           text: 'Cancel',
@@ -72,8 +70,8 @@ export const AdvancePaymentsScreen: React.FC = () => {
           onPress: async () => {
             try {
               setLoading(true);
-              await advancePaymentService.deleteAdvancePayment(payment.s_no);
-              Alert.alert('Success', 'Advance payment deleted successfully');
+              await paymentService.deleteTenantPayment(payment.s_no);
+              Alert.alert('Success', 'Payment deleted successfully');
               navigation.goBack();
             } catch (error: any) {
               showErrorAlert(error, 'Delete Error');
@@ -86,27 +84,30 @@ export const AdvancePaymentsScreen: React.FC = () => {
     );
   };
 
-  const handleEditAdvancePayment = (payment: AdvancePayment) => {
-    setAdvancePaymentFormMode("edit");
-    setEditingAdvancePayment(payment);
-    setAdvancePaymentFormVisible(true);
+  const handleEditPayment = (payment: RentPayment) => {
+    setEditingPayment(payment);
+    setIsEditModalVisible(true);
   };
 
-  const handleUpdateAdvancePayment = async (id: number, data: any) => {
+  const handleSavePayment = async (id: number, data: any) => {
     try {
-      await advancePaymentService.updateAdvancePayment(id, data);
+      setLoading(true);
+      await paymentService.updateTenantPayment(id, data);
+      Alert.alert('Success', 'Payment updated successfully');
+      setIsEditModalVisible(false);
+      setEditingPayment(null);
+      // Refresh the screen to show updated data
+      navigation.replace('RentPayments', route.params);
     } catch (error: any) {
-      throw error;
+      showErrorAlert(error, 'Update Error');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAdvancePaymentSuccess = () => {
-    dispatch(fetchTenants({ page: 1, limit: 10 }));
-  };
-
-  const prepareReceiptData = (payment: AdvancePayment) => {
+  const prepareReceiptData = (payment: RentPayment) => {
     return {
-      receiptNumber: `ADV-${payment.s_no}-${new Date(payment.payment_date).getFullYear()}`,
+      receiptNumber: `RCP-${payment.s_no}-${new Date(payment.payment_date).getFullYear()}`,
       paymentDate: new Date(payment.payment_date),
       tenantName: tenantName,
       tenantPhone: tenantPhone,
@@ -114,24 +115,23 @@ export const AdvancePaymentsScreen: React.FC = () => {
       roomNumber: route.params?.roomNumber || '',
       bedNumber: route.params?.bedNumber || '',
       rentPeriod: {
-        startDate: new Date(payment.payment_date),
-        endDate: new Date(payment.payment_date),
+        startDate: new Date(payment.start_date),
+        endDate: new Date(payment.end_date),
       },
-      actualRent: Number(payment.amount_paid || 0),
+      actualRent: Number(payment.actual_rent_amount || 0),
       amountPaid: Number(payment.amount_paid || 0),
       paymentMethod: payment.payment_method || 'CASH',
       remarks: payment.remarks,
-      receiptType: 'ADVANCE' as const,
     };
   };
 
-  const handleViewReceipt = (payment: AdvancePayment) => {
+  const handleViewReceipt = (payment: RentPayment) => {
     const data = prepareReceiptData(payment);
     setReceiptData(data);
     setReceiptModalVisible(true);
   };
 
-  const handleWhatsAppReceipt = async (payment: AdvancePayment) => {
+  const handleWhatsAppReceipt = async (payment: RentPayment) => {
     try {
       const data = prepareReceiptData(payment);
       setReceiptData(data);
@@ -150,7 +150,7 @@ export const AdvancePaymentsScreen: React.FC = () => {
     }
   };
 
-  const handleShareReceipt = async (payment: AdvancePayment) => {
+  const handleShareReceipt = async (payment: RentPayment) => {
     try {
       const data = prepareReceiptData(payment);
       setReceiptData(data);
@@ -180,18 +180,17 @@ export const AdvancePaymentsScreen: React.FC = () => {
     }
   };
 
-
   return (
     <ScreenLayout backgroundColor={Theme.colors.background.blue}>
       <ScreenHeader
-        title="Advance Payments"
+        title="Rent Payments"
         showBackButton={true}
         onBackPress={() => navigation.goBack()}
         backgroundColor={Theme.colors.background.blue}
         syncMobileHeaderBg={true}
       />
 
-      <View style={{ flex: 1, backgroundColor: CONTENT_COLOR, position: 'relative' }}>
+      <View style={{ flex: 1, backgroundColor: CONTENT_COLOR }}>
         {/* Tenant Info Header */}
         <View style={{
           paddingHorizontal: 16,
@@ -216,8 +215,9 @@ export const AdvancePaymentsScreen: React.FC = () => {
 
         {!loading && payments && payments.length > 0 ? (
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-            {payments.map((payment) => {
+            {payments.map((payment, index) => {
               const statusColor = getStatusColor(payment.status);
+              const dueAmount = payment.actual_rent_amount - payment.amount_paid;
 
               return (
                 <AnimatedPressableCard
@@ -228,8 +228,8 @@ export const AdvancePaymentsScreen: React.FC = () => {
                 >
                   <Card style={{
                     padding: 12,
-                    borderLeftWidth: 3,
-                    borderLeftColor: '#10B981',
+                    borderLeftWidth: dueAmount > 0 ? 3 : 0,
+                    borderLeftColor: dueAmount > 0 ? '#F97316' : 'transparent',
                   }}>
                     {/* Header Row */}
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
@@ -257,17 +257,40 @@ export const AdvancePaymentsScreen: React.FC = () => {
                       </View>
                     </View>
 
+                    {/* Rent Period */}
+                    <View style={{
+                      backgroundColor: '#F9FAFB',
+                      padding: 8,
+                      borderRadius: 6,
+                      marginBottom: 10,
+                    }}>
+                      <Text style={{ fontSize: 10, color: Theme.colors.text.tertiary, marginBottom: 4 }}>
+                        Rent Period
+                      </Text>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 11, fontWeight: '600', color: Theme.colors.text.primary }}>
+                          {new Date(payment.start_date).toLocaleDateString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                          })} - {new Date(payment.end_date).toLocaleDateString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                          })}
+                        </Text>
+                      </View>
+                    </View>
+
                     {/* Amount Details */}
                     <View style={{ marginBottom: 10 }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                         <Text style={{ fontSize: 11, color: Theme.colors.text.secondary }}>
-                          Advance Amount
+                          Rent Amount
                         </Text>
                         <Text style={{ fontSize: 11, fontWeight: '600', color: Theme.colors.text.primary }}>
                           ₹{payment.actual_rent_amount}
                         </Text>
                       </View>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                         <Text style={{ fontSize: 11, color: Theme.colors.text.secondary }}>
                           Amount Paid
                         </Text>
@@ -275,6 +298,16 @@ export const AdvancePaymentsScreen: React.FC = () => {
                           ₹{payment.amount_paid}
                         </Text>
                       </View>
+                      {dueAmount > 0 && (
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={{ fontSize: 11, color: Theme.colors.text.secondary }}>
+                            Due Amount
+                          </Text>
+                          <Text style={{ fontSize: 11, fontWeight: '700', color: '#F97316' }}>
+                            ₹{dueAmount}
+                          </Text>
+                        </View>
+                      )}
                     </View>
 
                     {/* Payment Method */}
@@ -301,7 +334,7 @@ export const AdvancePaymentsScreen: React.FC = () => {
                     <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                       <ActionButtons
                         onView={() => handleViewReceipt(payment)}
-                        onEdit={() => handleEditAdvancePayment(payment)}
+                        onEdit={() => handleEditPayment(payment)}
                         onDelete={() => handleDeletePayment(payment)}
                         showEdit={true}
                       />
@@ -349,18 +382,18 @@ export const AdvancePaymentsScreen: React.FC = () => {
                 width: 80,
                 height: 80,
                 borderRadius: 40,
-                backgroundColor: '#F0FDF4',
+                backgroundColor: '#F3F4F6',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginBottom: 16,
               }}>
-                <Ionicons name="wallet-outline" size={48} color="#10B981" />
+                <Ionicons name="document-outline" size={48} color={Theme.colors.text.tertiary} />
               </View>
               <Text style={{ fontSize: 16, fontWeight: '600', color: Theme.colors.text.primary, marginBottom: 8 }}>
-                No Advance Payments
+                No Rent Payments
               </Text>
               <Text style={{ fontSize: 13, color: Theme.colors.text.secondary, textAlign: 'center' }}>
-                No advance payments have been recorded for this tenant yet.
+                No rent payments have been recorded for this tenant yet.
               </Text>
             </View>
           )
@@ -392,7 +425,36 @@ export const AdvancePaymentsScreen: React.FC = () => {
         </View>
       )}
 
-      
+      {/* Edit Payment Modal */}
+      {editingPayment && (
+        <RentPaymentForm
+          visible={isEditModalVisible}
+          mode="edit"
+          tenantId={tenantId}
+          tenantName={tenantName}
+          roomId={route.params?.roomId || 0}
+          bedId={route.params?.bedId || 0}
+          pgId={route.params?.pgId || 0}
+          rentAmount={editingPayment.actual_rent_amount}
+          joiningDate={route.params?.joiningDate}
+          lastPaymentStartDate={editingPayment.start_date}
+          lastPaymentEndDate={editingPayment.end_date}
+          previousPayments={payments.filter(p => p.s_no !== editingPayment.s_no)}
+          paymentId={editingPayment.s_no}
+          existingPayment={editingPayment}
+          onClose={() => {
+            setIsEditModalVisible(false);
+            setEditingPayment(null);
+          }}
+          onSuccess={() => {
+            setIsEditModalVisible(false);
+            setEditingPayment(null);
+            // Refresh the screen to show updated data
+            navigation.replace('RentPayments', route.params);
+          }}
+          onSave={handleSavePayment}
+        />
+      )}
     </ScreenLayout>
   );
 };

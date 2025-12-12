@@ -719,7 +719,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
 
         {/* Rent Payments Button - Always Show */}
         <TouchableOpacity
-          onPress={() => navigation.navigate('RentPayments', {
+          onPress={() => navigation.navigate('TenantRentPaymentsScreen', {
             payments: tenant?.tenant_payments || [],
             tenantName: tenant.name,
             tenantId: tenant.s_no,
@@ -750,7 +750,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
 
         {/* Advance Payments Button - Always Show */}
         <TouchableOpacity
-          onPress={() => navigation.navigate('AdvancePayments', {
+          onPress={() => navigation.navigate('TenantAdvancePaymentsScreen', {
             payments: tenant?.advance_payments || [],
             tenantName: tenant.name,
             tenantId: tenant.s_no,
@@ -783,7 +783,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
 
         {/* Refund Payments Button - Always Show */}
         <TouchableOpacity
-          onPress={() => navigation.navigate('RefundPayments', {
+          onPress={() => navigation.navigate('TenantRefundPaymentsScreen', {
             payments: tenant?.refund_payments || [],
             tenantName: tenant.name,
             tenantId: tenant.s_no,
