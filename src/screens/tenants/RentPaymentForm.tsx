@@ -145,7 +145,17 @@ const getMidmonthDates = (dateString: string): { start: string; end: string } =>
     // Parse the input date string to extract year, month, day
     let year: number, month: number, day: number;
     
-    if (dateString.includes('-')) {
+    if (dateString.includes('T')) {
+      // ISO format: "2025-12-11T00:00:00.000Z"
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        console.warn("Invalid ISO date parsed:", dateString);
+        return { start: "", end: "" };
+      }
+      year = date.getFullYear();
+      month = date.getMonth() + 1;
+      day = date.getDate();
+    } else if (dateString.includes('-')) {
       // YYYY-MM-DD format
       const [y, m, d] = dateString.split('-').map(Number);
       year = y;
@@ -161,6 +171,12 @@ const getMidmonthDates = (dateString: string): { start: string; end: string } =>
       year = date.getFullYear();
       month = date.getMonth() + 1;
       day = date.getDate();
+    }
+
+    // Validate parsed values
+    if (isNaN(year) || isNaN(month) || isNaN(day)) {
+      console.warn("Invalid date components:", { year, month, day, input: dateString });
+      return { start: "", end: "" };
     }
 
     // Start date is the input date
@@ -648,7 +664,7 @@ const RentPaymentForm: React.FC<RentPaymentFormProps> = ({
           setFormData({
             amount_paid: "",
             actual_rent_amount: bedRentAmount.toString(),
-            payment_date: new Date().toISOString().split("T")[0],
+            payment_date: "",
             payment_method: null,
             status: "",
             start_date: startDate,
@@ -660,7 +676,7 @@ const RentPaymentForm: React.FC<RentPaymentFormProps> = ({
           setFormData({
             amount_paid: "",
             actual_rent_amount: bedRentAmount.toString(),
-            payment_date: new Date().toISOString().split("T")[0],
+            payment_date: "",
             payment_method: null,
             status: "",
             start_date: "",
@@ -690,7 +706,7 @@ const RentPaymentForm: React.FC<RentPaymentFormProps> = ({
         setFormData({
           amount_paid: "",
           actual_rent_amount: bedRentAmount.toString(),
-          payment_date: new Date().toISOString().split("T")[0],
+          payment_date: "",
           payment_method: null,
           status: "",
           start_date: startDate,

@@ -42,14 +42,15 @@ export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, cur
   
   const animateDropdownIn = () => {
     Animated.parallel([
-      Animated.timing(dropdownAnimValue, {
+      Animated.spring(dropdownAnimValue, {
         toValue: 1,
-        duration: 200,
+        tension: 100,
+        friction: 8,
         useNativeDriver: false,
       }),
       Animated.timing(backdropAnimValue, {
         toValue: 1,
-        duration: 150,
+        duration: 200,
         useNativeDriver: true,
       }),
     ]).start();
@@ -57,14 +58,15 @@ export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, cur
   
   const animateDropdownOut = (callback?: () => void) => {
     Animated.parallel([
-      Animated.timing(dropdownAnimValue, {
+      Animated.spring(dropdownAnimValue, {
         toValue: 0,
-        duration: 150,
+        tension: 100,
+        friction: 8,
         useNativeDriver: false,
       }),
       Animated.timing(backdropAnimValue, {
         toValue: 0,
-        duration: 100,
+        duration: 150,
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -97,13 +99,15 @@ export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, cur
   
   const PaymentOption = ({ icon, title, screen, color }: { icon: string; title: string; screen: string; color: string }) => (
     <TouchableOpacity
+      activeOpacity={0.7}
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 8,
-        paddingHorizontal: 12,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
         borderRadius: 8,
-        marginBottom: 4,
+        marginBottom: 3,
+        backgroundColor: Theme.colors.canvas,
       }}
       onPress={() => {
         animateDropdownOut(() => {
@@ -113,24 +117,25 @@ export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, cur
       }}
     >
       <View style={{
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
         backgroundColor: color,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 10,
+        marginRight: 8,
       }}>
-        <Ionicons name={icon as any} size={12} color="#fff" />
+        <Ionicons name={icon as any} size={10} color="#fff" />
       </View>
       <Text style={{
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: '500',
         color: Theme.colors.text.primary,
         flex: 1,
       }}>
         {title}
       </Text>
+      <Ionicons name="chevron-forward" size={12} color={Theme.colors.text.tertiary} />
     </TouchableOpacity>
   );
   
@@ -139,7 +144,7 @@ export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, cur
       <BlurView
         intensity={100}
         tint="light"
-        style={[styles.container, { paddingBottom: Math.max(insets.bottom + 8, 20) }]}
+        style={[styles.container, { paddingBottom: Math.max(insets.bottom + -2, 10) }]}
       >
         {accessibleTabs.map((tab) => {
           const isActive = currentRoute === tab.name;
@@ -174,18 +179,18 @@ export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, cur
       {showPaymentOptions && (
         <Animated.View style={{
           position: 'absolute',
-          bottom: 85, // More space from bottom nav
-          left: paymentOptionsPosition.x - 70, // Reduced width, center horizontally on tab
+          bottom: 85, // Reduced space from bottom nav
+          left: paymentOptionsPosition.x - 70, // Center horizontally on tab
           backgroundColor: Theme.colors.canvas,
-          borderRadius: 12,
+          borderRadius: 10,
           padding: 8,
           minWidth: 140, // Reduced width
           borderWidth: 1,
           borderColor: Theme.colors.border,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
+          shadowOpacity: 0.15,
+          shadowRadius: 6,
           elevation: 6,
           zIndex: 1000,
           opacity: dropdownAnimValue,
@@ -194,17 +199,19 @@ export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, cur
               scale: dropdownAnimValue.interpolate({
                 inputRange: [0, 1],
                 outputRange: [0.8, 1],
+                extrapolate: 'clamp',
               }),
             },
             {
               translateY: dropdownAnimValue.interpolate({
                 inputRange: [0, 1],
                 outputRange: [10, 0],
+                extrapolate: 'clamp',
               }),
             },
           ],
         }}>
-          {/* Dropdown arrow */}
+          {/* Simplified dropdown arrow */}
           <View style={{
             position: 'absolute',
             bottom: -6,

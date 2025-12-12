@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -46,6 +46,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     value ? parseISODate(value) : new Date()
   );
 
+  // Sync tempDate with value prop when it changes
+  useEffect(() => {
+    setTempDate(value ? parseISODate(value) : new Date());
+  }, [value]);
+
   const formatDate = (dateString: string): string => {
     if (!dateString) return 'Select date';
     
@@ -65,15 +70,24 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     if (selectedDate) {
       setTempDate(selectedDate);
       if (Platform.OS === 'android') {
-        // For Android, immediately apply the date
-        const isoDate = selectedDate.toISOString().split('T')[0];
+        // For Android, immediately apply the date using local timezone
+        const localDate = new Date(selectedDate);
+        const year = localDate.getFullYear();
+        const month = String(localDate.getMonth() + 1).padStart(2, '0');
+        const day = String(localDate.getDate()).padStart(2, '0');
+        const isoDate = `${year}-${month}-${day}`;
         onChange(isoDate);
       }
     }
   };
 
   const handleConfirm = () => {
-    const isoDate = tempDate.toISOString().split('T')[0];
+    // Use local timezone to avoid UTC conversion issues
+    const localDate = new Date(tempDate);
+    const year = localDate.getFullYear();
+    const month = String(localDate.getMonth() + 1).padStart(2, '0');
+    const day = String(localDate.getDate()).padStart(2, '0');
+    const isoDate = `${year}-${month}-${day}`;
     onChange(isoDate);
     setShowPicker(false);
   };

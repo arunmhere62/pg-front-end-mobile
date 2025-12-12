@@ -372,7 +372,10 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
         Alert.alert('Success', 'Tenant updated successfully', [
           {
             text: 'OK',
-            onPress: () => navigation.goBack(),
+            onPress: () => {
+              // Trigger refresh on tenant list screen
+              navigation.navigate('Tenants', { refresh: true });
+            },
           },
         ]);
       } else {
@@ -391,7 +394,10 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
         Alert.alert('Success', 'Tenant created successfully', [
           {
             text: 'OK',
-            onPress: () => navigation.goBack(),
+            onPress: () => {
+              // Trigger refresh on tenant list screen
+              navigation.navigate('Tenants', { refresh: true });
+            },
           },
         ]);
       }
@@ -674,6 +680,7 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
 
             {/* Check-in Date */}
             <View style={{ marginBottom: 0 }}>
+              {!isEditMode && (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <Text style={{ fontSize: 11, color: Theme.colors.text.secondary, fontWeight: '600', marginLeft: 2 }}>
                   Check-in Date <Text style={{ color: '#EF4444' }}>*</Text>
@@ -690,6 +697,14 @@ export const AddTenantScreen: React.FC<AddTenantScreenProps> = ({ navigation, ro
                   <Text style={{ fontSize: 11, fontWeight: '600', color: '#fff' }}>Today</Text>
                 </TouchableOpacity>
               </View>
+            )}
+            {isEditMode && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <Text style={{ fontSize: 11, color: Theme.colors.text.secondary, fontWeight: '600', marginLeft: 2 }}>
+                  Check-in Date <Text style={{ color: '#EF4444' }}>*</Text>
+                </Text>
+              </View>
+            )}
               <DatePicker
                 label=""
                 value={formData.check_in_date}

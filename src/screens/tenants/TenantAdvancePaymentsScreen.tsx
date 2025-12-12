@@ -23,6 +23,7 @@ import { RootState, AppDispatch } from '../../store';
 import { fetchTenants } from '../../store/slices/tenantSlice';
 import { CompactReceiptGenerator } from '@/services/receipt/compactReceiptGenerator';
 import { ReceiptViewModal } from './components';
+import AdvancePaymentForm from '@/screens/tenants/AdvancePaymentForm';
 
 interface AdvancePayment {
   s_no: number;
@@ -57,6 +58,29 @@ export const TenantAdvancePaymentsScreen: React.FC = () => {
   const [receiptData, setReceiptData] = useState<any>(null);
   const receiptRef = useRef<any>(null);
 
+  // Function to refresh tenant list
+  const refreshTenantList = async () => {
+    try {
+      await dispatch(
+        fetchTenants({
+          page: 1,
+          limit: 20,
+          pg_id: selectedPGLocationId || undefined,
+          organization_id: user?.organization_id || undefined,
+          user_id: user?.s_no || undefined,
+        })
+      ).unwrap();
+    } catch (error) {
+      console.error('Error refreshing tenant list:', error);
+    }
+  };
+
+  // Function to refresh tenant details (navigate back to tenant details)
+  const refreshTenantDetails = () => {
+    // Navigate back to tenant details screen with refresh parameter
+    navigation.navigate('TenantDetails', { tenantId, refresh: true });
+  };
+
   const handleDeletePayment = (payment: AdvancePayment) => {
     Alert.alert(
       'Delete Advance Payment',
@@ -74,7 +98,10 @@ export const TenantAdvancePaymentsScreen: React.FC = () => {
               setLoading(true);
               await advancePaymentService.deleteAdvancePayment(payment.s_no);
               Alert.alert('Success', 'Advance payment deleted successfully');
-              navigation.goBack();
+              
+              // Navigate back to tenant details screen with refresh
+              refreshTenantDetails();
+              refreshTenantList();
             } catch (error: any) {
               showErrorAlert(error, 'Delete Error');
             } finally {
@@ -101,7 +128,9 @@ export const TenantAdvancePaymentsScreen: React.FC = () => {
   };
 
   const handleAdvancePaymentSuccess = () => {
-    dispatch(fetchTenants({ page: 1, limit: 10 }));
+    // Refresh tenant details and list after successful save/update
+    refreshTenantDetails();
+    refreshTenantList();
   };
 
   const prepareReceiptData = (payment: AdvancePayment) => {
@@ -261,7 +290,7 @@ export const TenantAdvancePaymentsScreen: React.FC = () => {
                     <View style={{ marginBottom: 10 }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                         <Text style={{ fontSize: 11, color: Theme.colors.text.secondary }}>
-                          Advance Amount
+                          Rent Amount
                         </Text>
                         <Text style={{ fontSize: 11, fontWeight: '600', color: Theme.colors.text.primary }}>
                           ₹{payment.actual_rent_amount}
@@ -392,7 +421,27 @@ export const TenantAdvancePaymentsScreen: React.FC = () => {
         </View>
       )}
 
-      
+      {/* Advance Payment Form Modal */}
+      <AdvancePaymentForm
+        visible={advancePaymentFormVisible}
+        mode={advancePaymentFormMode}
+        tenantId={tenantId}
+        tenantName={tenantName}
+        tenantJoinedDate={tenantJoinedDate}
+        pgId={pgId}
+        roomId={route.params?.roomId || 0}
+        bedId={route.params?.bedId || 0}
+        paymentId={editingAdvancePayment?.s_no}
+        existingPayment={editingAdvancePayment}
+        onClose={() => {
+          setAdvancePaymentFormVisible(false);
+          setEditingAdvancePayment(null);
+          setAdvancePaymentFormMode("add");
+        }}
+        onSuccess={handleAdvancePaymentSuccess}
+        onSave={handleUpdateAdvancePayment}
+      />
+
     </ScreenLayout>
   );
 };

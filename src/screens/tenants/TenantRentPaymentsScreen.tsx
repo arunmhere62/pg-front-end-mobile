@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { useDispatch, useSelector } from 'react-redux';
 import { Theme } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
@@ -20,9 +21,9 @@ import { paymentService } from '@/services/payments/paymentService';
 import { showErrorAlert } from '@/utils/errorHandler';
 import { CompactReceiptGenerator } from '@/services/receipt/compactReceiptGenerator';
 import { ReceiptViewModal } from './components';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../store';
-import RentPaymentForm from '../payments/RentPaymentForm';
+import { RootState, AppDispatch } from '../../store';
+import { fetchTenants } from '../../store/slices/tenantSlice';
+import RentPaymentForm from './RentPaymentForm';
 
 interface RentPayment {
   s_no: number;
@@ -39,6 +40,7 @@ interface RentPayment {
 export const TenantRentPaymentsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   const { selectedPGLocationId } = useSelector((state: RootState) => state.pgLocations);
 
@@ -49,6 +51,29 @@ export const TenantRentPaymentsScreen: React.FC = () => {
   const pgName = route.params?.pgName || 'PG';
 
   const [loading, setLoading] = useState(false);
+
+  // Function to refresh tenant list
+  const refreshTenantList = async () => {
+    try {
+      await dispatch(
+        fetchTenants({
+          page: 1,
+          limit: 20,
+          pg_id: selectedPGLocationId || undefined,
+          organization_id: user?.organization_id || undefined,
+          user_id: user?.s_no || undefined,
+        })
+      ).unwrap();
+    } catch (error) {
+      console.error('Error refreshing tenant list:', error);
+    }
+  };
+
+  // Function to refresh tenant details (navigate back to tenant details)
+  const refreshTenantDetails = () => {
+    // Navigate back to tenant details screen with refresh parameter
+    navigation.navigate('TenantDetails', { tenantId, refresh: true });
+  };
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
   const [editingPayment, setEditingPayment] = useState<RentPayment | null>(null);
@@ -72,7 +97,10 @@ export const TenantRentPaymentsScreen: React.FC = () => {
               setLoading(true);
               await paymentService.deleteTenantPayment(payment.s_no);
               Alert.alert('Success', 'Payment deleted successfully');
-              navigation.goBack();
+              
+              // Navigate back to tenant details screen with refresh
+              refreshTenantDetails();
+              refreshTenantList();
             } catch (error: any) {
               showErrorAlert(error, 'Delete Error');
             } finally {
@@ -93,11 +121,11 @@ export const TenantRentPaymentsScreen: React.FC = () => {
     try {
       setLoading(true);
       await paymentService.updateTenantPayment(id, data);
-      Alert.alert('Success', 'Payment updated successfully');
       setIsEditModalVisible(false);
       setEditingPayment(null);
-      // Refresh the screen to show updated data
-      navigation.replace('RentPayments', route.params);
+      
+      // Navigate back to tenant details screen
+      refreshTenantDetails();
     } catch (error: any) {
       showErrorAlert(error, 'Update Error');
     } finally {
@@ -449,8 +477,9 @@ export const TenantRentPaymentsScreen: React.FC = () => {
           onSuccess={() => {
             setIsEditModalVisible(false);
             setEditingPayment(null);
-            // Refresh the screen to show updated data
-            navigation.replace('RentPayments', route.params);
+            
+            // Navigate back to tenant details screen
+            refreshTenantDetails();
           }}
           onSave={handleSavePayment}
         />

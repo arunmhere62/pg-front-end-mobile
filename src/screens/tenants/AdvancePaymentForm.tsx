@@ -13,6 +13,7 @@ import { SlideBottomModal } from "../../components/SlideBottomModal";
 import { OptionSelector, Option } from "../../components/OptionSelector";
 import { AmountInput } from "../../components/AmountInput";
 import advancePaymentService from "@/services/payments/advancePaymentService";
+import { getBedById } from "@/services/rooms/bedService";
 import { showErrorAlert } from "@/utils/errorHandler";
 
 interface AdvancePaymentFormProps {
@@ -39,9 +40,9 @@ const PAYMENT_METHODS: Option[] = [
 ];
 
 const PAYMENT_STATUS: Option[] = [
-  { label: "✅ Paid", value: "PAID", icon: "checkmark-circle" },
-  { label: "⏳ Pending", value: "PENDING", icon: "time" },
-  { label: "❌ Failed", value: "FAILED", icon: "close-circle" },
+  { label: "✅ Paid", value: "PAID", icon: "" },
+  { label: "⏳ Pending", value: "PENDING", icon: "" },
+  { label: "❌ Failed", value: "FAILED", icon: "" },
 ];
 
 const AdvancePaymentForm: React.FC<AdvancePaymentFormProps> = ({
@@ -60,9 +61,10 @@ const AdvancePaymentForm: React.FC<AdvancePaymentFormProps> = ({
   onSave,
 }) => {
   const [loading, setLoading] = useState(false);
+  const [fetchingBedPrice, setFetchingBedPrice] = useState(false);
+  const [bedRentAmount, setBedRentAmount] = useState<number>(0);
   const [formData, setFormData] = useState({
     amount_paid: "",
-    actual_rent_amount: "",
     payment_date: "",
     payment_method: "" as string,
     status: "",
@@ -76,7 +78,6 @@ const AdvancePaymentForm: React.FC<AdvancePaymentFormProps> = ({
     if (mode === "edit" && existingPayment) {
       setFormData({
         amount_paid: existingPayment.amount_paid?.toString() || "",
-        actual_rent_amount: existingPayment.actual_rent_amount?.toString() || "",
         payment_date: existingPayment.payment_date
           ? new Date(existingPayment.payment_date).toISOString().split("T")[0]
           : "",
@@ -88,8 +89,7 @@ const AdvancePaymentForm: React.FC<AdvancePaymentFormProps> = ({
       // Reset form for add mode
       setFormData({
         amount_paid: "",
-        actual_rent_amount: "",
-        payment_date: new Date().toISOString().split("T")[0],
+        payment_date: "",
         payment_method: "",
         status: "",
         remarks: "",
@@ -97,6 +97,35 @@ const AdvancePaymentForm: React.FC<AdvancePaymentFormProps> = ({
     }
     setErrors({});
   }, [mode, existingPayment, visible]);
+
+  // Fetch bed details to get rent amount
+  useEffect(() => {
+    const fetchDetails = async () => {
+      if (visible && bedId > 0) {
+        try {
+          setFetchingBedPrice(true);
+
+          // Fetch bed price
+          const bedResponse = await getBedById(bedId, {
+            pg_id: pgId,
+          });
+
+          if (bedResponse.success && bedResponse.data?.bed_price) {
+            const bedPrice = typeof bedResponse.data.bed_price === 'string' 
+              ? parseFloat(bedResponse.data.bed_price) 
+              : bedResponse.data.bed_price;
+            setBedRentAmount(bedPrice);
+          }
+        } catch (error) {
+          console.error("Error fetching bed details:", error);
+        } finally {
+          setFetchingBedPrice(false);
+        }
+      }
+    };
+
+    fetchDetails();
+  }, [visible, bedId, pgId]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -136,9 +165,6 @@ const AdvancePaymentForm: React.FC<AdvancePaymentFormProps> = ({
           room_id: roomId,
           bed_id: bedId,
           amount_paid: parseFloat(formData.amount_paid),
-          actual_rent_amount: formData.actual_rent_amount
-            ? parseFloat(formData.actual_rent_amount)
-            : undefined,
           payment_date: formData.payment_date,
           payment_method: formData.payment_method as
             | "GPAY"
@@ -154,9 +180,6 @@ const AdvancePaymentForm: React.FC<AdvancePaymentFormProps> = ({
       } else if (mode === "edit" && paymentId && onSave) {
         const updateData = {
           amount_paid: parseFloat(formData.amount_paid),
-          actual_rent_amount: formData.actual_rent_amount
-            ? parseFloat(formData.actual_rent_amount)
-            : undefined,
           payment_date: formData.payment_date,
           payment_method: formData.payment_method,
           status: formData.status,
@@ -179,7 +202,6 @@ const AdvancePaymentForm: React.FC<AdvancePaymentFormProps> = ({
   const handleClose = () => {
     setFormData({
       amount_paid: "",
-      actual_rent_amount: "",
       payment_date: "",
       payment_method: "",
       status: "",
@@ -246,7 +268,32 @@ const AdvancePaymentForm: React.FC<AdvancePaymentFormProps> = ({
                 year: "numeric",
               })}
             </Text>
+
           </View>
+          <View style={{ flexDirection: "row", marginBottom: 4 }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: Theme.colors.text.tertiary,
+                  width: 100,
+                }}
+              >
+                Bed Rent Amount:
+              </Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "700",
+                  color: Theme.colors.primary,
+                }}
+              >
+                {fetchingBedPrice ? (
+                  <ActivityIndicator size="small" color={Theme.colors.primary} />
+                ) : (
+                  `₹${bedRentAmount.toLocaleString("en-IN")}`
+                )}
+              </Text>
+            </View>
         </View>
       )}
 
@@ -264,15 +311,7 @@ const AdvancePaymentForm: React.FC<AdvancePaymentFormProps> = ({
           containerStyle={{ marginBottom: 16 }}
         />
 
-        {/* Actual Rent Amount (Optional) */}
-        <AmountInput
-          label="Actual Rent Amount (Optional)"
-          value={formData.actual_rent_amount}
-          onChangeText={(text) =>
-            setFormData({ ...formData, actual_rent_amount: text })
-          }
-          containerStyle={{ marginBottom: 16 }}
-        />
+        
 
         {/* Payment Date */}
         <View style={{ marginBottom: 16 }}>

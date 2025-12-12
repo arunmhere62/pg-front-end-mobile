@@ -36,8 +36,8 @@ interface TenantsScreenProps {
 
 export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { tenants, pagination, loading } = useSelector((state: RootState) => state.tenants);
-  const { selectedPGLocationId } = useSelector((state: RootState) => state.pgLocations);
+  const { tenants, pagination, loading } = useSelector((state: RootState) => state?.tenants);
+  const { selectedPGLocationId } = useSelector((state: RootState) => state?.pgLocations);
   const { user } = useSelector((state: RootState) => state.auth);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,6 +50,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
   const [pendingRentFilter, setPendingRentFilter] = useState(false);
   const [pendingAdvanceFilter, setPendingAdvanceFilter] = useState(false);
   const [partialRentFilter, setPartialRentFilter] = useState(false);
+
   const [expandedPaymentCards, setExpandedPaymentCards] = useState<Set<number>>(new Set());
   const flatListRef = React.useRef<any>(null);
   const scrollPositionRef = React.useRef(0);
@@ -93,8 +94,19 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
   // Reload tenants when screen comes into focus (only if needed)
   useFocusEffect(
     React.useCallback(() => {
-      // Only reload if filters changed or it's the first load
-      if (shouldReloadOnFocus || tenants.length === 0) {
+      // Check if refresh parameter was passed
+      const route = navigation.getState();
+      const currentRoute = route.routes[route.index];
+      const shouldRefresh = currentRoute?.params?.refresh;
+      
+      if (shouldRefresh) {
+        console.log('Refresh parameter detected, refreshing tenant list');
+        setCurrentPage(1);
+        setHasMore(true);
+        loadTenants(1, true);
+        // Clear the refresh parameter
+        navigation.setParams({ refresh: undefined });
+      } else if (shouldReloadOnFocus || tenants.length === 0) {
         setCurrentPage(1);
         setHasMore(true);
         loadTenants(1, true);
@@ -110,7 +122,7 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
           }
         }, 100); // Small delay to ensure list is rendered
       }
-    }, [shouldReloadOnFocus, tenants.length])
+    }, [shouldReloadOnFocus, tenants.length, navigation])
   );
 
   const loadTenants = async (page: number, reset: boolean = false) => {

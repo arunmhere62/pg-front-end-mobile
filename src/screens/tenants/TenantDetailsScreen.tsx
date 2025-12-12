@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -16,7 +17,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { fetchTenantById, fetchTenants } from '../../store/slices/tenantSlice';
-import { TenantPayment, AdvancePayment, RefundPayment, CurrentBill, PendingPaymentMonth } from '../../services/tenants/tenantService';
+import { TenantPayment, AdvancePayment, RefundPayment, CurrentBill, PendingPaymentMonth, deleteTenant } from '../../services/tenants/tenantService';
 import { Card } from '../../components/Card';
 import { AnimatedPressableCard } from '../../components/AnimatedPressableCard';
 import { Theme } from '../../theme';
@@ -24,8 +25,8 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ScreenLayout } from '../../components/ScreenLayout';
 import axiosInstance from '../../services/core/axiosInstance';
 import { CONTENT_COLOR } from '@/constant';
-import RentPaymentForm from '../payments/RentPaymentForm';
-import { AddRefundPaymentModal } from '../payments/AddRefundPaymentModal';
+import RentPaymentForm from './RentPaymentForm';
+import { AddRefundPaymentModal } from './AddRefundPaymentModal';
 import { EditRefundPaymentModal } from '../../components/EditRefundPaymentModal';
 import { Ionicons } from '@expo/vector-icons';
 import { ReceiptPdfGenerator } from '@/services/receipt/receiptPdfGenerator';
@@ -48,7 +49,7 @@ import refundPaymentService from '@/services/payments/refundPaymentService';
 import { paymentService } from '@/services/payments/paymentService';
 import { createCurrentBill } from '@/services/bills/currentBillService';
 import { showErrorAlert } from '@/utils/errorHandler';
-import AdvancePaymentForm from '../payments/AdvancePaymentForm';
+import AdvancePaymentForm from './AdvancePaymentForm';
 
 // Inner component that doesn't directly interact with frozen navigation context
 const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({ tenantId, navigation }) => {
@@ -112,6 +113,23 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
   useEffect(() => {
     loadTenantDetails();
   }, [tenantId]);
+
+  // Handle refresh parameter when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      const route = navigation.getState();
+      const currentRoute = route.routes[route.index];
+      const shouldRefresh = currentRoute?.params?.refresh;
+      
+      if (shouldRefresh) {
+        console.log('Refresh parameter detected in TenantDetails, reloading data');
+        loadTenantDetails();
+        refreshTenantList(); // Also refresh tenant list
+        // Clear the refresh parameter
+        navigation.setParams({ refresh: undefined });
+      }
+    }, [navigation, tenantId])
+  );
 
   const loadTenantDetails = async () => {
     try {
@@ -578,6 +596,70 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
     );
   };
 
+  const handleDeleteTenant = () => {
+    const hasRefundPaid = currentTenant?.is_refund_paid;
+    
+    if (!hasRefundPaid) {
+      // Show warning about unpaid refund
+      Alert.alert(
+        'Unpaid Refund Warning',
+        'This tenant does not have refund paid. Are you sure you still want to delete this tenant?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Delete Anyway',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await deleteTenant(currentTenant?.s_no || 0, {
+                  organization_id: user?.organization_id || undefined,
+                  user_id: user?.s_no || undefined,
+                });
+                Alert.alert('Success', 'Tenant deleted successfully');
+                refreshTenantList(); // Refresh tenant list
+                navigation.goBack();
+              } catch (error: any) {
+                showErrorAlert(error, 'Delete Error');
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      // Standard deletion confirmation for tenants with paid refund
+      Alert.alert(
+        'Delete Tenant',
+        `Are you sure you want to delete ${currentTenant?.name || 'this tenant'}? This action cannot be undone.`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await deleteTenant(currentTenant?.s_no || 0, {
+                  organization_id: user?.organization_id || undefined,
+                  user_id: user?.s_no || undefined,
+                });
+                Alert.alert('Success', 'Tenant deleted successfully');
+                refreshTenantList(); // Refresh tenant list
+                navigation.goBack();
+              } catch (error: any) {
+                showErrorAlert(error, 'Delete Error');
+              }
+            },
+          },
+        ]
+      );
+    }
+  };
+
   const handleCall = (phoneNumber: string) => {
     Linking.openURL(`tel:${phoneNumber}`);
   };
@@ -702,9 +784,6 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
         {/* Accommodation Details */}
         <AccommodationDetails
           tenant={tenant}
-          onChangeCheckoutDate={handleChangeCheckoutDate}
-          onClearCheckout={handleClearCheckout}
-          checkoutLoading={checkoutLoading}
         />
 
         {/* Personal Information */}
@@ -727,6 +806,10 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
             pgName: tenant.pg_locations?.location_name || 'PG',
             roomNumber: tenant.rooms?.room_no || '',
             bedNumber: tenant.beds?.bed_no || '',
+            roomId: tenant.room_id || 0,
+            bedId: tenant.bed_id || 0,
+            pgId: tenant.pg_id || selectedPGLocationId || 0,
+            joiningDate: tenant.check_in_date,
           })}
           style={{
             marginHorizontal: 16,
@@ -918,56 +1001,97 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
           )}
         </CollapsibleSection>
 
-        {/* Checkout Actions - Only show if there's an action available */}
-        {(currentTenant?.status === 'ACTIVE' && !currentTenant?.check_out_date) || 
-         (currentTenant?.status === 'INACTIVE' && currentTenant?.check_out_date) ? (
-          <Card style={{ marginHorizontal: 16, marginBottom: 16, padding: 16 }}>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              {currentTenant?.status === 'ACTIVE' && !currentTenant?.check_out_date && (
-                <TouchableOpacity
-                  onPress={handleCheckout}
-                  disabled={checkoutLoading}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 12,
-                    paddingHorizontal: 16,
-                    backgroundColor: checkoutLoading ? '#9CA3AF' : '#F59E0B',
-                    borderRadius: 8,
-                    alignItems: 'center',
-                    opacity: checkoutLoading ? 0.6 : 1,
-                  }}
-                >
-                  {checkoutLoading ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Checkout</Text>
-                  )}
-                </TouchableOpacity>
-              )}
-              {currentTenant?.status === 'INACTIVE' && currentTenant?.check_out_date && (
-                <TouchableOpacity
-                  onPress={handleClearCheckout}
-                  disabled={checkoutLoading}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 12,
-                    paddingHorizontal: 16,
-                    backgroundColor: checkoutLoading ? '#9CA3AF' : '#10B981',
-                    borderRadius: 8,
-                    alignItems: 'center',
-                    opacity: checkoutLoading ? 0.6 : 1,
-                  }}
-                >
-                  {checkoutLoading ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Clear Checkout</Text>
-                  )}
-                </TouchableOpacity>
-              )}
+        {/* Checkout Actions - Only show if there's a checkout date */}
+        {currentTenant?.check_out_date ? (
+          <View style={{ marginHorizontal: 16, marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+              <TouchableOpacity
+                onPress={handleChangeCheckoutDate}
+                disabled={checkoutLoading}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  paddingHorizontal: 8,
+                  backgroundColor: checkoutLoading ? '#E5E7EB' : '#6366F1',
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  minHeight: 44,
+                }}
+              >
+                {checkoutLoading ? (
+                  <ActivityIndicator color="#6B7280" size="small" />
+                ) : (
+                  <View style={{ alignItems: 'center' }}>
+                    <Ionicons name="calendar-outline" size={16} color="#fff" />
+                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600', marginTop: 2 }}>Change Checkout Date</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleClearCheckout}
+                disabled={checkoutLoading}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  paddingHorizontal: 8,
+                  backgroundColor: checkoutLoading ? '#E5E7EB' : '#10B981',
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  minHeight: 44,
+                }}
+              >
+                {checkoutLoading ? (
+                  <ActivityIndicator color="#6B7280" size="small" />
+                ) : (
+                  <View style={{ alignItems: 'center' }}>
+                    <Ionicons name="refresh-outline" size={16} color="#fff" />
+                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600', marginTop: 2 }}>Clear Checkout</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
             </View>
-          </Card>
-        ) : null}
+            <TouchableOpacity
+              onPress={handleDeleteTenant}
+              style={{
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                backgroundColor: '#EF4444',
+                borderRadius: 8,
+                alignItems: 'center',
+                minHeight: 44,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="trash-outline" size={16} color="#fff" />
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Delete Tenant</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={{ marginHorizontal: 16, marginBottom: 16 }}>
+            <TouchableOpacity
+              onPress={handleCheckout}
+              disabled={checkoutLoading}
+              style={{
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                backgroundColor: checkoutLoading ? '#E5E7EB' : '#F59E0B',
+                borderRadius: 8,
+                alignItems: 'center',
+                minHeight: 44,
+              }}
+            >
+              {checkoutLoading ? (
+                <ActivityIndicator color="#6B7280" size="small" />
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="log-out-outline" size={16} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Checkout</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Bottom Spacing */}
         <View style={{ height: 32 }} />
@@ -1037,6 +1161,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
           }}
           onSuccess={() => {
             loadTenantDetails();
+            refreshTenantList();
           }}
           onSave={handleSaveRentPayment}
         />

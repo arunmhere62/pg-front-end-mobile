@@ -101,6 +101,21 @@ const MainTabs = () => {
       permission: Permission.VIEW_PAYMENTS,
     },
     {
+      name: 'RentPayments',
+      component: RentPaymentsScreen,
+      permission: Permission.VIEW_PAYMENTS,
+    },
+    {
+      name: 'AdvancePayments',
+      component: AdvancePaymentsScreen,
+      permission: Permission.VIEW_PAYMENTS,
+    },
+    {
+      name: 'RefundPayments',
+      component: RefundPaymentsScreen,
+      permission: Permission.VIEW_PAYMENTS,
+    },
+    {
       name: 'Settings',
       component: SettingsScreen,
       permission: Permission.VIEW_SETTINGS,
@@ -165,9 +180,6 @@ export const AppNavigator = () => {
             <Stack.Screen name="Beds" component={BedsScreen} />
             <Stack.Screen name="TenantDetails" component={TenantDetailsScreen} />
             <Stack.Screen name="AddTenant" component={AddTenantScreen} />
-            <Stack.Screen name="RentPayments" component={RentPaymentsScreen} />
-            <Stack.Screen name="AdvancePayments" component={AdvancePaymentsScreen} />
-            <Stack.Screen name="RefundPayments" component={RefundPaymentsScreen} />
             <Stack.Screen name="UserProfile" component={UserProfileScreen} />
             <Stack.Screen name="Expenses" component={ExpenseScreen} />
             <Stack.Screen name="EmployeeSalary" component={EmployeeSalaryScreen} />
