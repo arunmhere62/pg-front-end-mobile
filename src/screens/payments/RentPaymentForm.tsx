@@ -233,6 +233,304 @@ const RentPaymentForm: React.FC<RentPaymentFormProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [gapWarning, setGapWarning] = useState<{
+    visible: boolean;
+    gaps: any[];
+    earliestGap: any | null;
+    skipGaps: boolean;
+  }>({
+    visible: false,
+    gaps: [],
+    earliestGap: null,
+    skipGaps: false,
+  });
+  const [checkingGaps, setCheckingGaps] = useState(false);
+
+  // Function to detect payment gaps
+  const detectPaymentGaps = async () => {
+    if (tenantId <= 0) return;
+    
+    try {
+      setCheckingGaps(true);
+      const response = await paymentService.detectPaymentGaps(tenantId);
+      
+      if (response.success && response.data) {
+        const gapData = response.data as any;
+        const { hasGaps, gaps } = gapData;
+        
+        if (hasGaps && gaps && gaps.length > 0) {
+          setGapWarning({
+            visible: true,
+            gaps: gaps,
+            earliestGap: null, // Don't auto-select
+            skipGaps: false,
+          });
+          
+          // Don't auto-fill form - let user select first
+        } else {
+          setGapWarning({
+            visible: false,
+            gaps: [],
+            earliestGap: null,
+            skipGaps: false,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error detecting gaps:", error);
+    } finally {
+      setCheckingGaps(false);
+    }
+  };
+
+  // Function to handle gap button click
+  const handleGapButtonClick = (gap: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      start_date: gap.gapStart,
+      end_date: gap.gapEnd,
+      status: "PENDING",
+    }));
+    
+    // Update warning to show this gap is selected
+    setGapWarning((prev) => ({
+      ...prev,
+      earliestGap: gap,
+      skipGaps: false,
+    }));
+  };
+
+  // ============================================================================
+  // CALENDAR CYCLE - CONTINUE TO NEXT PAYMENT
+  // ============================================================================
+
+  // Handle "Continue to Next Payment" for CALENDAR cycle
+  const handleContinueToNextPaymentCalendar = async () => {
+    try {
+      const response = await paymentService.getNextPaymentDates(tenantId, 'CALENDAR', true);
+      
+      if (response.success && response.data) {
+        const nextDates = response.data as any;
+        
+        // Auto-fill form with next payment dates
+        setFormData((prev) => ({
+          ...prev,
+          start_date: nextDates.suggestedStartDate,
+          end_date: nextDates.suggestedEndDate || nextDates.suggestedStartDate,
+          status: "PENDING",
+        }));
+        
+        // Hide gap warning and mark as skipped
+        setGapWarning((prev) => ({
+          ...prev,
+          skipGaps: true,
+          visible: false,
+        }));
+      }
+    } catch (error) {
+      console.error("Error getting next payment dates (CALENDAR):", error);
+      Alert.alert("Error", "Failed to calculate next payment dates");
+    }
+  };
+
+  // ============================================================================
+  // MIDMONTH CYCLE - CONTINUE TO NEXT PAYMENT
+  // ============================================================================
+
+  // Handle "Continue to Next Payment" for MIDMONTH cycle
+  const handleContinueToNextPaymentMidmonth = async () => {
+    try {
+      const response = await paymentService.getNextPaymentDates(tenantId, 'MIDMONTH', true);
+      
+      if (response.success && response.data) {
+        const nextDates = response.data as any;
+        
+        // Auto-fill form with next payment dates
+        setFormData((prev) => ({
+          ...prev,
+          start_date: nextDates.suggestedStartDate,
+          end_date: nextDates.suggestedEndDate || nextDates.suggestedStartDate,
+          status: "PENDING",
+        }));
+        
+        // Hide gap warning and mark as skipped
+        setGapWarning((prev) => ({
+          ...prev,
+          skipGaps: true,
+          visible: false,
+        }));
+      }
+    } catch (error) {
+      console.error("Error getting next payment dates (MIDMONTH):", error);
+      Alert.alert("Error", "Failed to calculate next payment dates");
+    }
+  };
+
+  // ============================================================================
+  // UNIFIED CONTINUE TO NEXT PAYMENT HANDLER
+  // ============================================================================
+
+  // Function to handle "Continue to Next Payment" (skip gaps) - routes to appropriate cycle handler
+  const handleContinueToNextPayment = async () => {
+    if (!rentCycleData) {
+      Alert.alert("Error", "Rent cycle data not available");
+      return;
+    }
+
+    if (rentCycleData.type === 'CALENDAR') {
+      await handleContinueToNextPaymentCalendar();
+    } else {
+      await handleContinueToNextPaymentMidmonth();
+    }
+  };
+
+  // ============================================================================
+  // CALENDAR CYCLE HELPERS
+  // ============================================================================
+  
+  // Format gap display for CALENDAR cycle (month-based)
+  const formatCalendarGapDisplay = (gapStart: string, gapEnd: string): string => {
+    try {
+      const startDate = new Date(gapStart);
+      const endDate = new Date(gapEnd);
+      const startMonth = startDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+      const endMonth = endDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+      
+      if (startMonth === endMonth) {
+        return startMonth;
+      }
+      return `${startMonth} - ${endMonth}`;
+    } catch {
+      return `${gapStart} to ${gapEnd}`;
+    }
+  };
+
+  // ============================================================================
+  // MIDMONTH CYCLE HELPERS
+  // ============================================================================
+  
+  // Format gap display for MIDMONTH cycle (day-based)
+  const formatMidmonthGapDisplay = (gapStart: string, gapEnd: string): string => {
+    try {
+      const startDate = new Date(gapStart);
+      const endDate = new Date(gapEnd);
+      const startDay = startDate.getDate();
+      const endDay = endDate.getDate();
+      const startMonth = startDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+      const endMonth = endDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+      
+      // For midmonth, show the day range (e.g., "15 Nov 2025 - 14 Dec 2025")
+      return `${startDay} ${startMonth.split(' ')[0]} - ${endDay} ${endMonth}`;
+    } catch {
+      return `${gapStart} to ${gapEnd}`;
+    }
+  };
+
+  // ============================================================================
+  // UNIFIED GAP DISPLAY FORMATTER
+  // ============================================================================
+  
+  // Format gap month display based on rent cycle type
+  const formatGapMonthDisplay = (gapStart: string, gapEnd: string): string => {
+    if (!rentCycleData) {
+      return `${gapStart} to ${gapEnd}`;
+    }
+
+    if (rentCycleData.type === 'CALENDAR') {
+      return formatCalendarGapDisplay(gapStart, gapEnd);
+    } else {
+      return formatMidmonthGapDisplay(gapStart, gapEnd);
+    }
+  };
+
+  // ============================================================================
+  // PAYMENT REFERENCE SECTION - CALENDAR CYCLE
+  // ============================================================================
+
+  // Render rent cycle info for CALENDAR cycle
+  const renderCalendarRentCycleInfo = () => (
+    <View
+      style={{
+        flexDirection: "row",
+        marginBottom: 4,
+        alignItems: "flex-start",
+        flexWrap: "wrap",
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 12,
+          color: Theme.colors.text.tertiary,
+          marginRight: 6,
+        }}
+      >
+        Rent Cycle:
+      </Text>
+      <View style={{ flex: 1 }}>
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: "600",
+            color: Theme.colors.text.primary,
+            flexShrink: 1,
+            flexWrap: "wrap",
+          }}
+        >
+          📅 Calendar (1st - Last day)
+        </Text>
+      </View>
+    </View>
+  );
+
+  // ============================================================================
+  // PAYMENT REFERENCE SECTION - MIDMONTH CYCLE
+  // ============================================================================
+
+  // Render rent cycle info for MIDMONTH cycle
+  const renderMidmonthRentCycleInfo = () => (
+    <View
+      style={{
+        flexDirection: "row",
+        marginBottom: 4,
+        alignItems: "flex-start",
+        flexWrap: "wrap",
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 12,
+          color: Theme.colors.text.tertiary,
+          marginRight: 6,
+        }}
+      >
+        Rent Cycle:
+      </Text>
+      <View style={{ flex: 1 }}>
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: "600",
+            color: Theme.colors.text.primary,
+            flexShrink: 1,
+            flexWrap: "wrap",
+          }}
+        >
+          🔄 Mid-Month (Any day - Same day next month - 1)
+        </Text>
+      </View>
+    </View>
+  );
+
+  // Unified rent cycle info renderer
+  const renderRentCycleInfo = () => {
+    if (!rentCycleData) return null;
+
+    if (rentCycleData.type === 'CALENDAR') {
+      return renderCalendarRentCycleInfo();
+    } else {
+      return renderMidmonthRentCycleInfo();
+    }
+  };
 
   // Fetch bed details and PG location rent cycle data
   useEffect(() => {
@@ -294,6 +592,13 @@ const RentPaymentForm: React.FC<RentPaymentFormProps> = ({
 
     fetchDetails();
   }, [visible, bedId, pgId, rentAmount]);
+
+  // Detect payment gaps when form opens in add mode
+  useEffect(() => {
+    if (visible && mode === "add" && tenantId > 0) {
+      detectPaymentGaps();
+    }
+  }, [visible, mode, tenantId]);
 
   // Load existing payment data for edit mode and check for previous payments
   useEffect(() => {
@@ -676,6 +981,229 @@ const RentPaymentForm: React.FC<RentPaymentFormProps> = ({
       cancelLabel="Cancel"
       isLoading={loading}
     >
+      {/* Gap Warning Alert - Modern Clean UI */}
+      {gapWarning.gaps && gapWarning.gaps.length > 0 && (
+        <View
+          style={{
+            marginHorizontal: 0,
+            marginBottom: 16,
+            padding: 14,
+            backgroundColor: '#F8FAFC',
+            borderRadius: 10,
+            borderLeftWidth: 5,
+            borderLeftColor: '#F59E0B',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 4,
+            elevation: 3,
+          }}
+        >
+          {/* Header - Compact */}
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 }}>
+            <Text style={{ fontSize: 24, marginRight: 10 }}>📅</Text>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: '700',
+                  color: '#1F2937',
+                  marginBottom: 2,
+                }}
+              >
+                Missing Rent Period{gapWarning.gaps.length > 1 ? 's' : ''}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: '#6B7280',
+                  lineHeight: 16,
+                }}
+              >
+                {gapWarning.gaps.length} gap{gapWarning.gaps.length > 1 ? 's' : ''} detected. Choose to fill or skip.
+              </Text>
+            </View>
+          </View>
+
+          {/* Gap Buttons - Horizontal Scroll */}
+          <View style={{ marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {gapWarning.gaps.map((gap, index) => {
+                const isSelected = gapWarning.earliestGap?.gapId === gap.gapId;
+                const monthDisplay = formatGapMonthDisplay(gap.gapStart, gap.gapEnd);
+                
+                return (
+                  <TouchableOpacity
+                    key={gap.gapId || index}
+                    onPress={() => handleGapButtonClick(gap)}
+                    style={{
+                      paddingVertical: 8,
+                      paddingHorizontal: 12,
+                      backgroundColor: isSelected ? '#F59E0B' : '#FFFFFF',
+                      borderRadius: 6,
+                      borderWidth: 1.5,
+                      borderColor: isSelected ? '#D97706' : '#E5E7EB',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      shadowColor: isSelected ? '#F59E0B' : 'transparent',
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: isSelected ? 0.2 : 0,
+                      shadowRadius: 2,
+                      elevation: isSelected ? 2 : 0,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontWeight: isSelected ? '700' : '600',
+                        color: isSelected ? '#FFFFFF' : '#374151',
+                      }}
+                    >
+                      {monthDisplay}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 9,
+                        fontWeight: '500',
+                        color: isSelected ? '#FEF3C7' : '#9CA3AF',
+                        marginTop: 2,
+                      }}
+                    >
+                      {gap.daysMissing}d
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Selected Period Info - Minimal */}
+          {gapWarning.earliestGap && (
+            <View
+              style={{
+                marginBottom: 12,
+                paddingHorizontal: 10,
+                paddingVertical: 8,
+                backgroundColor: '#FFFBEB',
+                borderRadius: 6,
+                borderLeftWidth: 3,
+                borderLeftColor: '#F59E0B',
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 10,
+                  fontWeight: '600',
+                  color: '#92400E',
+                  marginBottom: 4,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.3,
+                }}
+              >
+                Selected
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: '700',
+                    color: '#1F2937',
+                  }}
+                >
+                  {gapWarning.earliestGap.gapStart}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: '#9CA3AF',
+                    marginHorizontal: 6,
+                  }}
+                >
+                  →
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: '700',
+                    color: '#1F2937',
+                  }}
+                >
+                  {gapWarning.earliestGap.gapEnd}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 10,
+                    color: '#6B7280',
+                    marginLeft: 8,
+                  }}
+                >
+                  ({gapWarning.earliestGap.daysMissing}d)
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Action Buttons - Full Width Stack */}
+          <View style={{ gap: 8 }}>
+            <TouchableOpacity
+              onPress={() => {
+                // Keep warning visible after selection
+                // Form is already filled with selected gap dates
+                // Just show feedback that selection is confirmed
+              }}
+              style={{
+                paddingVertical: 11,
+                paddingHorizontal: 12,
+                backgroundColor: '#F59E0B',
+                borderRadius: 8,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#F59E0B',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.2,
+                shadowRadius: 3,
+                elevation: 2,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: '700',
+                  color: '#FFFFFF',
+                }}
+              >
+                ✓ Fill Selected Gap
+              </Text>
+             
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleContinueToNextPayment}
+              style={{
+                paddingVertical: 11,
+                paddingHorizontal: 12,
+                backgroundColor: '#FFFFFF',
+                borderRadius: 8,
+                borderWidth: 1.5,
+                borderColor: '#E5E7EB',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: '700',
+                  color: '#374151',
+                }}
+              >
+                Skip All Gaps
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {/* Payment Info Card */}
       {(joiningDate || lastPaymentStartDate || lastPaymentEndDate || bedRentAmount > 0) && (
         <View
@@ -830,44 +1358,7 @@ const RentPaymentForm: React.FC<RentPaymentFormProps> = ({
           )}
 
           {/* Rent Cycle Info */}
-          {rentCycleData && (
-            <View
-              style={{
-                flexDirection: "row",
-                marginBottom: 4,
-                alignItems: "flex-start",
-                flexWrap: "wrap",
-              }}
-            >
-              {/* Label */}
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: Theme.colors.text.tertiary,
-                  marginRight: 6,
-                }}
-              >
-                Rent Cycle:
-              </Text>
-
-              {/* Value */}
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: Theme.colors.text.primary,
-                    flexShrink: 1,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  {rentCycleData.type === "CALENDAR"
-                    ? "📅 Calendar (1st - Last day)"
-                    : "🔄 Mid-Month (Any day - Same day next month - 1)"}
-                </Text>
-              </View>
-            </View>
-          )}
+          {renderRentCycleInfo()}
 
 
           {/* Previous Payments List */}
@@ -990,31 +1481,6 @@ const RentPaymentForm: React.FC<RentPaymentFormProps> = ({
             >
               Payment Period <Text style={{ color: "#EF4444" }}>*</Text>
             </Text>
-            {rentCycleData && (
-              <TouchableOpacity
-                onPress={handleAutoFillDates}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  backgroundColor: Theme.colors.primary,
-                  borderRadius: 6,
-                  gap: 4,
-                }}
-              >
-                <Ionicons name="flash" size={14} color="#fff" />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: "#fff",
-                  }}
-                >
-                  {hasExistingPayments ? "Recalculate" : "Auto-fill"}
-                </Text>
-              </TouchableOpacity>
-            )}
           </View>
           {hasExistingPayments && (
             <View style={{ marginBottom: 12, paddingHorizontal: 8 }}>

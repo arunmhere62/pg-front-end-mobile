@@ -103,7 +103,7 @@ export const getAdvancePayments = async (
     headers: requestHeaders,
   });
 
-  return response.data;
+  return response.data.data;
 };
 
 /**

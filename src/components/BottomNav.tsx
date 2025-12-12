@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, TouchableOpacity, Text, StyleSheet, Platform, Modal, ScrollView, Animated } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Theme } from '../theme';
@@ -30,44 +30,238 @@ const userTabs: TabConfig[] = [
 export const BottomNav: React.FC<BottomNavProps> = React.memo(({ navigation, currentRoute }) => {
   const insets = useSafeAreaInsets();
   const { can } = usePermissions();
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+  const [paymentOptionsPosition, setPaymentOptionsPosition] = useState({ x: 0, y: 0 });
+  
+  // Animation values
+  const dropdownAnimValue = useRef(new Animated.Value(0)).current;
+  const backdropAnimValue = useRef(new Animated.Value(0)).current;
   
   // Filter tabs based on user permissions
   const accessibleTabs = userTabs.filter(tab => can(tab.permission));
   
-  return (
-    <BlurView
-      intensity={100}
-      tint="light"
-      style={[styles.container, { paddingBottom: Math.max(insets.bottom + 8, 20) }]}
+  const animateDropdownIn = () => {
+    Animated.parallel([
+      Animated.timing(dropdownAnimValue, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: false,
+      }),
+      Animated.timing(backdropAnimValue, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+  
+  const animateDropdownOut = (callback?: () => void) => {
+    Animated.parallel([
+      Animated.timing(dropdownAnimValue, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: false,
+      }),
+      Animated.timing(backdropAnimValue, {
+        toValue: 0,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      callback?.();
+    });
+  };
+  
+  const handleTabPress = (tab: TabConfig, event?: any) => {
+    if (tab.name === 'Payments') {
+      // Get position of the tab for dropdown
+      if (event) {
+        event.target?.measure?.((fx: number, fy: number, width: number, height: number, px: number, py: number) => {
+          setPaymentOptionsPosition({ x: px + width / 2, y: py });
+        });
+      }
+      
+      if (!showPaymentOptions) {
+        setShowPaymentOptions(true);
+        animateDropdownIn();
+      } else {
+        animateDropdownOut(() => setShowPaymentOptions(false));
+      }
+    } else {
+      if (showPaymentOptions) {
+        animateDropdownOut(() => setShowPaymentOptions(false));
+      }
+      navigation.navigate(tab.name);
+    }
+  };
+  
+  const PaymentOption = ({ icon, title, screen, color }: { icon: string; title: string; screen: string; color: string }) => (
+    <TouchableOpacity
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        marginBottom: 4,
+      }}
+      onPress={() => {
+        animateDropdownOut(() => {
+          setShowPaymentOptions(false);
+          navigation.navigate(screen);
+        });
+      }}
     >
-      {accessibleTabs.map((tab) => {
-        const isActive = currentRoute === tab.name;
-        return (
-          <TouchableOpacity
+      <View style={{
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: color,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 10,
+      }}>
+        <Ionicons name={icon as any} size={12} color="#fff" />
+      </View>
+      <Text style={{
+        fontSize: 13,
+        fontWeight: '500',
+        color: Theme.colors.text.primary,
+        flex: 1,
+      }}>
+        {title}
+      </Text>
+    </TouchableOpacity>
+  );
+  
+  return (
+    <>
+      <BlurView
+        intensity={100}
+        tint="light"
+        style={[styles.container, { paddingBottom: Math.max(insets.bottom + 8, 20) }]}
+      >
+        {accessibleTabs.map((tab) => {
+          const isActive = currentRoute === tab.name;
+          return (
+            <TouchableOpacity
             key={tab.name}
             style={styles.tab}
-            onPress={() => navigation.navigate(tab.name)}
+            onPress={(event) => handleTabPress(tab, event)}
             activeOpacity={0.8}
           >
-            <View style={styles.tabContainer}>
-              <View style={styles.tabContent}>
-                <Ionicons 
-                  name={tab.icon as any} 
-                  size={20} 
-                  color={isActive ? Theme.colors.primary : Theme.colors.text.tertiary}
-                />
-                <Text style={[
-                  styles.label,
-                  { color: isActive ? Theme.colors.primary : Theme.colors.text.tertiary }
-                ]}>
-                  {tab.label}
-                </Text>
+              <View style={styles.tabContainer}>
+                <View style={styles.tabContent}>
+                  <Ionicons 
+                    name={tab.icon as any} 
+                    size={20} 
+                    color={isActive ? Theme.colors.primary : Theme.colors.text.tertiary}
+                  />
+                  <Text style={[
+                    styles.label,
+                    { color: isActive ? Theme.colors.primary : Theme.colors.text.tertiary }
+                  ]}>
+                    {tab.label}
+                  </Text>
+                </View>
               </View>
-            </View>
-          </TouchableOpacity>
-        );
-      })}
-    </BlurView>
+            </TouchableOpacity>
+          );
+        })}
+      </BlurView>
+      
+      {/* Payment Options Dropdown */}
+      {showPaymentOptions && (
+        <Animated.View style={{
+          position: 'absolute',
+          bottom: 85, // More space from bottom nav
+          left: paymentOptionsPosition.x - 70, // Reduced width, center horizontally on tab
+          backgroundColor: Theme.colors.canvas,
+          borderRadius: 12,
+          padding: 8,
+          minWidth: 140, // Reduced width
+          borderWidth: 1,
+          borderColor: Theme.colors.border,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 6,
+          zIndex: 1000,
+          opacity: dropdownAnimValue,
+          transform: [
+            {
+              scale: dropdownAnimValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.8, 1],
+              }),
+            },
+            {
+              translateY: dropdownAnimValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: [10, 0],
+              }),
+            },
+          ],
+        }}>
+          {/* Dropdown arrow */}
+          <View style={{
+            position: 'absolute',
+            bottom: -6,
+            left: 70 - 6, // Center the arrow
+            width: 12,
+            height: 12,
+            backgroundColor: Theme.colors.canvas,
+            transform: [{ rotate: '45deg' }],
+            borderBottomWidth: 1,
+            borderRightWidth: 1,
+            borderBottomColor: Theme.colors.border,
+            borderRightColor: Theme.colors.border,
+          }} />
+          
+          <PaymentOption
+            icon="card"
+            title="Rent"
+            screen="Payments"
+            color={Theme.colors.primary}
+          />
+          <PaymentOption
+            icon="arrow-up"
+            title="Advance"
+            screen="AdvancePayments"
+            color="#10B981"
+          />
+          <PaymentOption
+            icon="arrow-down"
+            title="Refund"
+            screen="RefundPayments"
+            color="#EF4444"
+          />
+        </Animated.View>
+      )}
+      
+      {/* Backdrop to close dropdown */}
+      {showPaymentOptions && (
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'transparent',
+            zIndex: 999,
+            opacity: backdropAnimValue,
+          }}
+        >
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => animateDropdownOut(() => setShowPaymentOptions(false))}
+            activeOpacity={1}
+          />
+        </Animated.View>
+      )}
+    </>
   );
 });
 

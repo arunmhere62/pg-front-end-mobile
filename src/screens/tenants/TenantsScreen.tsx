@@ -277,6 +277,15 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
     const isAdvancePaid = item.is_advance_paid || false;
     const pendingMonths = item.pending_months || 0;
     
+    // Get new rent cycle information
+    const rentCycle = item.rent_cycle;
+    const paymentStatus = item.payment_status || 'NO_PAYMENT';
+    const unpaidMonths = item.unpaid_months || [];
+    
+    // Get partial payments information
+    const partialPayments = item.partial_payments || [];
+    const totalPartialDue = item.total_partial_due || 0;
+    
     // Determine payment status for display
     const hasOutstandingAmount = rentDueAmount > 0;
     const hasBothPartialAndPending = partialDueAmount > 0 && pendingDueAmount > 0;
@@ -384,11 +393,6 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
 
       {/* Contact Info */}
       <View style={{ marginBottom: 12 }}>
-        {item.email && (
-          <Text style={{ fontSize: 13, color: Theme.colors.text.secondary, marginBottom: 4 }}>
-            ✉️ {item.email}
-          </Text>
-        )}
         {item.occupation && (
           <Text style={{ fontSize: 13, color: Theme.colors.text.secondary }}>
             💼 {item.occupation}
@@ -402,53 +406,8 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
           Payment Status
         </Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, alignItems: 'center' }}>
-          {hasBothPartialAndPending ? (
-            <>
-              <View style={{
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                borderRadius: 11,
-                backgroundColor: '#F97316',
-              }}>
-                <Text style={{
-                  fontSize: 11,
-                  fontWeight: '700',
-                  color: '#fff',
-                }}>
-                  ⏳ PARTIAL
-                </Text>
-              </View>
-              <View style={{
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                borderRadius: 11,
-                backgroundColor: '#F59E0B',
-              }}>
-                <Text style={{
-                  fontSize: 11,
-                  fontWeight: '700',
-                  color: '#fff',
-                }}>
-                  📅 PENDING
-                </Text>
-              </View>
-            </>
-          ) : hasOutstandingAmount ? (
-            <View style={{
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 11,
-              backgroundColor: isRentPartial ? '#F97316' : '#F59E0B',
-            }}>
-              <Text style={{
-                fontSize: 11,
-                fontWeight: '700',
-                color: '#fff',
-              }}>
-                {isRentPartial ? '⏳ PARTIAL PAYMENT' : '📅 PENDING PAYMENT'}
-              </Text>
-            </View>
-          ) : isRentPaid ? (
+          {/* Paid Status Badge */}
+          {isRentPaid && (
             <View style={{
               paddingHorizontal: 12,
               paddingVertical: 6,
@@ -460,22 +419,43 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
                 fontWeight: '700',
                 color: '#fff',
               }}>
-                ✅ FULLY PAID
+                ✅ PAID
               </Text>
             </View>
-          ) : (
+          )}
+          
+          {/* Partial Status Badge */}
+          {isRentPartial && (
             <View style={{
               paddingHorizontal: 12,
               paddingVertical: 6,
               borderRadius: 11,
-              backgroundColor: '#9CA3AF',
+              backgroundColor: '#F97316',
             }}>
               <Text style={{
                 fontSize: 11,
                 fontWeight: '700',
                 color: '#fff',
               }}>
-                📋 NO STATUS
+                ⏳ PARTIAL
+              </Text>
+            </View>
+          )}
+          
+          {/* Pending Status Badge */}
+          {!isRentPaid && (
+            <View style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 11,
+              backgroundColor: '#F59E0B',
+            }}>
+              <Text style={{
+                fontSize: 11,
+                fontWeight: '700',
+                color: '#fff',
+              }}>
+                📅 PENDING
               </Text>
             </View>
           )}
@@ -561,11 +541,23 @@ export const TenantsScreen: React.FC<TenantsScreenProps> = ({ navigation }) => {
             </View>
           )}
           
-          {/* Show pending months info if available */}
-          {pendingMonths > 0 && (
-            <Text style={{ fontSize: 11, color: '#D97706', marginBottom: 2 }}>
-              {pendingMonths} month(s) with pending payments
-            </Text>
+          {/* Show unpaid months info if available */}
+          {unpaidMonths.length > 0 && (
+            <View>
+              <Text style={{ fontSize: 11, color: '#D97706', marginBottom: 4 }}>
+                📅 {unpaidMonths.length} unpaid month(s):
+              </Text>
+              {unpaidMonths.slice(0, 2).map((month: any, index: number) => (
+                <Text key={index} style={{ fontSize: 10, color: '#D97706', marginBottom: 2 }}>
+                  • {month.month_name} ({month.cycle_start} to {month.cycle_end})
+                </Text>
+              ))}
+              {unpaidMonths.length > 2 && (
+                <Text style={{ fontSize: 10, color: '#D97706' }}>
+                  +{unpaidMonths.length - 2} more
+                </Text>
+              )}
+            </View>
           )}
           
           {!isAdvancePaid && (

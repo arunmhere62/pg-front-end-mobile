@@ -76,6 +76,26 @@ export const paymentService = {
     };
   },
 
+  detectPaymentGaps: async (tenant_id: number) => {
+    const response = await axiosInstance.get(`${API_ENDPOINTS.PAYMENTS.TENANT_PAYMENTS}/gaps/${tenant_id}`);
+    return {
+      success: isApiResponseSuccess(response.data),
+      data: extractResponseData(response.data),
+      message: response.data?.message || 'Success',
+    };
+  },
+
+  getNextPaymentDates: async (tenant_id: number, rentCycleType: string = 'CALENDAR', skipGaps: boolean = false) => {
+    const response = await axiosInstance.get(`${API_ENDPOINTS.PAYMENTS.TENANT_PAYMENTS}/next-dates/${tenant_id}`, {
+      params: { rentCycleType, skipGaps },
+    });
+    return {
+      success: isApiResponseSuccess(response.data),
+      data: extractResponseData(response.data),
+      message: response.data?.message || 'Success',
+    };
+  },
+
   // Legacy methods for backward compatibility
   getPayments: async () => {
     const response = await axiosInstance.get(API_ENDPOINTS.PAYMENTS.TENANT_PAYMENTS);

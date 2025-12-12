@@ -25,9 +25,7 @@ import { ScreenLayout } from '../../components/ScreenLayout';
 import axiosInstance from '../../services/core/axiosInstance';
 import { CONTENT_COLOR } from '@/constant';
 import RentPaymentForm from '../payments/RentPaymentForm';
-import { AddAdvancePaymentModal } from '../payments/AddAdvancePaymentModal';
 import { AddRefundPaymentModal } from '../payments/AddRefundPaymentModal';
-import { EditAdvancePaymentModal } from '../../components/EditAdvancePaymentModal';
 import { EditRefundPaymentModal } from '../../components/EditRefundPaymentModal';
 import { Ionicons } from '@expo/vector-icons';
 import { ReceiptPdfGenerator } from '@/services/receipt/receiptPdfGenerator';
@@ -50,6 +48,7 @@ import refundPaymentService from '@/services/payments/refundPaymentService';
 import { paymentService } from '@/services/payments/paymentService';
 import { createCurrentBill } from '@/services/bills/currentBillService';
 import { showErrorAlert } from '@/utils/errorHandler';
+import AdvancePaymentForm from '../payments/AdvancePaymentForm';
 
 // Inner component that doesn't directly interact with frozen navigation context
 const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({ tenantId, navigation }) => {
@@ -718,38 +717,96 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
           onToggle={() => toggleSection('currentBills')}
         />
 
-        {/* Rent Payments */}
-        <RentPaymentsSection
-          payments={tenant?.tenant_payments}
-          expanded={expandedSections.rentPayments}
-          onToggle={() => toggleSection('rentPayments')}
-          onEdit={handleEditRentPayment}
-          onDelete={handleDeleteRentPayment}
-          onViewReceipt={handleViewReceipt}
-          onWhatsAppReceipt={handleWhatsAppReceipt}
-          onShareReceipt={handleShareReceipt}
-        />
+        {/* Rent Payments Button - Always Show */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('RentPayments', {
+            payments: tenant?.tenant_payments || [],
+            tenantName: tenant.name,
+            tenantId: tenant.s_no,
+            tenantPhone: tenant.phone_no,
+            pgName: tenant.pg_locations?.location_name || 'PG',
+            roomNumber: tenant.rooms?.room_no || '',
+            bedNumber: tenant.beds?.bed_no || '',
+          })}
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 12,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            backgroundColor: '#DBEAFE',
+            borderRadius: 8,
+            borderLeftWidth: 3,
+            borderLeftColor: Theme.colors.primary,
+            opacity: tenant?.tenant_payments?.length > 0 ? 1 : 0.7,
+          }}
+        >
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: Theme.colors.primary }}>
+              📋 Rent Payments ({tenant?.tenant_payments?.length || 0})
+            </Text>
+            <Ionicons name="chevron-forward" size={20} color={Theme.colors.primary} />
+          </View>
+        </TouchableOpacity>
 
-        {/* Advance Payments */}
-        <AdvancePaymentsSection
-          payments={tenant?.advance_payments}
-          expanded={expandedSections.advancePayments}
-          onToggle={() => toggleSection('advancePayments')}
-          onEdit={handleEditAdvancePayment}
-          onDelete={handleDeleteAdvancePayment}
-          onViewReceipt={handleViewAdvanceReceipt}
-          onWhatsAppReceipt={handleWhatsAppAdvanceReceipt}
-          onShareReceipt={handleShareAdvanceReceipt}
-        />
+        {/* Advance Payments Button - Always Show */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AdvancePayments', {
+            payments: tenant?.advance_payments || [],
+            tenantName: tenant.name,
+            tenantId: tenant.s_no,
+            pgId: tenant.pg_id || selectedPGLocationId || 0,
+            tenantJoinedDate: tenant.check_in_date,
+            tenantPhone: tenant.phone_no,
+            pgName: tenant.pg_locations?.location_name || 'PG',
+            roomNumber: tenant.rooms?.room_no || '',
+            bedNumber: tenant.beds?.bed_no || '',
+          })}
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 12,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            backgroundColor: '#F0FDF4',
+            borderRadius: 8,
+            borderLeftWidth: 3,
+            borderLeftColor: '#10B981',
+            opacity: tenant?.advance_payments?.length > 0 ? 1 : 0.7,
+          }}
+        >
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#10B981' }}>
+              💰 Advance Payments ({tenant?.advance_payments?.length || 0})
+            </Text>
+            <Ionicons name="chevron-forward" size={20} color="#10B981" />
+          </View>
+        </TouchableOpacity>
 
-        {/* Refund Payments */}
-        <RefundPaymentsSection
-          payments={tenant?.refund_payments}
-          expanded={expandedSections.refundPayments}
-          onToggle={() => toggleSection('refundPayments')}
-          onEdit={handleEditRefundPayment}
-          onDelete={handleDeleteRefundPayment}
-        />
+        {/* Refund Payments Button - Always Show */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('RefundPayments', {
+            payments: tenant?.refund_payments || [],
+            tenantName: tenant.name,
+            tenantId: tenant.s_no,
+          })}
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 12,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            backgroundColor: '#FEF3C7',
+            borderRadius: 8,
+            borderLeftWidth: 3,
+            borderLeftColor: '#F59E0B',
+            opacity: tenant?.refund_payments?.length > 0 ? 1 : 0.7,
+          }}
+        >
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#D97706' }}>
+              🔄 Refund Payments ({tenant?.refund_payments?.length || 0})
+            </Text>
+            <Ionicons name="chevron-forward" size={20} color="#D97706" />
+          </View>
+        </TouchableOpacity>
 
         {/* Proof Documents */}
         <CollapsibleSection
@@ -985,13 +1042,29 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
         />
       )}
 
-      {/* Add Advance Payment Modal */}
+      {/* Advance Payment Form (Add/Edit) */}
       {tenant && (
-        <AddAdvancePaymentModal
-          visible={advancePaymentModalVisible}
-          tenant={tenant}
-          onClose={() => setAdvancePaymentModalVisible(false)}
-          onSave={handleSaveAdvancePayment}
+        <AdvancePaymentForm
+          visible={advancePaymentModalVisible || editAdvancePaymentModalVisible}
+          mode={editAdvancePaymentModalVisible ? "edit" : "add"}
+          tenantId={tenant.s_no}
+          tenantName={tenant.name}
+          tenantJoinedDate={tenant.check_in_date}
+          pgId={tenant.pg_id || selectedPGLocationId || 0}
+          roomId={tenant.room_id || 0}
+          bedId={tenant.bed_id || 0}
+          paymentId={editingAdvancePayment?.s_no}
+          existingPayment={editingAdvancePayment}
+          onClose={() => {
+            setAdvancePaymentModalVisible(false);
+            setEditAdvancePaymentModalVisible(false);
+            setEditingAdvancePayment(null);
+          }}
+          onSuccess={() => {
+            loadTenantDetails();
+            refreshTenantList();
+          }}
+          onSave={handleUpdateAdvancePayment}
         />
       )}
 
@@ -1004,17 +1077,6 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
           onSave={handleSaveRefundPayment}
         />
       )}
-
-      {/* Edit Advance Payment Modal */}
-      <EditAdvancePaymentModal
-        visible={editAdvancePaymentModalVisible}
-        payment={editingAdvancePayment}
-        onClose={() => {
-          setEditAdvancePaymentModalVisible(false);
-          setEditingAdvancePayment(null);
-        }}
-        onSave={handleUpdateAdvancePayment}
-      />
 
       {/* Edit Refund Payment Modal */}
       {tenant && (

@@ -57,7 +57,8 @@ export const QuickActions = memo<QuickActionsProps>(({ menuItems, onNavigate }) 
         opacity: opacityValue,
         flex: 1,
         marginHorizontal: 8,
-        marginBottom: 16
+        marginBottom: 16,
+        minHeight: 80
       }}>
         <TouchableOpacity
           onPress={() => onNavigate(item.screen)}
@@ -66,8 +67,9 @@ export const QuickActions = memo<QuickActionsProps>(({ menuItems, onNavigate }) 
           activeOpacity={1}
           style={{ 
             alignItems: 'center',
-            justifyContent: 'center',
-            flex: 1
+            justifyContent: 'flex-start',
+            flex: 1,
+            paddingTop: 8
           }}
         >
           {/* Icon container */}
@@ -79,27 +81,32 @@ export const QuickActions = memo<QuickActionsProps>(({ menuItems, onNavigate }) 
               borderRadius: 18,
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: 4,
+              marginBottom: 8,
             }}
           >
             <Ionicons name={item.icon as any} size={18} color="#fff" />
           </View>
           
-          {/* Text label */}
-          <Text 
-            style={{ 
-              color: Theme.colors.text.primary, 
-              fontWeight: '600', 
-              textAlign: 'center', 
-              fontSize: 9,
-              lineHeight: 11,
-              flex: 1
-            }}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {item.title}
-          </Text>
+          {/* Text label with fixed height */}
+          <View style={{ 
+            height: 32, 
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: '100%'
+          }}>
+            <Text 
+              style={{ 
+                color: Theme.colors.text.primary, 
+                fontWeight: '600', 
+                textAlign: 'center', 
+                fontSize: 9,
+                lineHeight: 11,
+                width: '100%'
+              }}
+            >
+              {item.title}
+            </Text>
+          </View>
         </TouchableOpacity>
       </Animated.View>
     );

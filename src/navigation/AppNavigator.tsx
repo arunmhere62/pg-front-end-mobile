@@ -24,7 +24,9 @@ import { AddTenantScreen } from '../screens/tenants/AddTenantScreen';
 import { RoomsScreen } from '../screens/rooms/RoomsScreen';
 import { RoomDetailsScreen } from '../screens/rooms/RoomDetailsScreen';
 import { BedsScreen } from '../screens/beds/BedsScreen';
-import { PaymentsScreen } from '../screens/payments/PaymentsScreen';
+import { RentPaymentsScreen } from '../screens/payments/RentPaymentsScreen';
+import { AdvancePaymentsScreen } from '../screens/payments/AdvancePaymentsScreen';
+import { RefundPaymentsScreen } from '../screens/payments/RefundPaymentsScreen';
 import { SettingsScreen } from '../screens/settings/SettingsScreen';
 import { UserProfileScreen } from '../screens/settings/UserProfileScreen';
 import { PGLocationsScreen } from '../screens/pg-locations/PGLocationsScreen';
@@ -44,6 +46,7 @@ import { SubscriptionPlansScreen } from '@/screens/subscription/SubscriptionPlan
 import { SubscriptionHistoryScreen } from '@/screens/subscription/SubscriptionHistoryScreen';
 import { PaymentOptionsScreen } from '@/screens/subscription/PaymentOptionsScreen';
 import { PaymentWebViewScreen } from '@/screens/subscription/PaymentWebViewScreen';
+import { PaymentsScreen } from '@/screens/payments/PaymentsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -159,6 +162,9 @@ export const AppNavigator = () => {
             <Stack.Screen name="Beds" component={BedsScreen} />
             <Stack.Screen name="TenantDetails" component={TenantDetailsScreen} />
             <Stack.Screen name="AddTenant" component={AddTenantScreen} />
+            <Stack.Screen name="RentPayments" component={RentPaymentsScreen} />
+            <Stack.Screen name="AdvancePayments" component={AdvancePaymentsScreen} />
+            <Stack.Screen name="RefundPayments" component={RefundPaymentsScreen} />
             <Stack.Screen name="UserProfile" component={UserProfileScreen} />
             <Stack.Screen name="Expenses" component={ExpenseScreen} />
             <Stack.Screen name="EmployeeSalary" component={EmployeeSalaryScreen} />
