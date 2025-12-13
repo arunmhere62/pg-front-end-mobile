@@ -28,7 +28,12 @@ export const showErrorAlert = (error: any, title: string = 'Error'): void => {
       } else if (data?.message) {
         errorMessage = data.message;
       } else if (data?.error) {
-        errorMessage = data.error;
+        // Handle case where error is an object with code/details
+        if (typeof data.error === 'string') {
+          errorMessage = data.error;
+        } else if (data.error?.message) {
+          errorMessage = data.error.message;
+        }
       } else if (data?.errors) {
         if (Array.isArray(data.errors)) {
           errorMessage = data.errors[0]?.message || data.errors[0] || '';
@@ -43,9 +48,12 @@ export const showErrorAlert = (error: any, title: string = 'Error'): void => {
       errorMessage = error.message;
     }
     
-    if (errorMessage) {
-      Alert.alert(title, errorMessage);
+    // Last resort - stringify the error
+    if (!errorMessage) {
+      errorMessage = JSON.stringify(error?.response?.data) || 'An error occurred. Please try again.';
     }
+    
+    Alert.alert(title, errorMessage);
   } catch (e) {
     console.error('Error in showErrorAlert:', e);
     Alert.alert(title, 'An error occurred. Please try again.');

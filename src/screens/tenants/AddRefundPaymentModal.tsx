@@ -12,6 +12,8 @@ import { DatePicker } from "../../components/DatePicker";
 import { SlideBottomModal } from "../../components/SlideBottomModal";
 import { OptionSelector, Option } from "../../components/OptionSelector";
 import { AmountInput } from "../../components/AmountInput";
+import { getBedById } from "@/services/rooms/bedService";
+import { showErrorAlert } from "@/utils/errorHandler";
 
 interface AddRefundPaymentModalProps {
   visible: boolean;
@@ -20,6 +22,7 @@ interface AddRefundPaymentModalProps {
     name: string;
     room_id?: number;
     bed_id?: number;
+    pg_id?: number;
     rooms?: {
       room_no: string;
       rent_price?: number;
@@ -62,18 +65,47 @@ export const AddRefundPaymentModal: React.FC<AddRefundPaymentModalProps> = ({
   onSave,
 }) => {
   const [amountPaid, setAmountPaid] = useState('');
-  const [actualRentAmount, setActualRentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [remarks, setRemarks] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fetchingBedPrice, setFetchingBedPrice] = useState(false);
+  const [bedRentAmount, setBedRentAmount] = useState<number>(0);
+
+  // Fetch bed details to get rent amount
+  useEffect(() => {
+    const fetchBedDetails = async () => {
+      if (visible && tenant?.bed_id && tenant?.room_id && tenant?.pg_id) {
+        try {
+          setFetchingBedPrice(true);
+
+          // Fetch bed price
+          const bedResponse = await getBedById(tenant.bed_id, {
+            pg_id: tenant.pg_id,
+          });
+
+          if (bedResponse.success && bedResponse.data?.bed_price) {
+            const bedPrice = typeof bedResponse.data.bed_price === 'string' 
+              ? parseFloat(bedResponse.data.bed_price) 
+              : bedResponse.data.bed_price;
+            setBedRentAmount(bedPrice);
+          }
+        } catch (error) {
+          console.error("Error fetching bed details:", error);
+        } finally {
+          setFetchingBedPrice(false);
+        }
+      }
+    };
+
+    fetchBedDetails();
+  }, [visible, tenant?.bed_id, tenant?.room_id, tenant?.pg_id]);
 
   useEffect(() => {
-    // Reset form when modal opens and set default actual rent amount
+    // Reset form when modal opens
     if (visible) {
       setAmountPaid('');
-      setActualRentAmount(tenant?.rooms?.rent_price ? tenant.rooms.rent_price.toString() : '');
       setPaymentDate('');
       setPaymentMethod('');
       setStatus('');
@@ -108,6 +140,11 @@ export const AddRefundPaymentModal: React.FC<AddRefundPaymentModalProps> = ({
       return;
     }
 
+    if (bedRentAmount === 0 && !fetchingBedPrice) {
+      Alert.alert('Error', 'Unable to fetch bed rent information. Please try again.');
+      return;
+    }
+
     setLoading(true);
     try {
       await onSave({
@@ -115,7 +152,7 @@ export const AddRefundPaymentModal: React.FC<AddRefundPaymentModalProps> = ({
         room_id: tenant.room_id,
         bed_id: tenant.bed_id,
         amount_paid: parseFloat(amountPaid),
-        actual_rent_amount: actualRentAmount ? parseFloat(actualRentAmount) : parseFloat(amountPaid),
+        actual_rent_amount: bedRentAmount,
         payment_date: paymentDate,
         payment_method: paymentMethod,
         status,
@@ -124,17 +161,14 @@ export const AddRefundPaymentModal: React.FC<AddRefundPaymentModalProps> = ({
 
       // Reset form
       setAmountPaid('');
-      setActualRentAmount('');
       setPaymentDate('');
       setPaymentMethod('');
       setStatus('');
       setRemarks('');
       
       onClose();
-    } catch (error: any) {
-      console.error('Error creating refund payment:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to create refund payment';
-      Alert.alert('Error', errorMessage);
+    } catch (error: unknown) {
+      showErrorAlert(error as any, 'Create Error');
     } finally {
       setLoading(false);
     }
@@ -143,7 +177,6 @@ export const AddRefundPaymentModal: React.FC<AddRefundPaymentModalProps> = ({
   const handleClose = () => {
     if (!loading) {
       setAmountPaid('');
-      setActualRentAmount('');
       setPaymentDate('');
       setPaymentMethod('');
       setStatus('');
@@ -175,13 +208,6 @@ export const AddRefundPaymentModal: React.FC<AddRefundPaymentModalProps> = ({
           containerStyle={{ marginBottom: 16 }}
         />
 
-        <AmountInput
-          label="Actual Rent Amount"
-          value={actualRentAmount}
-          onChangeText={setActualRentAmount}
-          error={""}
-          containerStyle={{ marginBottom: 16 }}
-        />
 
         <View style={{ marginBottom: 16 }}>
           <DatePicker

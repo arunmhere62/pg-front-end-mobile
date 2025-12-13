@@ -218,8 +218,6 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
       loadTenantDetails(); // Reload tenant details to show new payment
       refreshTenantList(); // Refresh tenant list
     } catch (error: any) {
-      console.error('Error in handleSaveRefundPayment:', error);
-      console.error('Error response:', error.response?.data);
       throw error; // Re-throw to let modal handle it
     }
   };

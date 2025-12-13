@@ -141,6 +141,7 @@ const refundPaymentService = {
     if (headers?.pg_id) requestHeaders['X-PG-Location-Id'] = headers.pg_id.toString();
     if (headers?.organization_id) requestHeaders['X-Organization-Id'] = headers.organization_id.toString();
     if (headers?.user_id) requestHeaders['X-User-Id'] = headers.user_id.toString();
+    requestHeaders['X-Skip-Global-Error'] = 'true';
 
     const response = await axiosInstance.post<{ success: boolean; message: string; data: RefundPayment }>(
       '/refund-payments',
