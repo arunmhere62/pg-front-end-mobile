@@ -28,6 +28,7 @@ import { CONTENT_COLOR } from '@/constant';
 import RentPaymentForm from './RentPaymentForm';
 import { AddRefundPaymentModal } from './AddRefundPaymentModal';
 import { EditRefundPaymentModal } from '../../components/EditRefundPaymentModal';
+import { CheckoutTenantForm } from './CheckoutTenantForm';
 import { Ionicons } from '@expo/vector-icons';
 import { ReceiptPdfGenerator } from '@/services/receipt/receiptPdfGenerator';
 import { CompactReceiptGenerator } from '@/services/receipt/compactReceiptGenerator';
@@ -532,7 +533,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
   // Checkout handlers
   const handleCheckout = () => {
     setCheckoutDateModalVisible(true);
-    setNewCheckoutDate(new Date().toISOString().split('T')[0]);
+    setNewCheckoutDate('');
   };
 
   const confirmCheckout = async () => {
@@ -681,7 +682,7 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
   };
 
   const handleChangeCheckoutDate = () => {
-    setNewCheckoutDate(currentTenant?.check_out_date ? new Date(currentTenant.check_out_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+    setNewCheckoutDate(currentTenant?.check_out_date ? new Date(currentTenant.check_out_date).toISOString().split('T')[0] : '');
     setCheckoutDateModalVisible(true);
   };
 
@@ -1103,24 +1104,24 @@ const TenantDetailsContent: React.FC<{ tenantId: number; navigation: any }> = ({
       />
 
       {/* Checkout Modal */}
-      <SlideBottomModal
-        visible={checkoutDateModalVisible}
-        title="Checkout Tenant"
-        subtitle={`Update checkout date for ${tenant?.name || ''}`}
-        isLoading={checkoutLoading}
-        submitLabel="Confirm Checkout"
-        cancelLabel="Cancel"
-        onClose={handleCloseCheckoutModal}
-        onSubmit={confirmUpdateCheckoutDate}
-      >
-        <View style={{ paddingVertical: 12 }}>
-          <DatePicker
-            label="Checkout Date"
-            value={newCheckoutDate}
-            onChange={setNewCheckoutDate}
+      {tenant && (
+        <SlideBottomModal
+          visible={checkoutDateModalVisible}
+          title="Checkout Tenant"
+          subtitle={`Update checkout date for ${tenant?.name || ''}`}
+          isLoading={checkoutLoading}
+          submitLabel="Confirm Checkout"
+          cancelLabel="Cancel"
+          onClose={handleCloseCheckoutModal}
+          onSubmit={confirmUpdateCheckoutDate}
+        >
+          <CheckoutTenantForm
+            tenant={tenant}
+            checkoutDate={newCheckoutDate}
+            onDateChange={setNewCheckoutDate}
           />
-        </View>
-      </SlideBottomModal>
+        </SlideBottomModal>
+      )}
 
       {/* Rent Payment Form (Add/Edit) */}
       {tenant && (
